@@ -1,0 +1,61 @@
+type User @table {
+  displayName: String!
+  createdAt: Timestamp!
+  email: String
+  photoUrl: String
+}
+
+type Sandwich @table {
+  name: String!
+  createdAt: Timestamp!
+  description: String
+  breadType: String
+  mainIngredient: String
+}
+
+type LoggedSandwich @table {
+  user: User
+  sandwich: Sandwich
+  createdAt: Timestamp!
+  eatDate: Date!
+  location: String
+  restaurantName: String
+}
+
+type Ingredient @table {
+  name: String!
+  createdAt: Timestamp!
+}
+
+type SandwichIngredient @table(key: ["loggedSandwich", "ingredient"]) {
+  loggedSandwich: LoggedSandwich!
+  ingredient: Ingredient!
+  quantity: String
+  preparationMethod: String
+}
+
+type Review @table {
+  loggedSandwich: LoggedSandwich
+  user: User
+  rating: Int!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  reviewText: String
+  isPublic: Boolean
+}
+
+type SandwichList @table {
+  user: User
+  name: String!
+  isPublic: Boolean!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  description: String
+}
+
+type SandwichListItem @table(key: ["sandwichList", "sandwich"]) {
+  sandwichList: SandwichList!
+  sandwich: Sandwich!
+  position: Int!
+  note: String
+}

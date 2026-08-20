@@ -1,0 +1,123 @@
+mutation CreateDemoData @transaction @auth(level: USER, insecureReason: "This operation is for seeding data and will be removed in production") {
+  user1: user_insert(data: {
+    id: "e4d2a1b0-2c7e-4f3d-8a5b-6c1f0e9d8a7b",
+    displayName: "Alice Smith",
+    email: "alice.smith@example.com",
+    photoUrl: "https://example.com/alice.jpg",
+    createdAt: "2023-01-01T10:00:00Z"
+  })
+  user2: user_insert(data: {
+    id: "f8c9b7a6-d4e5-4f2c-9a1b-0e3d2a1c4b5a",
+    displayName: "Bob Johnson",
+    email: "bob.johnson@example.com",
+    photoUrl: "https://example.com/bob.jpg",
+    createdAt: "2023-01-02T11:00:00Z"
+  })
+  sandwich1: sandwich_insert(data: {
+    id: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+    name: "Classic BLT",
+    description: "A timeless favorite with crispy bacon, fresh lettuce, and ripe tomatoes.",
+    breadType: "Toasted Sourdough",
+    mainIngredient: "Bacon",
+    createdAt: "2023-01-03T12:00:00Z"
+  })
+  sandwich2: sandwich_insert(data: {
+    id: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+    name: "Veggie Delight",
+    description: "A fresh and healthy option with a variety of seasonal vegetables.",
+    breadType: "Whole Wheat",
+    mainIngredient: "Hummus",
+    createdAt: "2023-01-04T13:00:00Z"
+  })
+  ingredient1: ingredient_insert(data: {
+    id: "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+    name: "Bacon",
+    createdAt: "2023-01-01T09:00:00Z"
+  })
+  ingredient2: ingredient_insert(data: {
+    id: "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+    name: "Lettuce",
+    createdAt: "2023-01-01T09:05:00Z"
+  })
+  ingredient3: ingredient_insert(data: {
+    id: "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b",
+    name: "Tomato",
+    createdAt: "2023-01-01T09:10:00Z"
+  })
+  ingredient4: ingredient_insert(data: {
+    id: "f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c",
+    name: "Sourdough Bread",
+    createdAt: "2023-01-01T09:15:00Z"
+  })
+  ingredient5: ingredient_insert(data: {
+    id: "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d",
+    name: "Hummus",
+    createdAt: "2023-01-01T09:20:00Z"
+  })
+  ingredient6: ingredient_insert(data: {
+    id: "b8c9d0e1-f2a3-4b4c-5d6e-7f8a9b0c1d2e",
+    name: "Whole Wheat Bread",
+    createdAt: "2023-01-01T09:25:00Z"
+  })
+  loggedSandwich1: loggedSandwich_insert(data: {
+    id: "a0b1c2d3-e4f5-4a6b-7c8d-9e0f1a2b3c4d",
+    userId: "e4d2a1b0-2c7e-4f3d-8a5b-6c1f0e9d8a7b",
+    sandwichId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+    createdAt: "2023-01-05T14:00:00Z",
+    eatDate: "2023-01-05",
+    location: "My Kitchen",
+    restaurantName: "Homemade"
+  })
+  loggedSandwich2: loggedSandwich_insert(data: {
+    id: "b1c2d3e4-f5a6-4b7c-8d9e-0f1a2b3c4d5e",
+    userId: "f8c9b7a6-d4e5-4f2c-9a1b-0e3d2a1c4b5a",
+    sandwichId: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+    createdAt: "2023-01-06T15:00:00Z",
+    eatDate: "2023-01-06",
+    location: "Local Cafe",
+    restaurantName: "The Sandwich Spot"
+  })
+  sandwichIngredient1: sandwichIngredient_insert(data: {
+    loggedSandwichId: "a0b1c2d3-e4f5-4a6b-7c8d-9e0f1a2b3c4d",
+    ingredientId: "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+    quantity: "3 slices",
+    preparationMethod: "Crispy"
+  })
+  sandwichIngredient2: sandwichIngredient_insert(data: {
+    loggedSandwichId: "a0b1c2d3-e4f5-4a6b-7c8d-9e0f1a2b3c4d",
+    ingredientId: "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+    quantity: "1 leaf",
+    preparationMethod: "Fresh"
+  })
+  sandwichIngredient3: sandwichIngredient_insert(data: {
+    loggedSandwichId: "b1c2d3e4-f5a6-4b7c-8d9e-0f1a2b3c4d5e",
+    ingredientId: "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b",
+    quantity: "2 slices",
+    preparationMethod: "Ripe"
+  })
+  review1: review_insert(data: {
+    id: "c0d1e2f3-a4b5-4c6d-7e8f-9a0b1c2d3e4f",
+    loggedSandwichId: "a0b1c2d3-e4f5-4a6b-7c8d-9e0f1a2b3c4d",
+    userId: "e4d2a1b0-2c7e-4f3d-8a5b-6c1f0e9d8a7b",
+    rating: 5,
+    reviewText: "Absolutely delicious BLT! The bacon was perfectly crispy.",
+    isPublic: true,
+    createdAt: "2023-01-05T14:30:00Z",
+    updatedAt: "2023-01-05T14:30:00Z"
+  })
+  sandwichList1: sandwichList_insert(data: {
+    id: "d0e1f2a3-b4c5-4d6e-7f8a-9b0c1d2e3f4a",
+    userId: "e4d2a1b0-2c7e-4f3d-8a5b-6c1f0e9d8a7b",
+    name: "My Favorite Sandwiches",
+    isPublic: true,
+    description: "A list of my top sandwich creations.",
+    createdAt: "2023-01-07T16:00:00Z",
+    updatedAt: "2023-01-07T16:00:00Z"
+  })
+  sandwichListItem1: sandwichListItem_insert(data: {
+    sandwichListId: "d0e1f2a3-b4c5-4d6e-7f8a-9b0c1d2e3f4a",
+    sandwichId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+    position: 1,
+    note: "My go-to BLT recipe."
+  })
+}

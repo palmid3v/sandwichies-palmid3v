@@ -1,0 +1,54 @@
+query ListPublicSandwichLists @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  sandwichLists(where: {isPublic: {eq: true}}) {
+    id
+    name
+    description
+    user {
+      displayName
+    }
+  }
+}
+
+query GetMySandwiches @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  loggedSandwiches(where: {userId: {eq_expr: "auth.uid"}}) {
+    id
+    eatDate
+    location
+    restaurantName
+    sandwich {
+      name
+      breadType
+    }
+    user {
+      displayName
+    }
+    sandwichIngredients {
+      ingredient {
+        name
+      }
+      quantity
+    }
+  }
+}
+
+mutation LogNewSandwich($sandwichId: UUID!, $eatDate: Date!, $location: String, $restaurantName: String) @auth(level: USER) {
+  loggedSandwich_insert(data: {
+    userId_expr: "auth.uid",
+    sandwichId: $sandwichId,
+    eatDate: $eatDate,
+    location: $location,
+    restaurantName: $restaurantName,
+    createdAt_expr: "request.time"
+  }) {
+    id
+  }
+}
+
+mutation CreateIngredient($name: String!) @auth(level: USER) {
+  ingredient_insert(data: {
+    name: $name,
+    createdAt_expr: "request.time"
+  }) {
+    id
+  }
+}
