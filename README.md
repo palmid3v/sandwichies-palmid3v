@@ -1,75 +1,83 @@
-# Sandwichies
+# 🥪 Sandwiches
 
-Customer ordering and operations app for a sandwich business.
+A business-focused web application for building, managing, and optimizing custom sandwiches and their underlying products, ingredients, recipes, inventory, and costs.
 
-## Current features
+The project started as a sandwich builder and is evolving toward a broader product and business management platform.
 
-- Mobile-first sandwich builder with 15 cm and 30 cm pricing
-- Recommended menu products with starting prices
-- Multi-product cart
-- Pickup and delivery checkout
-- Cash and transfer payment options
-- Customer notes and allergy reminder
-- Atomic order numbering and duplicate-submit protection
-- WhatsApp order summary
-- Firebase Authentication for the admin area
-- Real-time kitchen order queue
-- Search, filters, payment tracking, and order statuses
-- Daily sales, profit, average ticket, and best-seller reporting
-- Estimated ingredient capacity
+---
 
-## Local development
+## 🎯 Project Overview
 
-```bash
-npm install
-npm run dev
-```
+Sandwiches is designed around a simple idea:
 
-Customer storefront: `http://localhost:5173/`
+> Build a product visually while keeping the business logic behind it organized and measurable.
 
-Admin: `http://localhost:5173/admin`
+The application brings together product configuration, ingredients, inventory concepts, recipes, pricing, and cost management into a single system.
 
-## Quality checks
+The long-term goal is to evolve the project from a simple builder into a scalable software solution that can support a real food-production operation.
 
-```bash
-npm run check
-```
+---
 
-This runs ESLint, pricing tests, and a production build.
+## ✨ Core Features
 
-## Business configuration
+### 🥪 Sandwich Builder
 
-Update `src/config/business.js` for:
+- Dynamic sandwich/product configuration
+- Ingredient selection
+- Product customization
+- Dynamic pricing
+- Customer-facing experience
 
-- Business name and tagline
-- WhatsApp number
-- Whether the store is currently accepting orders
-- Delivery fee
-- Pickup and delivery estimates
+### 📦 Product & Ingredient Management
 
-Update ingredient purchase costs and portions in
-`src/data/ingredients.js`. Recommended sandwiches live in
-`src/data/menu.js`.
+- Product organization
+- Ingredient management
+- Product relationships
+- Inventory-oriented structure
 
-## Firebase deployment
+### 📝 Recipes
 
-The Firebase web configuration identifies the project and is expected to be
-public in a browser app. Security is provided by Firebase Authentication and
-Firestore rules.
+- Recipe management
+- Ingredient composition
+- Product cost calculation
+- Structured product definitions
 
-Deploy the included rules before accepting public orders:
+### 💰 Cost Management
 
-```bash
-firebase deploy --only firestore:rules
-```
+- Ingredient costs
+- Product cost calculation
+- Pricing logic
+- Cost optimization concepts
 
-Create the admin account in Firebase Authentication. The current rules treat
-any authenticated Firebase user as staff, so only create accounts for trusted
-employees.
+### 📊 Business Analytics
 
-## Important production note
+The project is designed to support business-oriented information such as:
 
-Firestore rules validate the public order shape and restrict order reading and
-editing to authenticated staff. For stronger protection against manipulated
-prices, the next infrastructure upgrade should move final price calculation
-and order creation into a Firebase Cloud Function or another trusted backend.
+- Product performance
+- Costs
+- Pricing
+- Inventory information
+- Business metrics
+
+---
+
+## 🧠 Product Direction
+
+Sandwiches is not intended to remain only a product configurator.
+
+The long-term direction is to create a platform that connects:
+
+```text
+Ingredients
+    ↓
+Inventory
+    ↓
+Recipes
+    ↓
+Products
+    ↓
+Costs
+    ↓
+Pricing
+    ↓
+Sales / Business Information
