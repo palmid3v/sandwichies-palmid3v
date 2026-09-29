@@ -1,18 +1,11 @@
 import { useMemo, useState } from "react";
-import {
-  collection,
-  doc,
-  runTransaction,
-  serverTimestamp,
-} from "firebase/firestore";
-import { db } from "../firebase";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import Category from "../components/Category";
 import { generateName } from "../utils/generateName";
 import { INGREDIENTS } from "../data/ingredients";
 import {
+  calculateLineItem,
   calculateOrderTotals,
-  calculateSalePrice,
-  calculateTotalCost,
 } from "../utils/pricing";
 import { MENU } from "../data/menu";
 import {
@@ -21,6 +14,7 @@ import {
   formatMoney,
 } from "../config/business";
 import "../styles/storefront.css";
+import heroImage from "../assets/hero.png";
 
 const DEFAULT_BASE = [
   "Lechuga",
@@ -53,20 +47,29 @@ export default function OrderPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedOrder, setCompletedOrder] = useState(null);
 
-  const totalCost = calculateTotalCost({
-    size,
-    proteins,
-    toppings,
-    extras,
-    ingredients: INGREDIENTS,
-  });
-
-  const salePrice = calculateSalePrice({ totalCost, extras });
-  const deliveryFee =
-    fulfillmentType === "domicilio" ? BUSINESS.deliveryFee : 0;
+  const currentLine = useMemo(() => {
+    try {
+      return calculateLineItem({
+        size,
+        proteins: proteins.map((protein) => ({ id: protein.id, quantity: protein.quantity || 1 })),
+        toppings: toppings.map((topping) => topping.id),
+        extras: extras.map((extra) => extra.id),
+        base: baseIngredients,
+      });
+    } catch {
+      return null;
+    }
+  }, [size, proteins, toppings, extras, baseIngredients]);
+  const currentConfiguration = currentLine && {
+    size: currentLine.size,
+    proteins: currentLine.proteins,
+    toppings: currentLine.toppings,
+    extras: currentLine.extras,
+    base: currentLine.base,
+  };
   const totals = useMemo(
-    () => calculateOrderTotals(cart, deliveryFee),
-    [cart, deliveryFee],
+    () => calculateOrderTotals(cart.map((item) => item.preview), fulfillmentType),
+    [cart, fulfillmentType],
   );
 
   const showToast = (message, type = "success") => {
@@ -88,9 +91,9 @@ export default function OrderPage() {
     const selectedProteins = item.proteins
       .map((protein) => {
         const ingredient = INGREDIENTS.proteins.find(
-          (candidate) => candidate.name === protein.name,
+          (candidate) => candidate.id === protein.id,
         );
-        return ingredient ? { ...ingredient, used: protein.used } : null;
+        return ingredient ? { ...ingredient, quantity: protein.quantity } : null;
       })
       .filter(Boolean);
 
@@ -107,6 +110,15 @@ export default function OrderPage() {
     );
   };
 
+  const changeProteinQuantity = (id, amount) => {
+    setProteins((current) => current.map((protein) => (
+      protein.id === id
+        ? { ...protein, quantity: Math.min(3, Math.max(1, (protein.quantity || 1) + amount)) }
+        : protein
+    )));
+    setSelectedSuggestion(null);
+  };
+
   const resetBuilder = () => {
     setProteins([]);
     setToppings([]);
@@ -116,7 +128,7 @@ export default function OrderPage() {
   };
 
   const addToCart = () => {
-    if (!proteins.length) {
+    if (!currentLine) {
       showToast("Selecciona al menos una proteína.", "error");
       return;
     }
@@ -131,12 +143,8 @@ export default function OrderPage() {
         lineId: crypto.randomUUID(),
         name,
         size,
-        base: baseIngredients,
-        proteins,
-        toppings,
-        extras,
-        cost: Math.round(totalCost),
-        price: Math.round(salePrice),
+        configuration: currentConfiguration,
+        preview: currentLine,
       },
     ]);
     resetBuilder();
@@ -166,14 +174,20 @@ export default function OrderPage() {
     ];
 
     order.items.forEach((item, index) => {
+      const proteinNames = item.proteins
+        .map((protein) => INGREDIENTS.proteins.find((candidate) => candidate.id === protein.id)?.name || protein.id)
+        .join(", ");
+      const extraNames = item.extras
+        .map((extraId) => INGREDIENTS.extras.find((candidate) => candidate.id === extraId)?.name || extraId)
+        .join(", ");
       lines.push(
-        `${index + 1}. ${item.name}`,
+        `${index + 1}. Sandwich personalizado`,
         `${item.size} cm`,
-        `Proteínas: ${item.proteins.map((protein) => protein.name).join(", ")}`,
+        `Proteínas: ${proteinNames}`,
       );
       if (item.extras.length) {
         lines.push(
-          `Extras: ${item.extras.map((extra) => extra.name).join(", ")}`,
+          `Extras: ${extraNames}`,
         );
       }
       lines.push(formatMoney(item.price), "");
@@ -202,46 +216,17 @@ export default function OrderPage() {
     const whatsappWindow = window.open("", "_blank");
 
     try {
-      const orderRef = doc(collection(db, "orders"));
-      const counterRef = doc(db, "counters", "orders");
       let savedOrder;
 
-      await runTransaction(db, async (transaction) => {
-        const counterSnapshot = await transaction.get(counterRef);
-        const orderNumber =
-          (Number(counterSnapshot.data()?.value) || 0) + 1;
-
-        savedOrder = {
-          orderNumber,
-          customer: {
-            name: clientName.trim(),
-            phone: cleanPhone(phone),
-          },
-          items: cart.map((item) => {
-            const savedItem = { ...item };
-            delete savedItem.lineId;
-            return savedItem;
-          }),
-          fulfillment: {
-            type: fulfillmentType,
-            address:
-              fulfillmentType === "domicilio" ? address.trim() : "",
-          },
-          payment: {
-            method: paymentMethod,
-            status: "pendiente",
-          },
-          notes: notes.trim(),
-          ...totals,
-          status: "pendiente",
-          source: "web",
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        };
-
-        transaction.set(counterRef, { value: orderNumber });
-        transaction.set(orderRef, savedOrder);
+      const createOrder = httpsCallable(getFunctions(), "createOrder");
+      const result = await createOrder({
+        customer: { name: clientName.trim(), phone: cleanPhone(phone) },
+        items: cart.map((item) => item.configuration),
+        fulfillment: { type: fulfillmentType, address: fulfillmentType === "domicilio" ? address.trim() : "" },
+        paymentMethod,
+        notes: notes.trim(),
       });
+      savedOrder = result.data.order;
 
       setCompletedOrder(savedOrder);
       setCart([]);
@@ -307,12 +292,14 @@ export default function OrderPage() {
         </div>
       )}
 
-      <header className="store-header">
-        <div>
+      <header className="store-header hero-banner">
+        <div className="hero-copy">
           <p className="eyebrow">Hecho fresco</p>
           <h1>{BUSINESS.name}</h1>
-          <p>{BUSINESS.tagline}</p>
+          <p>{BUSINESS.tagline}. Tú eliges el sabor y nosotros hacemos el resto.</p>
+          <a className="hero-cta" href="#personaliza">Arma el tuyo <span aria-hidden="true">→</span></a>
         </div>
+        <img src={heroImage} alt="Sandwich artesanal listo para personalizar" />
         <div
           className={
             BUSINESS.acceptingOrders ? "open-badge" : "open-badge closed"
@@ -323,9 +310,18 @@ export default function OrderPage() {
         </div>
       </header>
 
+      <section className="recommended-placeholder" aria-labelledby="recommended-title">
+        <div>
+          <p className="eyebrow">Próximamente</p>
+          <h2 id="recommended-title">Sandwiches recomendados</h2>
+          <p>Combinaciones curadas para elegir en segundos, sin perder tu opción de personalizar.</p>
+        </div>
+        <span aria-hidden="true">🥪</span>
+      </section>
+
       <div className="store-layout">
         <section className="builder">
-          <div className="section-card">
+          <div className="section-card" id="personaliza">
             <div className="section-heading">
               <span>1</span>
               <div>
@@ -393,6 +389,14 @@ export default function OrderPage() {
               selected={proteins}
               setSelected={setProteins}
               toggle={toggleItem}
+              onQuantityChange={changeProteinQuantity}
+            />
+            <Category
+              title="Toppings"
+              items={INGREDIENTS.toppings}
+              selected={toppings}
+              setSelected={setToppings}
+              toggle={toggleItem}
             />
             <Category
               title="Extras"
@@ -405,7 +409,7 @@ export default function OrderPage() {
             <div className="builder-total">
               <div>
                 <small>Sandwich actual</small>
-                <strong>{formatMoney(salePrice)}</strong>
+                <strong>{formatMoney(currentLine?.price || 0)}</strong>
               </div>
               <button className="primary-button" onClick={addToCart}>
                 Agregar al pedido
@@ -523,12 +527,14 @@ export default function OrderPage() {
                   <div>
                     <strong>{item.name}</strong>
                     <small>
-                      {item.size} cm ·{" "}
-                      {item.proteins.map((protein) => protein.name).join(", ")}
+                      {item.preview.size} cm ·{" "}
+                      {item.configuration.proteins
+                        .map((protein) => INGREDIENTS.proteins.find((candidate) => candidate.id === protein.id)?.name)
+                        .join(", ")}
                     </small>
                   </div>
                   <div className="cart-item-price">
-                    <strong>{formatMoney(item.price)}</strong>
+                    <strong>{formatMoney(item.preview.price)}</strong>
                     <button onClick={() => removeFromCart(item.lineId)}>
                       Quitar
                     </button>

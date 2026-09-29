@@ -1,7 +1,10 @@
 import { ORDER_STATUSES } from "../config/business";
 
 export const getOrderItems = (order) => {
-  if (Array.isArray(order.items)) return order.items;
+  if (Array.isArray(order.items)) return order.items.map((item) => ({
+    ...item,
+    name: item.name || `Sandwich personalizado ${item.size || "15"} cm`,
+  }));
 
   return [
     {

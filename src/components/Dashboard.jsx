@@ -13,31 +13,36 @@ const isSameDay = (first, second) =>
   first.getDate() === second.getDate();
 
 export default function Dashboard({ orders }) {
-  const validOrders = orders.filter((order) => order.status !== "cancelado");
+  const operationalOrders = orders.filter((order) => order.status !== "cancelado");
+  // Until product defines a different accounting policy, a sale is recognized
+  // only when the order is both delivered and paid.
+  const completedSales = orders.filter(
+    (order) => order.status === "entregado" && order.payment?.status === "pagado",
+  );
   const today = new Date();
-  const todayOrders = validOrders.filter((order) =>
+  const todayOrders = operationalOrders.filter((order) =>
     isSameDay(getOrderDate(order), today),
   );
 
-  const totalSales = validOrders.reduce(
+  const totalSales = completedSales.reduce(
     (sum, order) => sum + getOrderTotal(order),
     0,
   );
-  const todaySales = todayOrders.reduce(
+  const todaySales = completedSales.filter((order) => isSameDay(getOrderDate(order), today)).reduce(
     (sum, order) => sum + getOrderTotal(order),
     0,
   );
-  const totalCost = validOrders.reduce(
+  const totalCost = completedSales.reduce(
     (sum, order) => sum + getOrderCost(order),
     0,
   );
   const totalProfit = totalSales - totalCost;
-  const averageTicket = validOrders.length
-    ? totalSales / validOrders.length
+  const averageTicket = completedSales.length
+    ? totalSales / completedSales.length
     : 0;
 
   const productCount = {};
-  validOrders.forEach((order) => {
+  completedSales.forEach((order) => {
     getOrderItems(order).forEach((item) => {
       productCount[item.name] = (productCount[item.name] || 0) + 1;
     });
@@ -54,13 +59,13 @@ export default function Dashboard({ orders }) {
           <p className="admin-eyebrow">Rendimiento</p>
           <h2>Resumen del negocio</h2>
         </div>
-        <p>Los pedidos cancelados no se incluyen en estas cifras.</p>
+        <p>Ventas y utilidad: pedidos entregados y pagados. Pedidos operativos: no cancelados.</p>
       </div>
 
       <div className="metric-grid">
-        <Metric title="Ventas de hoy" value={formatMoney(todaySales)} />
-        <Metric title="Pedidos de hoy" value={todayOrders.length} />
-        <Metric title="Ventas acumuladas" value={formatMoney(totalSales)} />
+        <Metric title="Ventas completadas hoy" value={formatMoney(todaySales)} />
+        <Metric title="Pedidos operativos hoy" value={todayOrders.length} />
+        <Metric title="Ventas completadas" value={formatMoney(totalSales)} />
         <Metric title="Ganancia estimada" value={formatMoney(totalProfit)} />
         <Metric title="Ticket promedio" value={formatMoney(averageTicket)} />
         <Metric

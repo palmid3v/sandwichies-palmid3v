@@ -6,7 +6,8 @@ import Dashboard from "./components/Dashboard";
 import OrdersHistory from "./components/OrdersHistory";
 import OrderModal from "./components/OrderModal";
 import Login from "./pages/Login";
-import { INGREDIENTS } from "./data/ingredients";
+import { CATALOG } from "../shared/catalog.js";
+import { calculateInventoryConsumption } from "./utils/pricing";
 import { BUSINESS } from "./config/business";
 import { getOrderDate, normalizeOrder } from "./utils/orders";
 import "./styles/admin.css";
@@ -16,21 +17,24 @@ export default function App() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [activeTab, setActiveTab] = useState("pedidos");
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [ordersError, setOrdersError] = useState("");
   const knownOrderIds = useRef(new Set());
   const firstSnapshot = useRef(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      const token = currentUser ? await currentUser.getIdTokenResult() : null;
+      setIsAdmin(token?.claims.admin === true);
       setLoading(false);
     });
     return unsubscribe;
   }, []);
 
   useEffect(() => {
-    if (!user) return undefined;
+    if (!user || !isAdmin) return undefined;
 
     const unsubscribe = onSnapshot(
       collection(db, "orders"),
@@ -68,21 +72,20 @@ export default function App() {
     );
 
     return unsubscribe;
-  }, [user]);
+  }, [user, isAdmin]);
 
   const inventory = useMemo(
     () => [
-      ...INGREDIENTS.proteins.map((item) => ({
+      ...CATALOG.ingredients.filter((item) => item.type === "protein").map((item) => ({
         ...item,
         type: "Proteína",
       })),
-      ...INGREDIENTS.toppings.map((item) => ({
+      ...CATALOG.toppings.map((item) => ({
+        ...CATALOG.ingredients.find((ingredient) => ingredient.id === item.ingredientId),
         ...item,
         type: "Topping",
       })),
-      ...INGREDIENTS.extras
-        .filter((item) => item.units)
-        .map((item) => ({ ...item, type: "Extra" })),
+      ...CATALOG.ingredients.filter((item) => item.type === "extra").map((item) => ({ ...item, type: "Extra" })),
     ],
     [],
   );
@@ -92,6 +95,23 @@ export default function App() {
   }
 
   if (!user) return <Login />;
+
+  if (!isAdmin) {
+    return (
+      <main className="login-page">
+        <section className="login-card">
+          <p className="admin-eyebrow">Acceso restringido</p>
+          <h1>{BUSINESS.name}</h1>
+          <p>Esta cuenta no tiene el rol de administración requerido.</p>
+          <button onClick={() => signOut(auth)}>Cerrar sesión</button>
+        </section>
+      </main>
+    );
+  }
+
+  const recordedConsumption = calculateInventoryConsumption(
+    orders.filter((order) => order.status !== "cancelado").flatMap((order) => order.items || []),
+  );
 
   return (
     <main className="admin-shell">
@@ -147,16 +167,18 @@ export default function App() {
           </div>
           <div className="inventory-grid">
             {inventory.map((item) => {
-              const available = item.units || item.grams || 0;
-              const portion = item.used || item.usedGrams || 1;
-              const maxServings = Math.floor(available / portion);
+              const available = item.stockQuantity || item.packageQuantity || 0;
+              const consumed = recordedConsumption[item.id] || 0;
+              const portion = item.portionQuantity || 1;
+              const maxServings = Math.max(0, Math.floor((available - consumed) / portion));
               return (
                 <article className="inventory-card" key={item.name}>
                   <small>{item.type}</small>
                   <h3>{item.name}</h3>
                   <p>
-                    Rendimiento estimado: <strong>{maxServings}</strong>
+                    Capacidad estimada: <strong>{maxServings}</strong>
                   </p>
+                  <small>Consumo registrado: {consumed} {item.unit}</small>
                   <div className="inventory-meter">
                     <span style={{ width: `${Math.min(maxServings * 5, 100)}%` }} />
                   </div>

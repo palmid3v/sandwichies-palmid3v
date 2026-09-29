@@ -6,43 +6,20 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isValidPublicOrder() {
-      return request.resource.data.keys().hasAll([
-        "orderNumber",
-        "customer",
-        "items",
-        "total",
-        "cost",
-        "status",
-        "source",
-        "createdAt"
-      ])
-      && request.resource.data.status == "pendiente"
-      && request.resource.data.source == "web"
-      && request.resource.data.orderNumber is int
-      && request.resource.data.orderNumber > 0
-      && request.resource.data.customer.name is string
-      && request.resource.data.customer.phone is string
-      && request.resource.data.customer.name.size() >= 2
-      && request.resource.data.customer.phone.size() >= 10
-      && request.resource.data.items is list
-      && request.resource.data.items.size() > 0
-      && request.resource.data.items.size() <= 20
-      && request.resource.data.total is number
-      && request.resource.data.total > 0
-      && request.resource.data.cost is number
-      && request.resource.data.cost >= 0;
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
     }
 
     match /orders/{orderId} {
-      allow create: if isSignedIn() || isValidPublicOrder();
-      allow read, update, delete: if isSignedIn();
+      // Customer writes are performed by the Admin SDK inside createOrder.
+      // Direct browser creation/deletion is never authorized.
+      allow read, update: if isAdmin();
+      allow create, delete: if false;
     }
 
     match /counters/orders {
-      allow read: if true;
-      allow create: if request.resource.data.value == 1;
-      allow update: if request.resource.data.value == resource.data.value + 1;
+      // The trusted function owns this counter transaction.
+      allow read, write: if false;
     }
 
     match /{document=**} {

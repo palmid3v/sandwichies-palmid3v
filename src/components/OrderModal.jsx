@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { ORDER_STATUSES, formatMoney } from "../config/business";
+import { INGREDIENTS } from "../data/ingredients";
 import {
   getCustomerName,
   getCustomerPhone,
@@ -116,9 +117,10 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
                   {item.proteins
                     .map((protein) => {
                       const isDouble = item.extras?.some(
-                        (extra) => extra.name === "Doble proteína",
+                        (extra) => extra === "doble-proteina" || extra.name === "Doble proteína",
                       );
-                      return `${protein.name} x${protein.used * (isDouble ? 2 : 1)}`;
+                      const ingredient = INGREDIENTS.proteins.find((candidate) => candidate.id === protein.id);
+                      return `${ingredient?.name || protein.id} x${protein.quantity * (isDouble ? 2 : 1)}`;
                     })
                     .join(", ")}
                 </p>
@@ -126,7 +128,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
               {!!item.extras?.length && (
                 <p>
                   <span>Extras:</span>{" "}
-                  {item.extras.map((extra) => extra.name).join(", ")}
+                  {item.extras.map((extra) => INGREDIENTS.extras.find((candidate) => candidate.id === extra)?.name || extra.name).join(", ")}
                 </p>
               )}
             </article>
