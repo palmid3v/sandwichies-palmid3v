@@ -1,43 +1,91 @@
-# Sandwiches
+# 🥪 Sandwichies
 
-Aplicación web para configurar sandwiches, calcular costos/precios de forma consistente y operar pedidos desde un panel administrativo. Es un proyecto productivo en evolución: el MVP cubre el pedido personalizado y su operación; no pretende ser todavía un sistema de inventario transaccional ni de pagos.
+Sandwichies is a product-oriented web application for configuring sandwiches, calculating costs and prices, submitting orders, and operating those orders from an authenticated admin workspace.
 
-## Estado actual
+## 🛒 Customer
 
-La interfaz cliente y el panel admin comparten un dominio de catálogo/costos. La creación final de órdenes está diseñada para ejecutarse en una Firebase Cloud Function y los roles administrativos usan custom claims. El código está listo para revisión local; no se ha desplegado esta configuración.
+- 15 cm / 30 cm sizes
+- Protein selection
+- Toppings
+- Extras
+- Base customization
+- Cart
+- Pickup or delivery
+- Customer/contact information
+- Payment method
+- Order submission
+- WhatsApp summary
+- Order confirmation
 
-## Características
+## 🧑‍💼 Admin
 
-- Configurador de sandwich de 15/30 cm, proteínas, toppings y extras.
-- Previsualización basada en costo, consumo y precio determinista.
-- Carrito, retiro/domicilio y resumen para WhatsApp.
-- Panel protegido por rol con pedidos, estado de pago, métricas e inventario estimado.
-- Catálogo, porciones, costos y reglas compartidos por UI y backend.
+- Firebase Authentication
+- Admin custom-claim authorization
+- Orders history
+- Dashboard
+- Order detail
+- Estimated inventory consumption
+- New-order sound notification
+- Payment status
+- Inventory capacity view
+- Live Firestore synchronization
 
-## Stack y arquitectura
+## 🧮 Shared Domain
 
-React 19, Vite, Firebase Auth/Firestore/Functions y CSS nativo. El dominio vive en `shared/`; React es una interfaz y `functions/` es la frontera confiable para crear órdenes.
+shared/catalog.js and shared/pricing.js are the domain source for product configuration, ingredient consumption, costs, prices, delivery fees, profit calculations, and inventory consumption.
 
-```text
-Customer UI → callable createOrder → shared domain → Firestore → Admin UI
-```
+The server rebuilds totals from the submitted configuration instead of trusting client totals.
 
-## Desarrollo local
+## 🔐 Order Flow
 
-```bash
+~~~text
+Customer UI
+    ↓
+Firebase callable createOrder
+    ↓
+Trusted validation + pricing
+    ↓
+Firestore
+    ↑
+Admin UI
+~~~
+
+Firestore rules block direct browser creation and deletion of orders. Admin reads and updates require the admin custom claim.
+
+## 🧱 Stack
+
+- React 19.2.4
+- Vite 8.0.1
+- Firebase 12.11.x
+- Firebase Functions 6.6.x
+- Firebase Admin 13.10.x
+- React Router 7.18.x
+- html2canvas
+- Node test runner
+- ESLint 9.x
+
+## 📚 Documentation
+
+Current documentation is organized under app/docs/:
+- product/
+- architecture/
+- development/
+- deployment/
+- tasks/
+- audits/
+
+## 🚦 Operational State
+
+The current business configuration has acceptingOrders set to false, so checkout is intentionally disabled until that flag is changed and the release is approved.
+
+## ▶️ Scripts
+
+~~~bash
 npm install
 npm run dev
 npm run lint
 npm test
 npm run build
-```
-
-Configura Firebase para el entorno correspondiente sin subir secretos. Para operar `/admin`, asigna el custom claim `admin: true` mediante un proceso privilegiado de Firebase Admin SDK y vuelve a iniciar sesión.
-
-## Despliegue
-
-No desplegar sin aprobación explícita. Antes de release, revisar `docs/deployment/RELEASE-CHECKLIST.md`, validar reglas/función con Emulator Suite y hacer smoke tests. El rollback debe conservar la última versión funcional.
-
-## Documentación
-
-Consulta [docs/README.md](docs/README.md) para producto, arquitectura, costos, seguridad, pruebas, release y trazabilidad histórica.
+npm run check
+npm run provision:admin
+~~~
