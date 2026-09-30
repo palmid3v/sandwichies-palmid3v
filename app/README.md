@@ -1,86 +1,31 @@
-# 🥪 Sandwichies
+# 🥪 Sandwichies — App Context
 
-Sandwichies is a product-oriented web application for configuring sandwiches, calculating costs and prices, submitting orders, and operating those orders from an authenticated admin workspace.
+## 🎯 Purpose
+Product configurator and operational platform for sandwich ordering, trusted pricing, order administration, and inventory estimation.
 
-## 🛒 Customer
+## 🛒 Customer workflow
+15 cm / 30 cm selection → protein → toppings → extras/base → cart → pickup/delivery → customer/payment data → order submission → WhatsApp summary → confirmation.
 
-- 15 cm / 30 cm sizes
-- Protein selection
-- Toppings
-- Extras
-- Base customization
-- Cart
-- Pickup or delivery
-- Customer/contact information
-- Payment method
-- Order submission
-- WhatsApp summary
-- Order confirmation
+## 🧑‍💼 Admin workflow
+Firebase Auth → admin custom claim → live orders → dashboard → order detail → payment status → estimated inventory consumption.
 
-## 🧑‍💼 Admin
+## 🧮 Domain
+`shared/catalog.js`, `shared/pricing.js`, `shared/business.js`, and `shared/order-request.js` centralize configuration, costs, prices, delivery, profit, and consumption logic. The callable backend rebuilds order totals from the submitted configuration.
 
-- Firebase Authentication
-- Admin custom-claim authorization
-- Orders history
-- Dashboard
-- Order detail
-- Estimated inventory consumption
-- New-order sound notification
-- Payment status
-- Inventory capacity view
-- Live Firestore synchronization
-
-## 🧮 Shared Domain
-
-shared/catalog.js and shared/pricing.js are the domain source for product configuration, ingredient consumption, costs, prices, delivery fees, profit calculations, and inventory consumption.
-
-The server rebuilds totals from the submitted configuration instead of trusting client totals.
-
-## 🔐 Order Flow
-
-~~~text
-Customer UI
-    ↓
-Firebase callable createOrder
-    ↓
-Trusted validation + pricing
-    ↓
-Firestore
-    ↑
-Admin UI
-~~~
-
-Firestore rules block direct browser creation and deletion of orders. Admin reads and updates require the admin custom claim.
+## 🔐 Security
+Orders are created through a Firebase callable function. Firestore rules restrict direct browser order creation/deletion and protected admin operations require the admin custom claim.
 
 ## 🧱 Stack
-
-- React 19.2.4
-- Vite 8.0.1
-- Firebase 12.11.x
-- Firebase Functions 6.6.x
-- Firebase Admin 13.10.x
-- React Router 7.18.x
-- html2canvas
-- Node test runner
-- ESLint 9.x
+React 19 · Vite 8 · Firebase/Firestore · Firebase Functions/Admin · React Router 7 · html2canvas · Node test runner · ESLint 9.
 
 ## 📚 Documentation
+Detailed material is under `docs/` covering architecture, Firebase, pricing/costs, security, deployment, development, product rules, audits, tasks, and v0.1 history.
 
-Current documentation is organized under app/docs/:
-- product/
-- architecture/
-- development/
-- deployment/
-- tasks/
-- audits/
+## 🚦 Operational state
+`acceptingOrders` is currently `false`; checkout is intentionally disabled until configuration/release approval changes it.
 
-## 🚦 Operational State
-
-The current business configuration has acceptingOrders set to false, so checkout is intentionally disabled until that flag is changed and the release is approved.
-
-## ▶️ Scripts
-
-~~~bash
+## ▶️ Commands
+```bash
 npm install
 npm run dev
 npm run lint
@@ -88,4 +33,7 @@ npm test
 npm run build
 npm run check
 npm run provision:admin
-~~~
+```
+
+## 📌 Status
+Active business application under development; the current repository is the source of truth.
