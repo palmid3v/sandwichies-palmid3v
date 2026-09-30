@@ -1,8 +1,8 @@
 import { CATALOG } from "../../shared/catalog.js";
 
 // UI view of the shared catalog. packageCost/packageQuantity and
-// portionQuantity have one meaning everywhere: cost of the purchased quantity
-// and quantity consumed by one 15 cm portion.
+// portionQuantity have one meaning everywhere: purchase quantity/cost
+// and the physical units consumed by one recipe quantity.
 const withIngredient = (item) => ({
   ...item,
   unitCost: item.packageCost / item.packageQuantity,
@@ -10,10 +10,14 @@ const withIngredient = (item) => ({
 });
 
 export const INGREDIENTS = {
-  proteins: CATALOG.ingredients.filter((item) => item.type === "protein").map(withIngredient),
+  proteins: CATALOG.ingredients
+    .filter((item) => item.type === "protein" && item.active !== false)
+    .map(withIngredient),
   toppings: CATALOG.toppings.map((topping) => ({
     ...topping,
-    ...withIngredient(CATALOG.ingredients.find((item) => item.id === topping.ingredientId)),
+    ...withIngredient(
+      CATALOG.ingredients.find((item) => item.id === topping.ingredientId),
+    ),
   })),
   extras: CATALOG.extras,
 };

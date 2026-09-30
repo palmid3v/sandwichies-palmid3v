@@ -1,55 +1,135 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CATALOG } from "../shared/catalog.js";
+import { FAVORITES } from "../shared/recipes.js";
 import { buildTrustedOrder, normalizeOrderRequest } from "../shared/order-request.js";
-import { calculateInventoryConsumption, calculateLineItem, calculateOrderTotals, OrderValidationError } from "../shared/pricing.js";
+import {
+  calculateInventoryConsumption,
+  calculateLineItem,
+  calculateOrderTotals,
+  OrderValidationError,
+} from "../shared/pricing.js";
 
-const basic = (overrides = {}) => ({
-  size: "15",
-  proteins: [{ id: "jamon-serrano", quantity: 1 }],
-  toppings: [],
-  extras: [],
-  ...overrides,
-});
-
-test("15 cm vs 30 cm uses the centralized size multiplier", () => {
-  const small = calculateLineItem(basic());
-  const large = calculateLineItem(basic({ size: "30" }));
-  assert.ok(large.cost > small.cost);
-  assert.ok(large.price > small.price);
-  assert.equal(large.ingredientUsage["jamon-serrano"], small.ingredientUsage["jamon-serrano"] * 2);
-});
-
-test("every configured protein has deterministic cost and consumption", () => {
-  CATALOG.ingredients.filter((item) => item.type === "protein").forEach((protein) => {
-    const line = calculateLineItem(basic({ proteins: [{ id: protein.id, quantity: 1 }] }));
-    assert.equal(line.ingredientUsage[protein.id], protein.portionQuantity);
-    assert.ok(line.cost > 0);
-    assert.equal(Number.isInteger(line.price), true);
+const favorite = (id, size = "15", overrides = {}) => {
+  const recipe = FAVORITES.find((item) => item.id === id);
+  assert.ok(recipe, "Favorite must exist.");
+  return calculateLineItem({
+    size,
+    favoriteId: id,
+    proteins: recipe.proteins,
+    toppings: [],
+    extras: [],
+    ...overrides,
   });
+};
+
+test("catalog purchase costs match the latest supplied values", () => {
+  assert.equal(CATALOG.sizes["15"].breadCost, 1750);
+  assert.equal(CATALOG.sizes["30"].breadCost, 3500);
+  assert.equal(CATALOG.ingredients.find((item) => item.id === "pavo-finas-hierbas").packageCost, 13950);
+  assert.equal(CATALOG.ingredients.find((item) => item.id === "jamon-serrano").packageQuantity, 6);
+  assert.equal(CATALOG.ingredients.find((item) => item.id === "queso-tajado").packageCost, 9300);
+  assert.equal(CATALOG.ingredients.find((item) => item.id === "prosciutto").packageCost, 8700);
+  assert.equal(CATALOG.ingredients.find((item) => item.id === "mozzarella").packageCost, 10500);
 });
 
-test("protein quantity and double protein increase the same usage model", () => {
-  const single = calculateLineItem(basic());
-  const quantityTwo = calculateLineItem(basic({ proteins: [{ id: "jamon-serrano", quantity: 2 }] }));
-  const doubled = calculateLineItem(basic({ extras: ["doble-proteina"] }));
-  assert.equal(quantityTwo.ingredientUsage["jamon-serrano"], 2);
-  assert.equal(doubled.ingredientUsage["jamon-serrano"], 2);
-  assert.ok(quantityTwo.price > single.price);
-  assert.ok(doubled.price > single.price);
+test("favorite recipes use the supplied 15 cm quantities", () => {
+  const expected = {
+    "turkey-finas-hierbas": { pavo: 4, pechuga: 4, cost: 7776, price: 13900 },
+    explosivo: { chorizo: 2, salami: 2, pepperoni: 9, queso: 2, cost: 7008, price: 12900 },
+    "doble-jamon": { pechuga: 4, serrano: 2, queso: 2, cost: 9126, price: 15900 },
+    "spicy-mix": { chorizo: 3, pepperoni: 6, queso: 2, cost: 6158, price: 10900 },
+    "triple-stack": { pechuga: 4, serrano: 2, pepperoni: 6, queso: 2, cost: 9894, price: 17900 },
+    "full-house": {
+      pavo: 4,
+      pechuga: 4,
+      serrano: 2,
+      chorizo: 2,
+      salami: 2,
+      pepperoni: 6,
+      prosciutto: 1,
+      queso: 2,
+      cost: 16291,
+      price: 28900,
+    },
+  };
+
+  for (const item of FAVORITES) {
+    const line = favorite(item.id);
+    const target = expected[item.id];
+    assert.equal(line.cost, target.cost, item.id);
+    assert.equal(line.price, target.price, item.id);
+
+    if (target.pavo) assert.equal(line.ingredientUsage["pavo-finas-hierbas"], target.pavo);
+    if (target.pechuga) assert.equal(line.ingredientUsage["pechuga-pavo"], target.pechuga);
+    if (target.serrano) assert.equal(line.ingredientUsage["jamon-serrano"], target.serrano);
+    if (target.chorizo) assert.equal(line.ingredientUsage.chorizo, target.chorizo);
+    if (target.salami) assert.equal(line.ingredientUsage.salami, target.salami);
+    if (target.pepperoni) assert.equal(line.ingredientUsage.pepperoni, target.pepperoni);
+    if (target.prosciutto) assert.equal(line.ingredientUsage.prosciutto, target.prosciutto);
+    if (target.queso) assert.equal(line.ingredientUsage["queso-tajado"], target.queso);
+
+    assert.equal(line.ingredientUsage.base, 1);
+    assert.equal(line.ingredientUsage.mozzarella, undefined);
+    assert.equal(line.ingredientUsage["pimenton-asado"], undefined);
+  }
 });
 
-test("extra cheese and topping affect cost, price and consumption", () => {
-  const standard = calculateLineItem(basic());
-  const configured = calculateLineItem(basic({ toppings: ["pimenton"], extras: ["queso-extra"] }));
-  assert.ok(configured.cost > standard.cost);
-  assert.ok(configured.price > standard.price);
-  assert.equal(configured.ingredientUsage["queso-extra"], 1);
-  assert.equal(configured.ingredientUsage["pimenton-asado"], standard.ingredientUsage["pimenton-asado"] * 2);
+test("30 cm doubles the favorite recipe quantities", () => {
+  const expected30 = {
+    "turkey-finas-hierbas": 15553,
+    explosivo: 14016,
+    "doble-jamon": 18253,
+    "spicy-mix": 12315,
+    "triple-stack": 19788,
+    "full-house": 32581,
+  };
+
+  for (const item of FAVORITES) {
+    const small = favorite(item.id, "15");
+    const large = favorite(item.id, "30");
+    assert.equal(large.cost, expected30[item.id], item.id);
+    assert.ok(large.cost > small.cost * 2 - 2, item.id);
+    assert.ok(large.price > small.price, item.id);
+  }
+});
+
+test("double protein doubles only protein consumption and keeps the configured charge", () => {
+  const normal = favorite("explosivo");
+  const doubled = favorite("explosivo", "15", { extras: ["doble-proteina"] });
+
+  assert.equal(doubled.ingredientUsage.chorizo, normal.ingredientUsage.chorizo * 2);
+  assert.equal(doubled.ingredientUsage.salami, normal.ingredientUsage.salami * 2);
+  assert.equal(doubled.ingredientUsage.pepperoni, normal.ingredientUsage.pepperoni * 2);
+  assert.equal(doubled.ingredientUsage["queso-tajado"], normal.ingredientUsage["queso-tajado"]);
+  assert.equal(doubled.ingredientUsage.base, normal.ingredientUsage.base);
+  assert.equal(doubled.price, 20900);
+});
+
+test("extra cheese uses current cheese cost and configured customer charge", () => {
+  const normal = favorite("spicy-mix");
+  const extra = favorite("spicy-mix", "15", { extras: ["queso-extra"] });
+
+  assert.equal(extra.cost - normal.cost, 620);
+  assert.ok(extra.price > normal.price);
+});
+
+test("custom builder still uses the default custom ingredient model", () => {
+  const custom = calculateLineItem({
+    size: "15",
+    proteins: [{ id: "jamon-serrano", quantity: 1 }],
+    toppings: [],
+    extras: [],
+  });
+
+  assert.equal(custom.ingredientUsage.base, 1);
+  assert.equal(custom.ingredientUsage.mozzarella, 1);
+  assert.equal(custom.ingredientUsage["pimenton-asado"], undefined);
+  assert.equal(custom.ingredientUsage["jamon-serrano"], 1);
 });
 
 test("delivery is a centralized order charge and totals are whole pesos", () => {
-  const item = calculateLineItem(basic());
+  const item = favorite("turkey-finas-hierbas");
   const pickup = calculateOrderTotals([item], "recoger");
   const delivery = calculateOrderTotals([item], "domicilio");
   assert.equal(delivery.total - pickup.total, 5000);
@@ -58,48 +138,108 @@ test("delivery is a centralized order charge and totals are whole pesos", () => 
 });
 
 test("invalid and impossible selections are rejected", () => {
-  assert.throws(() => calculateLineItem(basic({ proteins: [] })), OrderValidationError);
-  assert.throws(() => calculateLineItem(basic({ size: "45" })), OrderValidationError);
-  assert.throws(() => calculateLineItem(basic({ proteins: [{ id: "no-existe", quantity: 1 }] })), OrderValidationError);
-  assert.throws(() => calculateLineItem(basic({ proteins: [{ id: "jamon-serrano", quantity: 4 }] })), OrderValidationError);
-  assert.throws(() => calculateLineItem(basic({ extras: ["queso-extra", "queso-extra"] })), OrderValidationError);
+  assert.throws(
+    () => calculateLineItem({ size: "15", proteins: [], toppings: [], extras: [] }),
+    OrderValidationError,
+  );
+  assert.throws(
+    () => calculateLineItem({
+      size: "45",
+      proteins: [{ id: "jamon-serrano", quantity: 1 }],
+      toppings: [],
+      extras: [],
+    }),
+    OrderValidationError,
+  );
+  assert.throws(
+    () => calculateLineItem({
+      size: "15",
+      proteins: [{ id: "jamon-serrano", quantity: 4 }],
+      toppings: [],
+      extras: [],
+    }),
+    OrderValidationError,
+  );
+  assert.throws(
+    () => calculateLineItem({
+      size: "15",
+      favoriteId: "no-existe",
+      proteins: [{ id: "jamon-serrano", quantity: 1 }],
+      toppings: [],
+      extras: [],
+    }),
+    OrderValidationError,
+  );
 });
 
 test("multiple sandwiches aggregate the stored ingredient usage", () => {
-  const first = calculateLineItem(basic());
-  const second = calculateLineItem(basic({ proteins: [{ id: "pepperoni", quantity: 1 }], extras: ["queso-extra"] }));
+  const first = favorite("turkey-finas-hierbas");
+  const second = favorite("explosivo", "15", { extras: ["queso-extra"] });
   const consumption = calculateInventoryConsumption([first, second]);
-  assert.equal(consumption["jamon-serrano"], 1);
-  assert.equal(consumption.pepperoni, 3);
-  assert.equal(consumption["queso-extra"], 1);
+
+  assert.equal(consumption["pavo-finas-hierbas"], 4);
+  assert.equal(consumption.pepperoni, 9);
+  assert.equal(consumption["queso-tajado"], 3);
 });
 
 test("trusted order request rejects forged totals and invalid delivery data", () => {
   const request = {
     customer: { name: "Ana Pérez", phone: "312 345 6789" },
-    items: [basic()],
+    items: [{
+      size: "15",
+      proteins: [{ id: "jamon-serrano", quantity: 1 }],
+      toppings: [],
+      extras: [],
+    }],
     fulfillment: { type: "domicilio", address: "Calle 10 # 20-30, Centro" },
     paymentMethod: "efectivo",
     notes: "Sin cebolla",
   };
+
   assert.throws(() => normalizeOrderRequest({ ...request, total: 1 }), OrderValidationError);
   assert.throws(() => normalizeOrderRequest({ ...request, cost: 1 }), OrderValidationError);
   assert.throws(() => normalizeOrderRequest({ ...request, profit: 1 }), OrderValidationError);
-  assert.throws(() => normalizeOrderRequest({ ...request, fulfillment: { type: "domicilio", address: "corta" } }), OrderValidationError);
-  assert.throws(() => normalizeOrderRequest({ ...request, items: [basic({ proteins: [{ id: "unknown", quantity: 1 }] })] }), OrderValidationError);
+  assert.throws(
+    () => normalizeOrderRequest({
+      ...request,
+      fulfillment: { type: "domicilio", address: "corta" },
+    }),
+    OrderValidationError,
+  );
+  assert.throws(
+    () => normalizeOrderRequest({
+      ...request,
+      items: [{
+        size: "15",
+        proteins: [{ id: "unknown", quantity: 1 }],
+        toppings: [],
+        extras: [],
+      }],
+    }),
+    OrderValidationError,
+  );
 });
 
-test("trusted order ignores no client financial values and owns its order number", () => {
+test("trusted order recalculates favorite cost and owns its order number", () => {
+  const recipe = FAVORITES.find((item) => item.id === "full-house");
   const order = buildTrustedOrder({
     customer: { name: "Ana Pérez", phone: "312 345 6789" },
-    items: [basic()],
+    items: [{
+      size: "15",
+      favoriteId: recipe.id,
+      proteins: recipe.proteins,
+      toppings: [],
+      extras: [],
+    }],
     fulfillment: { type: "recoger", address: "" },
     paymentMethod: "transferencia",
     notes: "",
   }, 47);
+
   assert.equal(order.orderNumber, 47);
   assert.equal(order.status, "pendiente");
   assert.equal(order.payment.status, "pendiente");
   assert.equal(order.total, order.subtotal);
+  assert.equal(order.cost, 16291);
   assert.ok(order.cost > 0);
 });

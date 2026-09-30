@@ -18,11 +18,7 @@ import heroImage from "../assets/hero.png";
 
 const DEFAULT_BASE = [
   "Lechuga",
-  "Pimentón Asado",
   "Cebolla",
-  "Salsa tomate",
-  "Mayonesa",
-  "Mostaza",
 ];
 
 const cleanPhone = (value) => value.replace(/\D/g, "");
@@ -34,6 +30,7 @@ export default function OrderPage() {
   const [extras, setExtras] = useState([]);
   const [baseIngredients, setBaseIngredients] = useState(DEFAULT_BASE);
   const [selectedSuggestion, setSelectedSuggestion] = useState(null);
+  const [favoriteId, setFavoriteId] = useState(null);
   const [cart, setCart] = useState([]);
 
   const [clientName, setClientName] = useState("");
@@ -51,6 +48,7 @@ export default function OrderPage() {
     try {
       return calculateLineItem({
         size,
+        favoriteId,
         proteins: proteins.map((protein) => ({ id: protein.id, quantity: protein.quantity || 1 })),
         toppings: toppings.map((topping) => topping.id),
         extras: extras.map((extra) => extra.id),
@@ -59,9 +57,10 @@ export default function OrderPage() {
     } catch {
       return null;
     }
-  }, [size, proteins, toppings, extras, baseIngredients]);
+  }, [size, favoriteId, proteins, toppings, extras, baseIngredients]);
   const currentConfiguration = currentLine && {
     size: currentLine.size,
+    favoriteId: currentLine.favoriteId,
     proteins: currentLine.proteins,
     toppings: currentLine.toppings,
     extras: currentLine.extras,
@@ -98,7 +97,10 @@ export default function OrderPage() {
       .filter(Boolean);
 
     setProteins(selectedProteins);
+    setToppings([]);
     setExtras([]);
+    setBaseIngredients(DEFAULT_BASE);
+    setFavoriteId(item.id);
     setSelectedSuggestion(item.name);
   };
 
@@ -113,7 +115,13 @@ export default function OrderPage() {
   const changeProteinQuantity = (id, amount) => {
     setProteins((current) => current.map((protein) => (
       protein.id === id
-        ? { ...protein, quantity: Math.min(3, Math.max(1, (protein.quantity || 1) + amount)) }
+        ? {
+            ...protein,
+            quantity: Math.min(
+              favoriteId ? 20 : 3,
+              Math.max(1, (protein.quantity || 1) + amount),
+            ),
+          }
         : protein
     )));
     setSelectedSuggestion(null);
@@ -124,6 +132,7 @@ export default function OrderPage() {
     setToppings([]);
     setExtras([]);
     setBaseIngredients(DEFAULT_BASE);
+    setFavoriteId(null);
     setSelectedSuggestion(null);
   };
 
