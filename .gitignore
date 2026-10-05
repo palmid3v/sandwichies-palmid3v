@@ -1,0 +1,105 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+**/dist/
+build/
+**/build/
+.next/
+**/.next/
+.nuxt/
+**/.nuxt/
+.output/
+**/.output/
+.vite/
+**/.vite/
+.turbo/
+**/.turbo/
+.vercel/
+coverage/
+**/coverage/
+storybook-static/
+playwright-report/
+test-results/
+
+# Rust / Tauri
+target/
+**/target/
+.tauri/
+
+# Python
+.venv/
+**/.venv/
+venv/
+**/venv/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Go generated binaries / coverage
+*.exe
+*.out
+*.test
+coverage.out
+
+# Environment variables / local secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Local credentials / certificates
+secrets/
+**/secrets/
+*.pem
+*.key
+*.p12
+*-firebase-adminsdk-*.json
+serviceAccount*.json
+
+# Firebase local tooling
+.firebase/
+firebase-debug.log
+firestore-debug.log
+firestore-debug.*.log
+ui-debug.log
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Test / tooling artifacts
+.nyc_output/
+.eslintcache
+.stylelintcache
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary / cache files
+.cache/
+**/.cache/
+.parcel-cache/
+tmp/
+**/tmp/
+temp/
+**/temp/
+*.tmp
+*.temp
