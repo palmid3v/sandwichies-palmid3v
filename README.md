@@ -127,4 +127,6 @@ Do not enable customer checkout without completing the release gates in `ROADMAP
 
 This repository is the application, backend/domain, product documentation, and project operating source of truth for Sandwichies.
 
+**Execution status:** FASE 1–4 approved and implementation baseline applied on 2026-10-05. Security emulator, dependency audit, and browser smoke gates are now part of the project workflow.
+
 **PALMI-D3V · Sandwichies · 2026**
