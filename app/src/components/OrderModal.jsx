@@ -43,8 +43,10 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
   const statusMeta =
     ORDER_STATUSES.find((item) => item.value === selectedOrder.status) ||
     ORDER_STATUSES[0];
-  const nextStatus = ORDER_STATUSES.find((status) =>
-    canTransitionOrderStatus(selectedOrder.status, status.value),
+  const nextStatus = ORDER_STATUSES.find(
+    (status) =>
+      status.value !== selectedOrder.status &&
+      canTransitionOrderStatus(selectedOrder.status, status.value),
   );
 
   const updateOrder = async (updates) => {
