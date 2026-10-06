@@ -422,3 +422,219 @@
     text-align: center;
   }
 }
+
+/* Phase 9–10 — discovery and product content */
+.discovery-section {
+  max-width: 1240px;
+  margin: 0 auto 22px;
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(255, 207, 74, 0.08), transparent 30%),
+    var(--surface-raised);
+  box-shadow: var(--shadow-sm);
+}
+
+.discovery-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.discovery-header h2 {
+  margin: 4px 0 7px;
+  color: var(--leaf);
+  font-size: clamp(1.55rem, 3vw, 2.2rem);
+  letter-spacing: -0.035em;
+}
+
+.discovery-header p:not(.eyebrow) {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.discovery-builder-link {
+  flex: 0 0 auto;
+  min-height: var(--control-size);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--leaf);
+  background: var(--surface-3);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.discovery-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 1px 10px;
+  scrollbar-width: thin;
+}
+
+.discovery-tab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--muted);
+  background: var(--surface-3);
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.discovery-tab.active {
+  border-color: rgba(33, 163, 102, 0.72);
+  color: #fff;
+  background: linear-gradient(145deg, #176b44, #1e915a);
+}
+
+.discovery-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.discovery-card {
+  min-width: 0;
+  min-height: 218px;
+  display: flex;
+  flex-direction: column;
+  padding: 17px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 207, 74, 0.08), transparent 38%),
+    var(--surface-3);
+  transition:
+    transform var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard);
+}
+
+.discovery-card:hover,
+.discovery-card--selected {
+  border-color: rgba(33, 163, 102, 0.65);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+  transform: translateY(-2px);
+}
+
+.discovery-card-top,
+.discovery-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.discovery-badge,
+.discovery-featured {
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.discovery-badge {
+  padding: 5px 8px;
+  border-radius: var(--radius-pill);
+  color: #1b301a;
+  background: var(--lime);
+}
+
+.discovery-featured {
+  color: var(--mango);
+}
+
+.discovery-card-body {
+  flex: 1;
+  padding: 22px 0 18px;
+}
+
+.discovery-card-body h3 {
+  margin: 0 0 8px;
+  color: var(--leaf);
+  font-size: 1.06rem;
+}
+
+.discovery-card-body p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.discovery-card-footer strong {
+  color: var(--tropical);
+  font-size: 0.92rem;
+}
+
+.discovery-card-footer .primary-button {
+  min-height: 42px;
+  padding: 9px 13px;
+  font-size: 0.76rem;
+}
+
+.discovery-empty {
+  min-height: 120px;
+  display: grid;
+  place-content: center;
+  gap: 5px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--muted);
+  text-align: center;
+}
+
+.discovery-empty strong {
+  color: var(--leaf);
+}
+
+@media (max-width: 1050px) {
+  .discovery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .discovery-section {
+    padding: 18px;
+    border-radius: var(--radius-lg);
+  }
+
+  .discovery-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .discovery-builder-link {
+    justify-content: center;
+  }
+
+  .discovery-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .discovery-card {
+    min-height: 190px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discovery-card {
+    transition: none;
+  }
+
+  .discovery-card:hover,
+  .discovery-card--selected {
+    transform: none;
+  }
+}
