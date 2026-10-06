@@ -11,7 +11,7 @@ import { CATALOG } from "../shared/catalog.js";
 import { INVENTORY_TRANSACTION_TYPES } from "../shared/inventory.js";
 import { BUSINESS } from "./config/business";
 import { getOrderDate, normalizeOrder } from "./utils/orders";
-import " ./styles/admin.css".trim();
+import "./styles/admin.css";
 
 export default function App() {
   const [orders, setOrders] = useState([]);
