@@ -25,3 +25,8 @@ npm run provision:admin
 El script busca ese usuario existente por correo y falla sin crear cuentas si no existe. Para revocar, ejecutar el mismo comando con `REVOKE_ADMIN=true`. Nunca incluir credenciales, contraseñas, UIDs hardcodeados ni roles en el frontend.
 
 Después de asignar/revocar, el usuario debe cerrar sesión y volver a entrar o renovar su ID token. Restablecer la contraseña no elimina custom claims: autenticación y autorización son datos distintos. Verificar el rol iniciando sesión en `/admin`, confirmando carga de pedidos y comprobando que una cuenta autenticada sin claim recibe acceso restringido y denegación de Firestore.
+
+
+## Inventory authorization
+
+The collections `inventoryBalances` and `inventoryTransactions` are readable only by admins. Browser writes remain denied. The trusted Functions runtime creates transaction records and updates balances. Completed-sale consumption is generated server-side after an order reaches the approved completed-sale state.
