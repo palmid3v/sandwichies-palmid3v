@@ -50,7 +50,7 @@ PHASE 13 Product Expansion
 
 **Important:** security and release blockers remain higher priority than visual/product expansion.
 
-**Current approved execution:** FASE 9–10 APPROVED ALL. Implementation is isolated on `feat/phase-9-10-discovery-product-system`; do not merge automatically.
+**Current approved execution:** FASE 1–4 and FASE 7–11 are APPROVED ALL. FASE 11 implementation is present on main. Release verification remains a separate gate.
 
 ## 3. Repository structure
 
@@ -356,7 +356,7 @@ If one of these is missing, the status is not DONE.
 
 ## 12D. FASE 11 Admin/Product Operations UX
 
-FASE 11 is approved and implemented on branch feat/phase-11-admin-operations-ux.
+FASE 11 is approved and implemented on main.
 
 Operational workflow:
 - prioritize active orders and payment attention;
