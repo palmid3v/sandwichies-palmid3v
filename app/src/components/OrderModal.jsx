@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
-import { ORDER_STATUSES, formatMoney } from "../config/business";
+import {
+  canTransitionOrderStatus,
+  canTransitionPaymentStatus,
+  ORDER_STATUSES,
+  formatMoney,
+} from "../config/business";
 import { INGREDIENTS } from "../data/ingredients";
 import {
   getCustomerName,
   getCustomerPhone,
-  getOrderCost,
   getOrderItems,
+  getOrderCost,
   getOrderTotal,
 } from "../utils/orders";
 
@@ -29,25 +34,38 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
   const items = getOrderItems(selectedOrder);
   const total = getOrderTotal(selectedOrder);
   const cost = getOrderCost(selectedOrder);
+  const currentPaymentStatus = selectedOrder.payment?.status || "pendiente";
 
   const updateOrder = async (updates) => {
+    if (updates.status && !canTransitionOrderStatus(selectedOrder.status, updates.status)) {
+      return;
+    }
+    if (
+      updates["payment.status"] &&
+      !canTransitionPaymentStatus(currentPaymentStatus, updates["payment.status"])
+    ) {
+      return;
+    }
+
     setIsUpdating(true);
     try {
       await updateDoc(doc(db, "orders", selectedOrder.id), {
         ...updates,
         updatedAt: serverTimestamp(),
       });
+
       setSelectedOrder((current) => {
+        const next = { ...current };
+
+        if (updates.status) next.status = updates.status;
         if (updates["payment.status"]) {
-          return {
-            ...current,
-            payment: {
-              ...current.payment,
-              status: updates["payment.status"],
-            },
+          next.payment = {
+            ...current.payment,
+            status: updates["payment.status"],
           };
         }
-        return { ...current, ...updates };
+
+        return next;
       });
     } catch (error) {
       console.error("No se pudo actualizar el pedido:", error);
@@ -117,9 +135,13 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
                   {item.proteins
                     .map((protein) => {
                       const isDouble = item.extras?.some(
-                        (extra) => extra === "doble-proteina" || extra.name === "Doble proteína",
+                        (extra) =>
+                          extra === "doble-proteina" ||
+                          extra.name === "Doble proteína",
                       );
-                      const ingredient = INGREDIENTS.proteins.find((candidate) => candidate.id === protein.id);
+                      const ingredient = INGREDIENTS.proteins.find(
+                        (candidate) => candidate.id === protein.id,
+                      );
                       return `${ingredient?.name || protein.id} x${protein.quantity * (isDouble ? 2 : 1)}`;
                     })
                     .join(", ")}
@@ -128,7 +150,14 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
               {!!item.extras?.length && (
                 <p>
                   <span>Extras:</span>{" "}
-                  {item.extras.map((extra) => INGREDIENTS.extras.find((candidate) => candidate.id === extra)?.name || extra.name).join(", ")}
+                  {item.extras
+                    .map(
+                      (extra) =>
+                        INGREDIENTS.extras.find((candidate) => candidate.id === extra)?.name ||
+                        extra.name ||
+                        extra,
+                    )
+                    .join(", ")}
                 </p>
               )}
             </article>
@@ -150,19 +179,12 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
           <p>
             <span>Estado del pago</span>
             <button
-              disabled={isUpdating}
+              disabled={isUpdating || currentPaymentStatus === "pagado"}
               onClick={() =>
-                updateOrder({
-                  "payment.status":
-                    selectedOrder.payment?.status === "pagado"
-                      ? "pendiente"
-                      : "pagado",
-                })
+                updateOrder({ "payment.status": "pagado" })
               }
             >
-              {selectedOrder.payment?.status === "pagado"
-                ? "Pagado"
-                : "Marcar pagado"}
+              {currentPaymentStatus === "pagado" ? "Pagado" : "Marcar pagado"}
             </button>
           </p>
           <p>
@@ -176,19 +198,30 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
         </div>
 
         <div className="status-actions">
-          {ORDER_STATUSES.map((status) => (
-            <button
-              disabled={isUpdating}
-              className={
-                selectedOrder.status === status.value ? "active" : ""
-              }
-              style={{ "--status-color": status.color }}
-              key={status.value}
-              onClick={() => updateOrder({ status: status.value })}
-            >
-              {status.label}
-            </button>
-          ))}
+          {ORDER_STATUSES.map((status) => {
+            const isActive = selectedOrder.status === status.value;
+            const canMove = canTransitionOrderStatus(selectedOrder.status, status.value);
+            const isCompletedOrClosed = ["entregado", "cancelado"].includes(
+              selectedOrder.status,
+            );
+
+            return (
+              <button
+                disabled={
+                  isUpdating ||
+                  (!isActive && !canMove) ||
+                  (status.value === "cancelado" && currentPaymentStatus === "pagado") ||
+                  isCompletedOrClosed && !isActive
+                }
+                className={isActive ? "active" : ""}
+                style={{ "--status-color": status.color }}
+                key={status.value}
+                onClick={() => updateOrder({ status: status.value })}
+              >
+                {status.label}
+              </button>
+            );
+          })}
         </div>
       </section>
     </div>
