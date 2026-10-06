@@ -2,7 +2,7 @@
 
 **Current release line:** MVP hardening → Product Experience Evolution  
 **Operational state:** `acceptingOrders = false`  
-**Status:** FASE 1–4 implementation executed; release verification remains separate.
+**Status:** FASE 5–6 implementation executed; production verification remains environment-dependent.
 
 ## North star
 
@@ -76,7 +76,7 @@ Customers should be able to discover, configure and submit sandwiches reliably. 
 - [ ] Customer checkout smoke test
 - [ ] Admin smoke test
 - [ ] Mobile/responsive smoke test
-- [ ] Monitoring/rollback procedure
+- [x] Monitoring/rollback procedure
 - [ ] Release checklist completed
 - [ ] Explicit approval to set `acceptingOrders = true`
 
@@ -86,14 +86,14 @@ Customers should be able to discover, configure and submit sandwiches reliably. 
 - [x] Delivery charge
 - [x] Cost and estimated profit calculations
 - [x] Completed-sale accounting rule implemented
-- [ ] Product-owner approval of completed-sale accounting policy
-- [ ] Formal payment-status transitions
-- [ ] Formal order-status transitions
-- [ ] Decide WhatsApp confirmation vs notification semantics
-- [ ] Real inventory transactions
-- [ ] Inventory purchase/consumption history
-- [ ] Explicit stock adjustments
-- [ ] Operational reporting period filters
+- [x] Product-owner approval of completed-sale accounting policy
+- [x] Formal payment-status transitions
+- [x] Formal order-status transitions
+- [x] Decide WhatsApp confirmation vs notification semantics
+- [x] Real inventory transactions
+- [x] Inventory purchase/consumption history
+- [x] Explicit stock adjustments
+- [x] Operational reporting period filters
 
 ---
 
