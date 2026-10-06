@@ -3,14 +3,19 @@
 ## Identity
 
 - Product: Sandwichies
-- Type: Sandwich configurator + operations platform
+- Type: Interactive sandwich configurator + ordering and operations platform
 - Developer: PALMI-D3V
 - Backend: Firebase
-- Current release line: MVP hardening
+- Current release line: MVP hardening → Product Experience Evolution
+- Project operating contract: `MASTERPROMPT.md`
 
-## Purpose
+## Product vision
 
-Support customer sandwich configuration/order submission and admin order operations while keeping pricing and inventory calculations trusted.
+Sandwichies should feel like a real food product, not a generic CRUD ordering application.
+
+The product direction is dark-first, highly interactive, mobile-first, visually distinctive, and strongly connected to food/product identity.
+
+The experience should evolve around discovery, favorites, new creations, meaningful motion, and reduced ordering friction.
 
 ## Current operational state
 
@@ -31,6 +36,16 @@ Checkout remains intentionally disabled until release validation and approval ar
 → WhatsApp summary
 → confirmation
 
+Future experience evolution:
+
+discovery
+→ favorites / featured
+→ new creations
+→ configuration
+→ cart
+→ checkout
+→ confirmation
+
 ## Admin flow
 
 Firebase Auth
@@ -40,6 +55,19 @@ Firebase Auth
 → order details
 → payment status
 → inventory estimation
+
+Future admin UX improvements must preserve the existing trust boundary.
+
+## Product/UX principles
+
+- Dark-first visual direction with Sandwichies-specific identity.
+- Motion and transitions should communicate state or reinforce identity.
+- Microinteractions should be deliberate, not decorative noise.
+- Mobile-first customer UX.
+- Discovery should help users decide what to eat.
+- New products and favorites should be easy to evolve.
+- UI improvements must not duplicate business logic.
+- UX quality does not override security or data integrity.
 
 ## Domain authority
 
@@ -72,8 +100,9 @@ The master project documents are:
 
 1. `README.md`
 2. `CONTEXT.md`
-3. `STEPBYSTEP.md`
-4. `ROADMAP.md`
+3. `MASTERPROMPT.md`
+4. `STEPBYSTEP.md`
+5. `ROADMAP.md`
 
 Detailed documentation is under `app/docs/`. Historical material remains under `app/docs/v0.1/`.
 
@@ -95,6 +124,8 @@ npm run check
 
 ## Rule for future work
 
-Maintain parity between client configuration, shared business modules, Firebase callable functions, and Firestore security rules. Never trust client-submitted financial totals.
+Maintain parity between client configuration, shared business modules, Firebase callable functions, and Firestore security rules.
 
-A task is not DONE until implementation, validation, security review, and documentation are synchronized.
+For product/UI work, also maintain parity between the visual system, interaction system, responsive behavior, and product goals.
+
+A task is not DONE until implementation, validation, security review, UX/UI review where relevant, and documentation are synchronized.
