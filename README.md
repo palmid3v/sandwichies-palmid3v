@@ -125,6 +125,20 @@ CI runs lint, tests and production build on pushes to `main` and pull requests.
 - Completed sales generate automatic consumption transactions; purchases and adjustments are recorded through the admin flow.
 - Dashboard reporting supports operational period filters.
 
+## Visual + interaction system
+
+FASE 7–8 introduces the current dark-first product visual language and reusable motion system:
+
+- intentional color/spacing/radius/elevation tokens;
+- food/product-oriented favorite cards;
+- tactile selection and quantity states;
+- consistent focus/pressed feedback;
+- responsive mobile-first treatment;
+- reusable entry, toast, cart, selection and shimmer patterns;
+- `prefers-reduced-motion` support.
+
+Detailed design decisions live under `app/docs/design/`.
+
 ## Operational state
 
 `acceptingOrders = false`.
@@ -135,6 +149,6 @@ Do not enable customer checkout without completing the release gates in `ROADMAP
 
 This repository is the application, backend/domain, product documentation, and project operating source of truth for Sandwichies.
 
-**Execution status:** FASE 1–6 implementation baseline applied on 2026-10-05. Release verification remains environment-dependent; acceptingOrders stays false until the release gate is explicitly completed.
+**Execution status:** FASE 1–8 implementation baseline applied on 2026-10-05. FASE 7–8 visual/interaction work is committed on the feature branch for manual merge. Production verification remains environment-dependent; acceptingOrders stays false.
 
 **PALMI-D3V · Sandwichies · 2026**

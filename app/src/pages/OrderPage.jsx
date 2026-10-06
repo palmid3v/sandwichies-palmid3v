@@ -266,7 +266,7 @@ export default function OrderPage() {
     return (
       <main className="storefront storefront--confirmation">
         <section className="confirmation-card">
-          <div className="confirmation-icon">✓</div>
+          <div className="confirmation-icon state-success">✓</div>
           <p className="eyebrow">Pedido recibido</p>
           <h1>¡Gracias, {completedOrder.customer.name}!</h1>
           <p className="confirmation-number">
@@ -283,7 +283,8 @@ export default function OrderPage() {
             Total: {formatMoney(completedOrder.total)}
           </p>
           <button
-            className="primary-button"
+            type="button"
+            className="primary-button motion-feedback"
             onClick={() => setCompletedOrder(null)}
           >
             Crear otro pedido
@@ -401,15 +402,22 @@ export default function OrderPage() {
               <div className="choice-grid">
                 {DEFAULT_BASE.map((item) => (
                   <button
+                    type="button"
                     className={
                       baseIngredients.includes(item)
-                        ? "choice-button choice-button--selected"
-                        : "choice-button"
+                        ? "choice-button choice-button--selected motion-feedback"
+                        : "choice-button motion-feedback"
                     }
                     key={item}
                     onClick={() => toggleBase(item)}
+                    aria-pressed={baseIngredients.includes(item)}
                   >
-                    {item}
+                    <span>{item}</span>
+                    {baseIngredients.includes(item) && (
+                      <span className="selection-mark" aria-hidden="true">
+                        ✓
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -488,14 +496,22 @@ export default function OrderPage() {
 
             <div className="segmented-control">
               <button
-                className={fulfillmentType === "recoger" ? "active" : ""}
+                type="button"
+                className={
+                  fulfillmentType === "recoger" ? "active motion-feedback" : "motion-feedback"
+                }
                 onClick={() => setFulfillmentType("recoger")}
+                aria-pressed={fulfillmentType === "recoger"}
               >
                 Recoger
               </button>
               <button
-                className={fulfillmentType === "domicilio" ? "active" : ""}
+                type="button"
+                className={
+                  fulfillmentType === "domicilio" ? "active motion-feedback" : "motion-feedback"
+                }
                 onClick={() => setFulfillmentType("domicilio")}
+                aria-pressed={fulfillmentType === "domicilio"}
               >
                 Domicilio +{formatMoney(BUSINESS.deliveryFee)}
               </button>
