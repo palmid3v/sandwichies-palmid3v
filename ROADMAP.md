@@ -2,7 +2,7 @@
 
 **Current release line:** MVP hardening → Product Experience Evolution  
 **Operational state:** `acceptingOrders = false`  
-**Status:** FASE 5–6 implementation executed; production verification remains environment-dependent.
+**Status:** FASE 7–8 implementation executed on feature branch; production verification remains environment-dependent.
 
 ## North star
 
@@ -103,33 +103,37 @@ These phases begin after release/security blockers are under control and may pro
 
 ## Phase 7 — Sandwichies Visual System
 
+**Execution:** APPROVED ALL — implementation baseline built.
+
 Goal: establish a recognizable dark-first Sandwichies design language.
 
-- [ ] Audit current customer visual hierarchy
+- [x] Audit current customer visual hierarchy
 - [x] Define color/token system
 - [x] Define typography system
 - [x] Define spacing/radius/elevation system
-- [ ] Define product-card language
-- [ ] Define button/input/control language
-- [ ] Define food/product visual motifs
-- [ ] Define light/dark behavior where needed
-- [ ] Document accessibility contrast rules
+- [x] Define product-card language
+- [x] Define button/input/control language
+- [x] Define food/product visual motifs
+- [x] Define light/dark behavior where needed
+- [x] Document accessibility contrast rules
 - [ ] Create current UI baseline screenshots/evidence
 
 ## Phase 8 — Motion + Interaction System
 
+**Execution:** APPROVED ALL — implementation baseline built.
+
 Goal: make Sandwichies feel responsive and alive without becoming distracting.
 
-- [ ] Define transition durations/easing
-- [ ] Define hover/focus/pressed states
-- [ ] Define product selection feedback
-- [ ] Define quantity/cart feedback
-- [ ] Define favorite interaction
-- [ ] Define modal/navigation transitions
-- [ ] Define loading/skeleton behavior
-- [ ] Define success/error feedback
-- [ ] Add reduced-motion behavior
-- [ ] Document reusable motion patterns
+- [x] Define transition durations/easing
+- [x] Define hover/focus/pressed states
+- [x] Define product selection feedback
+- [x] Define quantity/cart feedback
+- [x] Define favorite interaction
+- [x] Define modal/navigation transitions
+- [x] Define loading/skeleton behavior
+- [x] Define success/error feedback
+- [x] Add reduced-motion behavior
+- [x] Document reusable motion patterns
 
 ## Phase 9 — Customer Discovery + Ordering UX
 
