@@ -16,6 +16,7 @@ The next evolution focuses on:
 - Better product discovery.
 - New favorites and new creations.
 - Mobile-first customer experience.
+- Admin operations focused on order priorities, payment visibility, inventory signals and safe status actions.
 - Stronger product identity without weakening security or architecture.
 
 The project-specific operating contract is **`MASTERPROMPT.md`**.
@@ -41,6 +42,10 @@ The project-specific operating contract is **`MASTERPROMPT.md`**.
 - Payment status
 - Live Firestore synchronization
 - New-order notification sound
+- Operational order priority summary
+- Explicit payment-state visibility
+- Safe next-status operational shortcut
+- Low-stock inventory visibility and movement feedback
 
 ## Domain authority
 
@@ -154,6 +159,18 @@ FASE 9–10 extends the storefront from a simple configurator into a product-dis
 
 Detailed execution evidence lives in `app/docs/tasks/PHASE-09-10-REPORT.md`.
 
+## Admin operations UX
+
+FASE 11 improves the daily admin workflow without changing the security boundary:
+
+- operational priority summaries for active, confirmation, payment and ready states;
+- clearer order/payment state in order detail;
+- safe next-status action using canonical transition guards;
+- low-stock inventory signaling and mutation feedback;
+- responsive admin behavior across mobile, tablet and desktop layouts.
+
+Detailed evidence is recorded in app/docs/tasks/PHASE-11-REPORT.md.
+
 ## Operational state
 
 `acceptingOrders = false`.
@@ -164,6 +181,6 @@ Do not enable customer checkout without completing the release gates in `ROADMAP
 
 This repository is the application, backend/domain, product documentation, and project operating source of truth for Sandwichies.
 
-**Execution status:** FASE 1–10 implementation baseline applied on 2026-10-05. FASE 9–10 discovery/product work is committed on the feature branch for manual merge. Production verification remains environment-dependent; acceptingOrders stays false.
+**Execution status:** FASE 1–11 implementation baseline is present on main. FASE 11 admin/product operations UX is implemented and documented. Production verification remains environment-dependent; acceptingOrders stays false.
 
 **PALMI-D3V · Sandwichies · 2026**
