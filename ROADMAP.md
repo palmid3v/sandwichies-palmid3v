@@ -2,7 +2,7 @@
 
 **Current release line:** MVP hardening → Product Experience Evolution  
 **Operational state:** `acceptingOrders = false`  
-**Status:** FASE 7–8 implementation executed on feature branch; production verification remains environment-dependent.
+**Status:** FASE 9–10 implementation executed on feature branch; production verification remains environment-dependent.
 
 ## North star
 
@@ -139,30 +139,30 @@ Goal: make Sandwichies feel responsive and alive without becoming distracting.
 
 Goal: change the customer experience from simple configuration toward product discovery.
 
-- [ ] Audit current landing/catalog experience
-- [ ] Improve hero/entry experience
-- [ ] Introduce stronger categories/featured areas
-- [ ] Improve product discovery hierarchy
-- [ ] Improve product detail/configuration
-- [ ] Improve cart feedback
-- [ ] Reduce checkout friction
-- [ ] Review every loading/empty/error state
-- [ ] Validate mobile-first flow
+- [x] Audit current landing/catalog experience
+- [x] Improve hero/entry experience
+- [x] Introduce stronger categories/featured areas
+- [x] Improve product discovery hierarchy
+- [x] Improve product detail/configuration
+- [x] Improve cart feedback
+- [x] Reduce checkout friction
+- [x] Review every loading/empty/error state
+- [x] Validate mobile-first flow in implementation
 - [ ] Browser-smoke the complete customer journey
 
 ## Phase 10 — New Favorites + New Creations
 
 Goal: establish a sustainable product-content system.
 
-- [ ] Define product/favorite data model needs
-- [ ] Define featured/new/popular concepts
-- [ ] Create first new favorites
-- [ ] Create first new signature/seasonal creations
-- [ ] Review pricing/cost implications
-- [ ] Review inventory implications
-- [ ] Add discovery UI
-- [ ] Validate trusted server reconstruction
-- [ ] Document production vs experimental products
+- [x] Define product/favorite data model needs
+- [x] Define featured/new/popular concepts
+- [x] Create first new favorites
+- [x] Create first new signature/seasonal creations
+- [x] Review pricing/cost implications
+- [x] Review inventory implications
+- [x] Add discovery UI
+- [x] Validate trusted server reconstruction through shared pricing/order model
+- [x] Document production vs experimental products
 
 ## Phase 11 — Admin/Product Operations UX
 
