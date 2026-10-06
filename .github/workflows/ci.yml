@@ -46,7 +46,7 @@ jobs:
       - name: Start preview
         run: npm run preview -- --host 127.0.0.1 > /tmp/sandwichies-preview.log 2>&1 &
 
-      - name: Browser smoke baseline
+      - name: Entrypoint smoke baseline
         run: |
           sleep 3
           SMOKE_BASE_URL=http://127.0.0.1:4173 npm run smoke

@@ -7,6 +7,9 @@
     "rules": "firestore.rules"
   },
   "emulators": {
+    "firestore": {
+      "port": 8080
+    },
     "dataconnect": {
       "dataDir": "dataconnect/.dataconnect/pgliteData"
     }
