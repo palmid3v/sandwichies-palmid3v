@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { formatMoney } from "../config/business";
 import {
   getOrderCost,
@@ -36,9 +36,8 @@ export default function Dashboard({ orders }) {
   const [period, setPeriod] = useState("today");
   const now = new Date();
 
-  const scopedOrders = useMemo(
-    () => orders.filter((order) => isInPeriod(getOrderDate(order), period, now)),
-    [orders, period, now.getTime()],
+  const scopedOrders = orders.filter((order) =>
+    isInPeriod(getOrderDate(order), period, now),
   );
 
   const operationalOrders = scopedOrders.filter(
