@@ -1,0 +1,171 @@
+/* Sandwichies interaction system — Phase 8 */
+
+@keyframes sandwichies-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes sandwichies-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes sandwichies-toast {
+  from {
+    opacity: 0;
+    transform: translate3d(-50%, -10px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+}
+
+@keyframes sandwichies-cart-in {
+  from {
+    opacity: 0;
+    transform: translate3d(8px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes sandwichies-check {
+  0% {
+    transform: scale(0.75);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes sandwichies-shimmer {
+  0% {
+    transform: translateX(-140%);
+    opacity: 0;
+  }
+  20%,
+  65% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: translateX(140%);
+    opacity: 0;
+  }
+}
+
+.motion-enter {
+  animation: sandwichies-rise var(--duration-slow) var(--ease-emphasized) both;
+}
+
+.motion-pop {
+  animation: sandwichies-pop var(--duration-base) var(--ease-emphasized) both;
+}
+
+.motion-feedback {
+  transition:
+    transform var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    background-color var(--duration-base) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard),
+    filter var(--duration-base) var(--ease-standard);
+}
+
+.motion-feedback:hover {
+  transform: translateY(-2px);
+}
+
+.motion-feedback:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.motion-feedback:focus-visible {
+  box-shadow: var(--shadow-focus);
+}
+
+.motion-shimmer {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.motion-shimmer::after {
+  position: absolute;
+  top: -30%;
+  left: 0;
+  width: 32%;
+  height: 160%;
+  content: "";
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(255, 255, 255, 0.14),
+    transparent
+  );
+  transform: translateX(-140%);
+  pointer-events: none;
+}
+
+.motion-shimmer:hover::after {
+  animation: sandwichies-shimmer 900ms var(--ease-standard) both;
+}
+
+.stagger-children > * {
+  animation: sandwichies-rise var(--duration-slow) var(--ease-emphasized) both;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 20ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 45ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 70ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 95ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 145ms; }
+
+.state-success {
+  animation: sandwichies-check 320ms var(--ease-emphasized) both;
+}
+
+.state-toast {
+  animation: sandwichies-toast 220ms var(--ease-emphasized) both;
+}
+
+.state-cart-item {
+  animation: sandwichies-cart-in 220ms var(--ease-emphasized) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-feedback:hover,
+  .motion-feedback:active {
+    transform: none;
+  }
+
+  .motion-shimmer:hover::after,
+  .motion-enter,
+  .motion-pop,
+  .stagger-children > *,
+  .state-success,
+  .state-toast,
+  .state-cart-item {
+    animation: none !important;
+  }
+}

@@ -228,7 +228,7 @@ export default function App() {
           ["inventario", "Inventario"],
         ].map(([value, label]) => (
           <button
-            className={activeTab === value ? "active" : ""}
+            className={activeTab === value ? "active motion-feedback" : "motion-feedback"}
             key={value}
             onClick={() => setActiveTab(value)}
           >
@@ -336,7 +336,7 @@ export default function App() {
                 required
               />
             </label>
-            <button disabled={inventorySubmitting}>
+            <button type="submit" className="motion-feedback" disabled={inventorySubmitting}>
               {inventorySubmitting ? "Guardando..." : "Registrar movimiento"}
             </button>
           </form>

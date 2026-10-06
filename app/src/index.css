@@ -1,5 +1,7 @@
-/* Sandwichies design tokens — Phase 7 foundation */
+/* Sandwichies design tokens — Phase 7 + 8 foundation */
 :root {
+  color-scheme: dark;
+
   --ink: #f8f4e8;
   --muted: #b8b5a8;
   --leaf: #f1ead8;
@@ -8,26 +10,104 @@
   --mango: #ffcf4a;
   --papaya: #ff8b3d;
   --coral: #e75b4a;
-  --surface-0: #11130f;
-  --surface-1: #191c16;
-  --surface-2: #23271f;
+
+  --surface-0: #0c0e0b;
+  --surface-1: #151812;
+  --surface-2: #1b2018;
+  --surface-3: #24291f;
+  --surface-raised: rgba(25, 28, 22, 0.92);
   --border: rgba(241, 234, 216, 0.12);
+  --border-strong: rgba(241, 234, 216, 0.2);
+
   --shadow-sm: 0 10px 28px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 16px 36px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 22px 60px rgba(0, 0, 0, 0.36);
+  --shadow-focus: 0 0 0 3px rgba(198, 245, 107, 0.2);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 26px;
+  --radius-pill: 999px;
+
+  --duration-fast: 140ms;
+  --duration-base: 180ms;
+  --duration-slow: 300ms;
+  --ease-standard: cubic-bezier(0.2, 0.75, 0.25, 1);
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --control-size: 48px;
+
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
 
-* { box-sizing: border-box; }
-html { color-scheme: dark; }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--surface-0);
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   color: var(--ink);
-  background: var(--surface-0);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(198, 245, 107, 0.035), transparent 26%),
+    var(--surface-0);
   text-rendering: optimizeLegibility;
 }
-button, input, textarea, select { font: inherit; }
-button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
   outline: 3px solid rgba(198, 245, 107, 0.55);
   outline-offset: 2px;
+}
+
+::selection {
+  color: #122016;
+  background: var(--lime);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

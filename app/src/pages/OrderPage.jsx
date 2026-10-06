@@ -266,7 +266,7 @@ export default function OrderPage() {
     return (
       <main className="storefront storefront--confirmation">
         <section className="confirmation-card">
-          <div className="confirmation-icon">✓</div>
+          <div className="confirmation-icon state-success">✓</div>
           <p className="eyebrow">Pedido recibido</p>
           <h1>¡Gracias, {completedOrder.customer.name}!</h1>
           <p className="confirmation-number">
@@ -283,7 +283,8 @@ export default function OrderPage() {
             Total: {formatMoney(completedOrder.total)}
           </p>
           <button
-            className="primary-button"
+            type="button"
+            className="primary-button motion-feedback"
             onClick={() => setCompletedOrder(null)}
           >
             Crear otro pedido
@@ -296,12 +297,19 @@ export default function OrderPage() {
   return (
     <main className="storefront">
       {toast && (
-        <div className={`toast toast--${toast.type}`} role="status">
+        <div
+          className={`toast toast--${toast.type} state-toast`}
+          role="status"
+          aria-live="polite"
+        >
+          <span className="toast-mark" aria-hidden="true">
+            {toast.type === "error" ? "!" : "✓"}
+          </span>
           {toast.message}
         </div>
       )}
 
-      <header className="store-header hero-banner">
+      <header className="store-header hero-banner motion-enter">
         <div className="hero-copy">
           <p className="eyebrow">Hecho fresco</p>
           <h1>{BUSINESS.name}</h1>
@@ -330,7 +338,7 @@ export default function OrderPage() {
 
       <div className="store-layout">
         <section className="builder">
-          <div className="section-card" id="personaliza">
+          <div className="section-card section-card--product" id="personaliza">
             <div className="section-heading">
               <span>1</span>
               <div>
@@ -338,21 +346,37 @@ export default function OrderPage() {
                 <p>Puedes personalizarlo después.</p>
               </div>
             </div>
-            <div className="menu-grid">
-              {MENU.map((item) => (
-                <button
-                  className={
-                    selectedSuggestion === item.name
-                      ? "menu-option menu-option--selected"
-                      : "menu-option"
-                  }
-                  key={item.name}
-                  onClick={() => applyMenuItem(item)}
-                >
-                  <span>{item.name}</span>
-                  <small>Desde {formatMoney(item.startingPrice)}</small>
-                </button>
-              ))}
+            <div className="menu-grid stagger-children">
+              {MENU.map((item) => {
+                const isSelected = selectedSuggestion === item.name;
+
+                return (
+                  <button
+                    type="button"
+                    className={
+                      isSelected
+                        ? "menu-option menu-option--selected motion-feedback motion-shimmer"
+                        : "menu-option motion-feedback motion-shimmer"
+                    }
+                    key={item.id}
+                    onClick={() => applyMenuItem(item)}
+                    aria-pressed={isSelected}
+                  >
+                    <span className="menu-option-top">
+                      <strong>{item.name}</strong>
+                      {isSelected && (
+                        <span className="menu-option-check" aria-hidden="true">
+                          ✓
+                        </span>
+                      )}
+                    </span>
+                    <span className="menu-option-meta">
+                      <small>Favorito</small>
+                      <small>Desde {formatMoney(item.startingPrice)}</small>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -378,15 +402,22 @@ export default function OrderPage() {
               <div className="choice-grid">
                 {DEFAULT_BASE.map((item) => (
                   <button
+                    type="button"
                     className={
                       baseIngredients.includes(item)
-                        ? "choice-button choice-button--selected"
-                        : "choice-button"
+                        ? "choice-button choice-button--selected motion-feedback"
+                        : "choice-button motion-feedback"
                     }
                     key={item}
                     onClick={() => toggleBase(item)}
+                    aria-pressed={baseIngredients.includes(item)}
                   >
-                    {item}
+                    <span>{item}</span>
+                    {baseIngredients.includes(item) && (
+                      <span className="selection-mark" aria-hidden="true">
+                        ✓
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -420,8 +451,14 @@ export default function OrderPage() {
                 <small>Sandwich actual</small>
                 <strong>{formatMoney(currentLine?.price || 0)}</strong>
               </div>
-              <button className="primary-button" onClick={addToCart}>
-                Agregar al pedido
+              <button
+                type="button"
+                className="primary-button motion-feedback"
+                onClick={addToCart}
+                disabled={!currentLine}
+              >
+                <span>Agregar al pedido</span>
+                <span aria-hidden="true">+</span>
               </button>
             </div>
           </div>
@@ -459,14 +496,22 @@ export default function OrderPage() {
 
             <div className="segmented-control">
               <button
-                className={fulfillmentType === "recoger" ? "active" : ""}
+                type="button"
+                className={
+                  fulfillmentType === "recoger" ? "active motion-feedback" : "motion-feedback"
+                }
                 onClick={() => setFulfillmentType("recoger")}
+                aria-pressed={fulfillmentType === "recoger"}
               >
                 Recoger
               </button>
               <button
-                className={fulfillmentType === "domicilio" ? "active" : ""}
+                type="button"
+                className={
+                  fulfillmentType === "domicilio" ? "active motion-feedback" : "motion-feedback"
+                }
                 onClick={() => setFulfillmentType("domicilio")}
+                aria-pressed={fulfillmentType === "domicilio"}
               >
                 Domicilio +{formatMoney(BUSINESS.deliveryFee)}
               </button>
@@ -515,7 +560,7 @@ export default function OrderPage() {
           </div>
         </section>
 
-        <aside className="cart-card">
+        <aside className="cart-card motion-enter" aria-label="Resumen del pedido">
           <div className="cart-header">
             <div>
               <p className="eyebrow">Tu pedido</p>
@@ -532,7 +577,7 @@ export default function OrderPage() {
           ) : (
             <div className="cart-items">
               {cart.map((item) => (
-                <article className="cart-item" key={item.lineId}>
+                <article className="cart-item state-cart-item" key={item.lineId}>
                   <div>
                     <strong>{item.name}</strong>
                     <small>
@@ -544,7 +589,11 @@ export default function OrderPage() {
                   </div>
                   <div className="cart-item-price">
                     <strong>{formatMoney(item.preview.price)}</strong>
-                    <button onClick={() => removeFromCart(item.lineId)}>
+                    <button
+                      type="button"
+                      onClick={() => removeFromCart(item.lineId)}
+                      aria-label={`Quitar ${item.name} del pedido`}
+                    >
                       Quitar
                     </button>
                   </div>
@@ -573,7 +622,8 @@ export default function OrderPage() {
           </div>
 
           <button
-            className="checkout-button"
+            type="button"
+            className="checkout-button motion-feedback"
             disabled={
               isSubmitting || !cart.length || !BUSINESS.acceptingOrders
             }

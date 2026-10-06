@@ -4,7 +4,7 @@
 **Effective:** 2026-10-05  
 **Project:** Sandwichies  
 **Owner:** PALMI-D3V  
-**Mode:** Approved execution — FASE 1–4  
+**Mode:** Approved execution — FASE 1–8  
 **Status:** BUILD / HARDEN / VERIFY
 
 ---
@@ -50,9 +50,16 @@ Never rewrite historical material to impersonate current behavior.
 **FASE 1 — Domain Integrity: APPROVED**  
 **FASE 2 — Security Hardening: APPROVED**  
 **FASE 3 — Quality + CI: APPROVED**  
-**FASE 4 — Integration + Browser Validation: APPROVED**
+**FASE 4 — Integration + Browser Validation: APPROVED**  
+**FASE 7 — Visual System: APPROVED**  
+**FASE 8 — Motion + Interaction System: APPROVED**
 
 The implementation agent is authorized to execute all approved work without waiting for another approval between these phases.
+
+**FASE 7 — Visual System: APPROVED ALL**
+**FASE 8 — Motion + Interaction System: APPROVED ALL**
+
+For FASE 7–8, visual and interaction improvements are authorized within the existing architecture. Do not expand into unrelated product features or release deployment.
 
 Do not interpret approval as permission to weaken security, fabricate test evidence, or enable production ordering without the separate release gate.
 
@@ -553,7 +560,8 @@ Sandwichies work is complete only when:
 
 ## 24. Current execution directive
 
-**FASE 1–4: APPROVED ALL**
+**FASE 1–4: APPROVED ALL**  
+**FASE 7–8: APPROVED ALL**
 
 Proceed directly with implementation.
 

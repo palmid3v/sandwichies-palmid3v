@@ -6,7 +6,7 @@
 - Type: Interactive sandwich configurator + ordering and operations platform
 - Developer: PALMI-D3V
 - Backend: Firebase
-- Current release line: MVP hardening → Product Experience Evolution
+- Current release line: Product Experience Evolution (FASE 7–8 built; release verification remains separate)
 - Project operating contract: `MASTERPROMPT.md`
 
 ## Product vision
@@ -15,7 +15,7 @@ Sandwichies should feel like a real food product, not a generic CRUD ordering ap
 
 The product direction is dark-first, highly interactive, mobile-first, visually distinctive, and strongly connected to food/product identity.
 
-The experience should evolve around discovery, favorites, new creations, meaningful motion, and reduced ordering friction.
+The experience should evolve around discovery, favorites, new creations, meaningful motion, tactile controls, and reduced ordering friction.
 
 ## Current operational state
 
@@ -119,6 +119,14 @@ Detailed documentation is under `app/docs/`. Historical material remains under `
 - Inventory uses `inventoryBalances` and `inventoryTransactions`. Catalog `stockQuantity` is the opening baseline; completed sales post consumption automatically.
 - Manual purchases and stock adjustments are recorded by the admin callable. Direct browser writes to inventory collections remain denied.
 - Historical orders without stored `ingredientUsage` are never silently converted into inventory consumption.
+
+## Current product experience system
+
+- FASE 7 defines the dark-first visual tokens, product-card language, touch targets, focus states and food-driven visual motifs.
+- FASE 8 defines reusable interaction patterns in `app/src/styles/motion.css`.
+- Reduced-motion behavior is part of the global interaction system.
+- Current UI/design decisions are documented in `app/docs/design/DESIGN-SYSTEM.md` and `app/docs/design/MOTION-INTERACTION.md`.
+- Screenshot/browser evidence is intentionally not fabricated; it remains an execution task.
 
 ## Development
 
