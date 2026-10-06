@@ -153,7 +153,7 @@ A task is not DONE until implementation, validation, security review, UX/UI revi
 
 ## Current FASE 11 state
 
-FASE 11 Admin/Product Operations UX is implemented on branch feat/phase-11-admin-operations-ux.
+FASE 11 Admin/Product Operations UX is implemented on main.
 
 The admin experience now prioritizes active orders, confirmation/payment attention, ready orders, explicit payment state, safe next-status progression, inventory low-stock visibility and operational feedback. The existing Firebase Auth/custom-claim and Firestore Rules authorization model remains unchanged.
 
