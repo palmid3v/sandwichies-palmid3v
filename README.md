@@ -2,9 +2,9 @@
 
 A product-oriented sandwich configurator and operations platform covering customer ordering, trusted pricing, order management, inventory estimation, and admin workflows.
 
-> **Current status:** Active business application under development. Current business configuration has acceptingOrders = false, so checkout is intentionally disabled until configuration and release approval change it.
+> **Current status:** Active MVP hardening. `acceptingOrders = false`; checkout is intentionally disabled until release approval.
 
-## 🎯 Product scope
+## Product scope
 
 ### Customer
 - 15 cm / 30 cm products
@@ -25,17 +25,25 @@ A product-oriented sandwich configurator and operations platform covering custom
 - Live Firestore synchronization
 - New-order notification sound
 
-## 🧮 Domain logic
+## Domain authority
 
-Shared catalog, pricing, business, recipes, and order-request modules define product configuration, costs, prices, delivery fees, profit calculations, and inventory consumption.
+The authoritative business modules live under `app/shared/`:
 
-Server-side order creation rebuilds totals from submitted configuration instead of trusting client totals.
+- `catalog.js`
+- `pricing.js`
+- `business.js`
+- `recipes.js`
+- `order-request.js`
 
-## 🔐 Security boundary
+The browser previews configuration and pricing, but trusted order values are reconstructed by the Firebase callable backend.
 
-Customer order creation is handled through a Firebase callable function. Firestore Rules restrict direct browser order creation/deletion, and protected admin operations require the admin custom claim.
+## Security boundary
 
-## 🛠️ Technology
+Customer order creation goes through `createOrder`.
+
+Firestore Rules deny direct browser order creation/deletion and protect admin operations with the `admin` custom claim.
+
+## Technology
 
 | Technology | Role |
 | --- | --- |
@@ -44,70 +52,62 @@ Customer order creation is handled through a Firebase callable function. Firesto
 | Firebase / Firestore | Persistence |
 | Firebase Functions / Admin SDK | Trusted backend |
 | React Router 7 | Routing |
-| html2canvas | Rendering support |
 | Node test runner | Tests |
 | ESLint 9 | Code quality |
 
-## 📁 Repository structure
+## Repository structure
 
-~~~text
+```text
 sandwichies-palmid3v/
-├── app/
-│   ├── src/              # Browser application
-│   ├── shared/           # Shared business/domain modules
-│   ├── functions/        # Firebase backend
-│   ├── docs/             # Product/engineering history
-│   ├── scripts/          # Administrative scripts
-│   └── package.json
-├── archive/
+├── README.md
 ├── CONTEXT.md
-└── README.md
-~~~
+├── STEPBYSTEP.md
+├── ROADMAP.md
+├── .github/workflows/     # CI
+├── app/
+│   ├── src/               # Browser application
+│   ├── shared/            # Authoritative business/domain logic
+│   ├── functions/         # Trusted Firebase backend
+│   ├── test/              # Automated tests
+│   ├── scripts/           # Administrative tooling
+│   ├── docs/              # Detailed current + historical documentation
+│   └── dataconnect/       # Experimental/non-production material
+└── archive/               # Historical material
+```
 
-## 📚 Documentation
+## Documentation
 
-Detailed documentation is maintained under app/docs/ and covers:
+Use the four repository-level documents as the master control plane:
 
-- Product
-- Business rules
-- Architecture
-- Firebase
-- Pricing and costs
-- Security
-- Deployment
-- Development
-- Testing
-- Audits
-- Tasks
-- v0.1 history
+- `README.md` — product map
+- `CONTEXT.md` — project memory and constraints
+- `STEPBYSTEP.md` — engineering manual
+- `ROADMAP.md` — current destination and priorities
 
-## 🚦 Operational state
+Detailed documentation lives under `app/docs/`. Historical `v0.1` documents remain preserved for traceability.
 
-acceptingOrders is currently false.
+## Validation
 
-Do not enable customer checkout without reviewing configuration and release requirements.
+From `app/`:
 
-## 🚀 Development
-
-~~~bash
-cd app
+```bash
 npm install
-npm run dev
 npm run lint
 npm test
 npm run build
 npm run check
-npm run provision:admin
-~~~
+```
 
-## 📌 Project boundary
+CI runs lint, tests and production build on pushes to `main` and pull requests.
 
-This repository is both the application source of truth and the backend/domain source for Sandwichies. Shared business modules must remain aligned with client and server validation.
+## Operational state
 
-## 📚 Project context
+`acceptingOrders = false`.
 
-See CONTEXT.md for the consolidated product, business, security, and architecture rules.
+Do not enable customer checkout without completing the release gates in `ROADMAP.md`.
 
----
+## Project boundary
 
-**PALMI-D3V** · Sandwichies · 2026
+This repository is the application, backend/domain, and documentation source of truth for Sandwichies. Shared business modules must remain aligned with client behavior, trusted server reconstruction, and Firestore security rules.
+
+**PALMI-D3V · Sandwichies · 2026**
