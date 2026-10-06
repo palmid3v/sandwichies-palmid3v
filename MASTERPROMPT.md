@@ -575,12 +575,12 @@ Do not broaden scope into unrelated features.
 
 Do not enable production ordering merely because tests pass.
 
-After FASE 1–4, report:
+After each approved implementation group, report:
 
 - implementation completed
-- tests executed
-- security checks executed
-- CI status
+- tests actually executed
+- security checks actually executed
+- CI status when applicable
 - browser validation status
 - remaining release blockers
 - exact next approved phase
