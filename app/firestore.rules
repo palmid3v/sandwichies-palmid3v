@@ -12,7 +12,7 @@ service cloud.firestore {
 
     match /orders/{orderId} {
       // Customer writes are performed by the Admin SDK inside createOrder.
-      // Direct browser creation/deletion is never authorized.
+      // Admin state changes stay browser-accessible for the trusted admin role.
       allow read, update: if isAdmin();
       allow create, delete: if false;
     }
@@ -20,6 +20,18 @@ service cloud.firestore {
     match /counters/orders {
       // The trusted function owns this counter transaction.
       allow read, write: if false;
+    }
+
+    match /inventoryBalances/{ingredientId} {
+      // Balances are server-maintained from inventory transactions.
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /inventoryTransactions/{transactionId} {
+      // Inventory movements are created by privileged server code only.
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     match /{document=**} {
