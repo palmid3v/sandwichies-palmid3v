@@ -1,6 +1,18 @@
-import { BUSINESS, ORDER_STATUSES, PAYMENT_METHODS } from "../../shared/business.js";
+import {
+  BUSINESS,
+  ORDER_STATUSES,
+  PAYMENT_METHODS,
+  canTransitionOrderStatus,
+  canTransitionPaymentStatus,
+} from "../../shared/business.js";
 
-export { BUSINESS, ORDER_STATUSES, PAYMENT_METHODS };
+export {
+  BUSINESS,
+  ORDER_STATUSES,
+  PAYMENT_METHODS,
+  canTransitionOrderStatus,
+  canTransitionPaymentStatus,
+};
 
 export const formatMoney = (value = 0) =>
   new Intl.NumberFormat(BUSINESS.locale, {
