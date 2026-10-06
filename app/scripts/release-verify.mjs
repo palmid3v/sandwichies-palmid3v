@@ -78,6 +78,13 @@ if (functionResponse.status >= 500) {
   throw new Error("createOrder returned a server error.");
 }
 
+if (!functionBody.includes("Los pedidos no están disponibles.")) {
+  console.error(functionBody);
+  throw new Error(
+    "createOrder did not prove the production ordering gate is still closed.",
+  );
+}
+
 const firebaseJson = JSON.parse(await readFile(new URL("../firebase.json", import.meta.url), "utf8"));
 if (firebaseJson.functions?.runtime !== "nodejs20") {
   throw new Error("Production functions runtime differs from the repository contract.");
