@@ -1,458 +1,518 @@
 # MASTERPROMPT — Sandwichies
 
-**Version:** 1.0  
+**Version:** 2.0  
+**Effective:** 2026-10-05  
 **Project:** Sandwichies  
 **Owner:** PALMI-D3V  
-**Purpose:** Product, UX/UI, engineering, security, QA, and release operating contract.
+**Mode:** Approved execution — FASE 1–4  
+**Status:** BUILD / HARDEN / VERIFY
 
 ---
 
-## 1. Role
+## 1. Mission
 
-Act as the integrated product agent for Sandwichies.
+Build Sandwichies as a trustworthy, distinctive, mobile-first sandwich ordering and operations product.
 
-Every task must be evaluated across:
+The product must be:
 
-- Product management
-- UI/UX and product design
-- Software architecture
-- Security
-- QA/testing
-- Business/product analysis
-- Release engineering
+**Functional + secure + financially trustworthy + interactive + visually distinctive + responsive + testable + evolvable.**
 
-Do not limit the work to making code function. Ask whether the change makes Sandwichies a better product.
+Do not optimize for code volume. Optimize for product value and evidence.
 
 ---
 
-## 2. Product vision
+## 2. Source of truth
 
-Sandwichies is not a generic CRUD ordering application.
+The GitHub repository is the source of truth:
 
-It should feel like a modern, interactive food product with its own identity, personality, and visual language.
+`palmid3v/sandwichies-palmid3v`
 
-The experience should communicate:
+Current branch:
+
+`main`
+
+The project control plane is:
+
+1. `README.md`
+2. `CONTEXT.md`
+3. `MASTERPROMPT.md`
+4. `STEPBYSTEP.md`
+5. `ROADMAP.md`
+
+Detailed current documentation lives under `app/docs/`. Historical material is preserved under `app/docs/v0.1/`.
+
+Never rewrite historical material to impersonate current behavior.
+
+---
+
+## 3. Approval contract
+
+**FASE 1 — Domain Integrity: APPROVED**  
+**FASE 2 — Security Hardening: APPROVED**  
+**FASE 3 — Quality + CI: APPROVED**  
+**FASE 4 — Integration + Browser Validation: APPROVED**
+
+The implementation agent is authorized to execute all approved work without waiting for another approval between these phases.
+
+Do not interpret approval as permission to weaken security, fabricate test evidence, or enable production ordering without the separate release gate.
+
+---
+
+## 4. Product rules
+
+Sandwichies is not a generic CRUD application.
+
+Customer experience should emphasize:
 
 - appetite
 - discovery
-- quality
-- speed
 - confidence
-- personality
-- food
+- speed
 - product identity
+- food-driven visual language
+- low-friction ordering
 
-The goal is for the user to feel that ordering is part of the product experience, not merely filling out a form.
+Customer UX is mobile-first.
+
+Admin UX is operationally focused and must remain secure.
 
 ---
 
-## 3. Visual direction
+## 5. Architecture contract
 
-### Dark first
+Preserve the existing architecture unless a real architectural reason requires change.
 
-Dark mode is a core visual preference, but it must not become a generic black UI.
+Canonical boundaries:
 
-The visual language should be connected to Sandwichies and may draw from:
+```
+Customer/Admin UI
+      ↓
+browser adapters
+      ↓
+app/shared domain logic
+      ↓
+trusted Firebase callable functions
+      ↓
+Firestore
+```
+
+Authoritative shared modules:
+
+- `app/shared/catalog.js`
+- `app/shared/pricing.js`
+- `app/shared/business.js`
+- `app/shared/recipes.js`
+- `app/shared/order-request.js`
+
+Do not duplicate catalog, pricing, recipe, order validation, or business rules in the UI.
+
+Do not mass-restructure stable folders merely for aesthetics.
+
+---
+
+## 6. Security contract
+
+The browser is untrusted.
+
+Never trust browser-submitted:
+
+- prices
+- totals
+- costs
+- profit
+- order numbers
+- trusted statuses
+- trusted financial fields
+- catalog definitions
+
+Customer order creation must continue through `createOrder`.
+
+The server must reconstruct and validate trusted order values.
+
+Firestore rules must remain restrictive.
+
+Expected authorization model:
+
+```
+Customer
+  → callable createOrder
+  → trusted backend
+  → Firestore Admin SDK
+
+Admin
+  → Firebase Auth
+  → custom claim admin=true
+  → Firestore Rules
+```
+
+Direct browser order creation/deletion remains denied.
+
+Direct browser counter access remains denied.
+
+Never weaken rules to make tests or features pass.
+
+---
+
+## 7. FASE 1 — Domain Integrity
+
+Maintain and verify:
+
+- centralized catalog authority
+- centralized pricing authority
+- centralized recipe authority
+- centralized business configuration
+- trusted order request validation
+- server-side order reconstruction
+- server-owned order numbering
+- server-owned financial values
+- financial tampering resistance
+- consistency between customer preview and trusted backend reconstruction
+
+Any domain change must update affected tests.
+
+Definition of done for FASE 1:
+
+- domain behavior is represented by authoritative shared modules;
+- tests cover important business invariants;
+- no duplicate financial/business source exists;
+- customer and backend agree on the same semantic model.
+
+---
+
+## 8. FASE 2 — Security Hardening
+
+Implement and maintain:
+
+- Firebase Auth admin boundary
+- admin custom claim authorization
+- restrictive Firestore Rules
+- Emulator-based Rules regression tests
+- security regression coverage for orders
+- security regression coverage for counters
+- non-admin denial coverage
+- direct-write denial coverage
+
+Minimum Rules regression expectations:
+
+- unauthenticated read of orders: denied
+- unauthenticated order create/delete: denied
+- authenticated non-admin order read: denied
+- authenticated non-admin order update: denied
+- admin order read/update: allowed
+- admin direct order create: denied
+- admin direct order delete: denied
+- browser counter read/write: denied
+- unspecified collections: denied
+
+Security tests must run against Firebase Emulator Suite.
+
+Do not claim security validation without actual execution.
+
+---
+
+## 9. FASE 3 — Quality + CI
+
+The quality pipeline is:
+
+```
+install
+↓
+dependency audit
+↓
+lint
+↓
+unit/domain tests
+↓
+Firebase Rules regression
+↓
+production build
+↓
+browser smoke
+```
+
+Required commands from `app/`:
+
+```bash
+npm ci
+npm run audit
+npm run lint
+npm test
+npm run security:test
+npm run build
+npm run smoke
+```
+
+The local convenience gate:
+
+```bash
+npm run check
+```
+
+CI must enforce the quality gates on pushes to `main` and pull requests.
+
+Dependency audit policy:
+
+- high severity and critical vulnerabilities fail CI;
+- do not silently suppress vulnerabilities;
+- document accepted exceptions explicitly when unavoidable.
+
+---
+
+## 10. FASE 4 — Integration + Browser Validation
+
+Establish a practical regression baseline for:
+
+### Customer
+
+- root page boots
+- catalog/configuration UI boots
+- responsive layout remains structurally valid
+- cart flow remains available
+- checkout-disabled state remains respected while `acceptingOrders=false`
+- loading/empty/error states do not crash the app
+
+### Admin
+
+- `/admin` boots
+- unauthenticated user is sent to login
+- authenticated non-admin receives restricted access
+- authenticated admin can enter the operational UI
+- orders/dashboard/inventory screens can render
+
+### Browser smoke principle
+
+Smoke tests validate boot and critical entrypoints without fabricating a production order.
+
+Production ordering remains gated behind release verification.
+
+---
+
+## 11. Product visual direction
+
+Sandwichies is dark-first.
+
+Dark-first does **not** mean generic black.
+
+Visual language should draw from:
 
 - bread
 - ingredients
 - sauces
 - grill/kitchen energy
+- premium food menus
 - street food
-- premium restaurant menus
-- warmth and appetite
+- warmth
 
-Avoid generic SaaS aesthetics when they do not serve the product.
+Use the existing brand palette when useful, but structure it into intentional design tokens.
 
-The interface must develop a recognizable Sandwichies identity.
+Required principles:
 
----
+- readable typography
+- strong hierarchy
+- clear contrast
+- tactile controls
+- obvious selected states
+- visible focus states
+- mobile-friendly touch targets
+- consistent radii, spacing, elevation
+- meaningful interaction feedback
 
-## 4. UI/UX agent responsibility
-
-Actively operate as Sandwichies' UI/UX agent.
-
-For every relevant screen or flow evaluate:
-
-### Visual
-- hierarchy
-- composition
-- typography
-- spacing
-- contrast
-- density
-- consistency
-- brand identity
-
-### UX
-- clarity
-- navigation
-- discoverability
-- friction
-- feedback
-- error handling
-- empty states
-- mobile usability
-- accessibility
-
-### Motion
-- interaction feedback
-- transitions
-- continuity
-- loading states
-- success/error communication
-
-### Product
-- Does it help discovery?
-- Does it reduce friction?
-- Does it support conversion/order completion?
-- Does it reinforce the brand?
-- Does it make the product feel better?
-
-Do not wait for the user to explicitly request UX review when a UI/product change is being made.
+Avoid generic SaaS visual language when it weakens food/product identity.
 
 ---
 
-## 5. Motion and interaction system
+## 12. Motion and interaction
 
-Sandwichies must evolve toward a deliberate motion system.
+Motion must have a product purpose.
 
-Review and improve:
+Use motion to:
 
-- hover states
-- focus states
-- pressed states
-- buttons
-- cards
-- product selection
-- quantity changes
-- cart feedback
-- favorites
-- navigation
-- modals
-- notifications
-- loading
-- success/error states
+- confirm actions
+- communicate state
+- guide attention
+- reinforce continuity
+- reinforce identity
 
-Animation must have purpose. It should orient, confirm, anticipate, prioritize, or reinforce identity.
+Avoid:
 
-Avoid motion that is excessive, distracting, slow, inaccessible, or decorative without product value.
+- unnecessary animation
+- excessive duration
+- distracting loops
+- motion that harms readability
+- animation that ignores reduced-motion preferences
+
+`prefers-reduced-motion` must remain respected.
 
 ---
 
-## 6. Product discovery
+## 13. Product discovery
 
-The experience should help users discover what they want to eat.
-
-Support the evolution of:
+Architecture must support:
 
 - favorites
 - featured products
-- new creations
 - popular products
-- recommendations
-- seasonal/special products
-- categories
-- related combinations
-
-The current catalog is not assumed to be final.
-
-The architecture must allow the catalog and product experience to evolve without duplicating business rules.
-
----
-
-## 7. New creations and product evolution
-
-Sandwichies should have room for experimentation.
-
-New product concepts may include:
-
-- new favorites
-- signature sandwiches
-- limited creations
-- combinations
+- new creations
 - seasonal products
-- recommended configurations
+- signature combinations
+- recommended products
 
-Distinguish clearly between experimental concepts and production products.
+Product definitions belong in canonical domain data.
 
-Experiments must not silently become production behavior.
+Do not hardcode duplicate product content in components.
 
----
-
-## 8. Mobile-first
-
-Design customer experiences mobile-first.
-
-Prioritize:
-
-- touch targets
-- navigation
-- catalog browsing
-- product configuration
-- cart
-- checkout
-- feedback
-- performance
-
-Then validate tablet and desktop.
-
-Do not merely shrink a desktop layout into mobile.
-
----
-
-## 9. Architecture rule
-
-Preserve the existing architecture unless a change has a real architectural reason.
-
-Current boundaries:
-
-```
-UI
-↓
-adapters
-↓
-shared domain/business logic
-↓
-trusted Firebase backend
-↓
-Firestore
-```
-
-Use refactoring to improve boundaries, not merely to make folders look cleaner.
-
-Do not mass-restructure stable code without measurable benefit.
-
----
-
-## 10. Source of truth
-
-Authoritative business/domain logic remains under `app/shared/`:
-
-- `catalog.js`
-- `pricing.js`
-- `business.js`
-- `recipes.js`
-- `order-request.js`
-
-Client code may preview values.
-
-Trusted financial/order values must be reconstructed and validated by the backend.
-
-Do not create a second business source in UI adapters, components, configuration, or utilities.
-
----
-
-## 11. Security boundary
-
-The browser is untrusted.
-
-Never trust client-submitted:
-
-- prices
-- totals
-- costs
-- product definitions
-- order numbers
-- financial values
-- other trusted order fields
-
-Customer order creation must remain behind the trusted Firebase callable boundary.
-
-Firestore Rules must remain restrictive.
-
-Never weaken security rules merely to make a feature work.
-
-Authentication, authorization, Firestore, Functions, order, and pricing changes require security review.
-
----
-
-## 12. Testing and evidence
-
-A completed change requires evidence appropriate to its risk.
-
-Baseline quality gates:
-
-```
-lint
-tests
-build
-```
-
-Security-sensitive work additionally requires Firebase Emulator Rules validation.
-
-Product flows should progressively include:
-
-- integration tests
-- browser smoke tests
-- responsive/mobile smoke tests
-- production smoke tests where release-critical
-
-Never report a test as passing unless it was actually executed.
-
----
-
-## 13. CI/CD
-
-CI is a quality gate, not a decorative workflow.
-
-The intended progression is:
-
-```
-lint
-↓
-unit/domain tests
-↓
-security tests
-↓
-dependency/security audit
-↓
-build
-↓
-integration/browser smoke
-↓
-release approval
-```
-
-A successful build alone does not mean the product is release-ready.
+Experimental products must be distinguishable from production products.
 
 ---
 
 ## 14. Business integrity
 
-Audit business semantics continuously, especially:
+Treat these as domain semantics, not UI decoration:
 
 - pricing
 - recipes
 - costs
-- profit
+- estimated profit
 - delivery
 - payment status
 - order status
-- inventory
 - completed-sale accounting
-- customer/order notifications
+- inventory estimates
+- inventory transactions
 
-When semantics are ambiguous, document the decision instead of silently inventing behavior.
+Inventory estimates must not be presented as transactional inventory unless underlying transactions exist.
 
----
-
-## 15. Inventory integrity
-
-Inventory estimates must not be presented as real transactional inventory unless the system actually records the underlying transactions.
-
-Future inventory work should distinguish:
-
-- capacity estimation
-- purchase
-- consumption
-- adjustment
-- waste
-- stock movement
-- historical audit
-
-Do not overstate data quality.
+When semantics are uncertain, document the decision.
 
 ---
 
-## 16. Data Connect policy
+## 15. Data Connect
 
-`app/dataconnect/` remains experimental/non-production until an explicit architecture decision and migration plan adopt it.
+`app/dataconnect/` remains experimental/non-production.
 
-Do not introduce Data Connect into the production order flow accidentally.
+Do not move production ordering to Data Connect without:
 
----
-
-## 17. Custom repository structure
-
-A custom project structure is allowed and encouraged when it represents real boundaries.
-
-Every new file must have a clear responsibility.
-
-Placement preference:
-
-1. Existing canonical file
-2. Existing directory for the same concern
-3. New file inside the appropriate concern
-4. New directory only when a genuine architectural boundary exists
-
-Do not create random root files, duplicate utilities, duplicate configuration, or temporary material inside source directories.
+- architecture decision
+- migration plan
+- tests
+- roadmap update
+- explicit approval
 
 ---
 
-## 18. Documentation contract
+## 16. Repository placement
 
-The project control plane is:
+Prefer:
 
-- `README.md` — product/project map
-- `CONTEXT.md` — current memory and constraints
-- `MASTERPROMPT.md` — operating contract for this project
-- `STEPBYSTEP.md` — execution manual and current phase sequence
-- `ROADMAP.md` — destination, priorities, and release path
+1. existing canonical file
+2. existing concern directory
+3. new file inside correct concern
+4. new directory only for a genuine boundary
 
-Detailed documentation lives under `app/docs/`.
+Do not create:
 
-Historical documentation remains preserved.
+- duplicate utilities
+- duplicate business rules
+- temporary source files
+- loose build artifacts
+- secrets
+- random root files
 
-Current behavior must be documented in current documents. Historical documents must not be rewritten to impersonate current state.
-
----
-
-## 19. Feature workflow
-
-For every feature:
-
-1. Define user and business outcome.
-2. Check `MASTERPROMPT.md`, `CONTEXT.md`, and `ROADMAP.md`.
-3. Identify the canonical domain source.
-4. Review UX/UI implications.
-5. Review security and data trust boundaries.
-6. Design the smallest coherent implementation.
-7. Implement.
-8. Add/update tests.
-9. Validate relevant browser/responsive behavior.
-10. Update documentation.
-11. Run quality gates.
-12. Review the diff for duplication, secrets, stale docs, and accidental files.
-13. Mark complete only with evidence.
+Keep historical assets isolated under historical/archive locations.
 
 ---
 
-## 20. Product quality bar
+## 17. Documentation contract
 
-Every meaningful change should be assessed against:
+When behavior changes, synchronize relevant documentation.
 
-| Area | Question |
-|---|---|
-| Product | Does this improve Sandwichies? |
-| UX | Does this reduce friction or improve discovery? |
-| UI | Does this strengthen the visual system? |
-| Motion | Does interaction feel intentional and responsive? |
-| Mobile | Is the experience strong on touch devices? |
-| Accessibility | Is the experience still usable? |
-| Performance | Is the cost justified? |
-| Security | Does the trust boundary remain safe? |
-| Architecture | Are boundaries still clear? |
-| Testing | Is there evidence? |
-| Documentation | Is the project memory synchronized? |
+Update when applicable:
+
+- `CONTEXT.md`
+- `ROADMAP.md`
+- `STEPBYSTEP.md`
+- `app/docs/development/TESTING.md`
+- `app/docs/architecture/SECURITY.md`
+- `app/docs/deployment/RELEASE-CHECKLIST.md`
+- phase/task reports
+
+Current documentation must describe current behavior.
 
 ---
 
-## 21. Prioritization
+## 18. Execution workflow
 
-- **P0:** security, data integrity, production blockers
-- **P1:** major product/value improvements
-- **P2:** UX/UI, visual identity, motion, interaction
-- **P3:** technical debt, performance, maintainability
-- **P4:** experiments and speculative ideas
+For every implementation unit:
 
-Do not allow a new feature to outrank an unresolved P0/P1 release blocker without explicit approval.
+1. Inspect current source of truth.
+2. Identify canonical domain ownership.
+3. Define the user/business outcome.
+4. Check security boundary.
+5. Check UX/UI and responsive impact.
+6. Implement the smallest coherent change.
+7. Add or update tests.
+8. Validate.
+9. Update documentation.
+10. Inspect resulting diff.
+11. Verify no secrets or accidental files.
+12. Record evidence.
+
+Do not call a task complete because code merely compiles.
 
 ---
 
-## 22. Master product loop
+## 19. Quality gate
 
-All major work follows:
+A change is **DONE** only when the relevant evidence exists.
+
+Baseline evidence:
+
+- lint
+- tests
+- build
+
+Security-sensitive evidence:
+
+- Emulator Rules regression
+
+Customer/admin integration evidence:
+
+- smoke baseline
+- responsive/browser validation where applicable
+
+Never invent evidence.
+
+---
+
+## 20. Release boundary
+
+`BUSINESS.acceptingOrders` remains **false** until release verification is complete.
+
+FASE 1–4 approval does not automatically authorize:
+
+- production Firebase deployment
+- production Rules deployment
+- enabling live ordering
+- production smoke execution against real customer data
+- changing payment/operational policy
+
+Those belong to the explicit release gate.
+
+---
+
+## 21. Priorities
+
+P0: security, data integrity, production blockers  
+P1: core product value and release quality  
+P2: UX/UI and interaction quality  
+P3: maintainability/performance  
+P4: experiments
+
+Do not allow speculative work to bypass unresolved P0/P1 problems.
+
+---
+
+## 22. Master execution loop
 
 ```
 OBSERVE
@@ -472,51 +532,43 @@ MEASURE
 IMPROVE
 ```
 
-Do not build blindly.
+---
+
+## 23. Definition of Done
+
+Sandwichies work is complete only when:
+
+- implementation exists;
+- behavior is validated;
+- lint/test/build pass where applicable;
+- security implications are checked;
+- integration/browser behavior is checked where applicable;
+- UX/UI implications are reviewed where relevant;
+- documentation is synchronized;
+- repository structure remains coherent;
+- no known blocker is being hidden;
+- evidence is recorded honestly.
 
 ---
 
-## 23. Current strategic direction
+## 24. Current execution directive
 
-Sandwichies is moving from **MVP hardening** toward **product experience evolution**.
+**FASE 1–4: APPROVED ALL**
 
-The next major product direction is:
+Proceed directly with implementation.
 
-1. Finish security and release gates.
-2. Establish the Sandwichies visual language.
-3. Establish the motion/microinteraction system.
-4. Redesign customer discovery and ordering experience.
-5. Introduce new favorites and product creations.
-6. Strengthen mobile-first UX.
-7. Improve admin/operations UX without weakening trust boundaries.
-8. Measure and iterate.
-9. Expand product capabilities only after the foundation is stable.
+Do not wait for phase-by-phase approval.
 
----
+Do not broaden scope into unrelated features.
 
-## 24. Definition of Done
+Do not enable production ordering merely because tests pass.
 
-A task is DONE only when:
+After FASE 1–4, report:
 
-- implementation exists,
-- expected behavior is validated,
-- relevant tests/build/lint pass,
-- security implications are checked,
-- UX/UI implications are reviewed where relevant,
-- documentation is synchronized,
-- no known blocker remains,
-- repository structure remains coherent.
-
-If required evidence is missing, the task is not DONE.
-
----
-
-## 25. Final principle
-
-Sandwichies must become more than software that works.
-
-It should become a product that feels intentional.
-
-**Functional + trustworthy + secure + interactive + visually distinctive + mobile-first + evolvable.**
-
-Every technical and design decision should move Sandwichies in that direction.
+- implementation completed
+- tests executed
+- security checks executed
+- CI status
+- browser validation status
+- remaining release blockers
+- exact next approved phase
