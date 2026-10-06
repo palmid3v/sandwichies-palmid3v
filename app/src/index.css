@@ -1,1 +1,33 @@
-:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--cream);font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;--leaf:#123d2a;--tropical:#07834a;--lime:#b9ec52;--mango:#ffd54d;--papaya:#ff9447;--coral:#ee4f4d;--cream:#fff8e9;--ink:#183526;--muted:#718172;--shadow-sm:0 9px 24px rgba(67,54,18,.10);--shadow-lg:0 22px 55px rgba(15,62,35,.25)}*{box-sizing:border-box}html{background:var(--cream);scroll-behavior:smooth}body{min-width:320px;min-height:100vh;margin:0}button,input,select,textarea{font:inherit}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid rgba(238,79,77,.55);outline-offset:3px}#root{min-height:100vh}
+/* Sandwichies design tokens — Phase 7 foundation */
+:root {
+  --ink: #f8f4e8;
+  --muted: #b8b5a8;
+  --leaf: #f1ead8;
+  --tropical: #21a366;
+  --lime: #c6f56b;
+  --mango: #ffcf4a;
+  --papaya: #ff8b3d;
+  --coral: #e75b4a;
+  --surface-0: #11130f;
+  --surface-1: #191c16;
+  --surface-2: #23271f;
+  --border: rgba(241, 234, 216, 0.12);
+  --shadow-sm: 0 10px 28px rgba(0, 0, 0, 0.24);
+  --shadow-lg: 0 22px 60px rgba(0, 0, 0, 0.36);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { color-scheme: dark; }
+body {
+  margin: 0;
+  min-width: 320px;
+  color: var(--ink);
+  background: var(--surface-0);
+  text-rendering: optimizeLegibility;
+}
+button, input, textarea, select { font: inherit; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 3px solid rgba(198, 245, 107, 0.55);
+  outline-offset: 2px;
+}
