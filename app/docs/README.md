@@ -18,7 +18,7 @@ This directory contains detailed application documentation and historical eviden
 - `architecture/` — architecture, Firebase, security, pricing/costs.
 - `development/` — development, code structure, cleanup and testing.
 - `deployment/` — deployment and release procedures.
-- `audits/` — audit records.
+- `audits/` — audit records, including the current Masterprompt compliance audit.
 - `tasks/` — task reports.
 - `v0.1/` — historical baseline and evidence.
 
