@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "./firebase";
 import Dashboard from "./components/Dashboard";
@@ -7,10 +8,10 @@ import OrdersHistory from "./components/OrdersHistory";
 import OrderModal from "./components/OrderModal";
 import Login from "./pages/Login";
 import { CATALOG } from "../shared/catalog.js";
-import { calculateInventoryConsumption } from "./utils/pricing";
+import { INVENTORY_TRANSACTION_TYPES } from "../shared/inventory.js";
 import { BUSINESS } from "./config/business";
 import { getOrderDate, normalizeOrder } from "./utils/orders";
-import "./styles/admin.css";
+import " ./styles/admin.css".trim();
 
 export default function App() {
   const [orders, setOrders] = useState([]);
@@ -20,13 +21,26 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [ordersError, setOrdersError] = useState("");
+  const [inventoryBalances, setInventoryBalances] = useState([]);
+  const [inventoryTransactions, setInventoryTransactions] = useState([]);
+  const [inventoryError, setInventoryError] = useState("");
+  const [inventorySubmitting, setInventorySubmitting] = useState(false);
+  const [inventoryForm, setInventoryForm] = useState({
+    ingredientId:
+      CATALOG.ingredients.find((item) => item.active !== false)?.id || "",
+    type: "purchase",
+    quantityDelta: 1,
+    reason: "",
+  });
   const knownOrderIds = useRef(new Set());
   const firstSnapshot = useRef(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      const token = currentUser ? await currentUser.getIdTokenResult() : null;
+      const token = currentUser
+        ? await currentUser.getIdTokenResult()
+        : null;
       setIsAdmin(token?.claims.admin === true);
       setLoading(false);
     });
@@ -74,21 +88,106 @@ export default function App() {
     return unsubscribe;
   }, [user, isAdmin]);
 
+  useEffect(() => {
+    if (!user || !isAdmin) return undefined;
+
+    const balancesUnsubscribe = onSnapshot(
+      collection(db, "inventoryBalances"),
+      (snapshot) => {
+        setInventoryBalances(
+          snapshot.docs.map((snapshotDoc) => ({
+            id: snapshotDoc.id,
+            ...snapshotDoc.data(),
+          })),
+        );
+        setInventoryError("");
+      },
+      (error) => {
+        console.error("No se pudo cargar el inventario:", error);
+        setInventoryError(
+          "No se pudo sincronizar el inventario. Revisa la conexión y los permisos.",
+        );
+      },
+    );
+
+    const transactionsUnsubscribe = onSnapshot(
+      collection(db, "inventoryTransactions"),
+      (snapshot) => {
+        const nextTransactions = snapshot.docs
+          .map((snapshotDoc) => ({
+            id: snapshotDoc.id,
+            ...snapshotDoc.data(),
+          }))
+          .sort((a, b) => {
+            const aDate = a.createdAt?.toDate?.()?.getTime?.() || 0;
+            const bDate = b.createdAt?.toDate?.()?.getTime?.() || 0;
+            return bDate - aDate;
+          });
+
+        setInventoryTransactions(nextTransactions);
+      },
+      (error) => {
+        console.error("No se pudo cargar el historial de inventario:", error);
+        setInventoryError(
+          "No se pudo cargar el historial de inventario.",
+        );
+      },
+    );
+
+    return () => {
+      balancesUnsubscribe();
+      transactionsUnsubscribe();
+    };
+  }, [user, isAdmin]);
+
   const inventory = useMemo(
-    () => [
-      ...CATALOG.ingredients.filter((item) => item.type === "protein").map((item) => ({
-        ...item,
-        type: "Proteína",
-      })),
-      ...CATALOG.toppings.map((item) => ({
-        ...CATALOG.ingredients.find((ingredient) => ingredient.id === item.ingredientId),
-        ...item,
-        type: "Topping",
-      })),
-      ...CATALOG.ingredients.filter((item) => item.type === "extra").map((item) => ({ ...item, type: "Extra" })),
-    ],
+    () =>
+      CATALOG.ingredients
+        .filter((item) => item.active !== false)
+        .map((item) => ({
+          ...item,
+          type: item.type === "protein" ? "Proteína" : "Ingrediente",
+        })),
     [],
   );
+
+  const balanceById = useMemo(
+    () => new Map(inventoryBalances.map((item) => [item.id, item])),
+    [inventoryBalances],
+  );
+
+  const saveInventoryMovement = async (event) => {
+    event.preventDefault();
+    setInventorySubmitting(true);
+    setInventoryError("");
+
+    try {
+      const createMovement = httpsCallable(
+        getFunctions(),
+        "recordInventoryTransaction",
+      );
+      await createMovement({
+        ingredientId: inventoryForm.ingredientId,
+        type: inventoryForm.type,
+        quantityDelta: Number(inventoryForm.quantityDelta),
+        reason: inventoryForm.reason.trim(),
+      });
+
+      setInventoryForm((current) => ({
+        ...current,
+        quantityDelta: 1,
+        reason: "",
+      }));
+    } catch (error) {
+      console.error("No se pudo registrar el movimiento:", error);
+      setInventoryError(
+        error?.message ||
+          "No se pudo registrar el movimiento de inventario.",
+      );
+    } finally {
+      setInventorySubmitting(false);
+    }
+  };
 
   if (loading) {
     return <div className="admin-loading">Cargando {BUSINESS.name}…</div>;
@@ -108,10 +207,6 @@ export default function App() {
       </main>
     );
   }
-
-  const recordedConsumption = calculateInventoryConsumption(
-    orders.filter((order) => order.status !== "cancelado").flatMap((order) => order.items || []),
-  );
 
   return (
     <main className="admin-shell">
@@ -143,6 +238,7 @@ export default function App() {
       </nav>
 
       {ordersError && <div className="admin-alert">{ordersError}</div>}
+      {inventoryError && <div className="admin-alert">{inventoryError}</div>}
 
       {activeTab === "pedidos" && (
         <OrdersHistory
@@ -157,35 +253,171 @@ export default function App() {
         <section className="admin-section">
           <div className="admin-section-heading">
             <div>
-              <p className="admin-eyebrow">Capacidad estimada</p>
-              <h2>Inventario base</h2>
+              <p className="admin-eyebrow">Transaccional</p>
+              <h2>Inventario</h2>
             </div>
             <p>
-              Este cálculo usa las cantidades configuradas. El siguiente paso
-              es registrar compras y consumos reales.
+              El saldo inicial viene del catálogo. Compras y ajustes generan
+              movimientos; los consumos de ventas completadas son automáticos.
             </p>
           </div>
+
+          <form className="inventory-form" onSubmit={saveInventoryMovement}>
+            <label>
+              Ingrediente
+              <select
+                value={inventoryForm.ingredientId}
+                onChange={(event) =>
+                  setInventoryForm((current) => ({
+                    ...current,
+                    ingredientId: event.target.value,
+                  }))
+                }
+              >
+                {inventory.map((item) => (
+                  <option value={item.id} key={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Movimiento
+              <select
+                value={inventoryForm.type}
+                onChange={(event) =>
+                  setInventoryForm((current) => ({
+                    ...current,
+                    type: event.target.value,
+                    quantityDelta:
+                      event.target.value === "purchase" ? 1 : current.quantityDelta,
+                  }))
+                }
+              >
+                {INVENTORY_TRANSACTION_TYPES.filter(
+                  (item) => item.value !== "consumption",
+                ).map((item) => (
+                  <option value={item.value} key={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Cantidad
+              <input
+                type="number"
+                step="1"
+                value={inventoryForm.quantityDelta}
+                onChange={(event) =>
+                  setInventoryForm((current) => ({
+                    ...current,
+                    quantityDelta: event.target.value,
+                  }))
+                }
+                required
+              />
+            </label>
+            <label>
+              Razón
+              <input
+                value={inventoryForm.reason}
+                onChange={(event) =>
+                  setInventoryForm((current) => ({
+                    ...current,
+                    reason: event.target.value,
+                  }))
+                }
+                placeholder={
+                  inventoryForm.type === "purchase"
+                    ? "Compra semanal"
+                    : "Corrección de conteo"
+                }
+                required
+              />
+            </label>
+            <button disabled={inventorySubmitting}>
+              {inventorySubmitting ? "Guardando..." : "Registrar movimiento"}
+            </button>
+          </form>
+
           <div className="inventory-grid">
             {inventory.map((item) => {
-              const available = item.stockQuantity || item.packageQuantity || 0;
-              const consumed = recordedConsumption[item.id] || 0;
+              const balance = balanceById.get(item.id);
+              const available =
+                balance?.quantity ??
+                item.stockQuantity ??
+                item.packageQuantity ??
+                0;
               const portion = item.portionQuantity || 1;
-              const maxServings = Math.max(0, Math.floor((available - consumed) / portion));
+              const maxServings = Math.floor(available / portion);
+
               return (
-                <article className="inventory-card" key={item.name}>
+                <article className="inventory-card" key={item.id}>
                   <small>{item.type}</small>
                   <h3>{item.name}</h3>
                   <p>
-                    Capacidad estimada: <strong>{maxServings}</strong>
+                    Saldo actual: <strong>{available}</strong> {item.unit}
                   </p>
-                  <small>Consumo registrado: {consumed} {item.unit}</small>
+                  <p>
+                    Capacidad aproximada: <strong>{Math.max(0, maxServings)}</strong>
+                  </p>
+                  <small>
+                    Base inicial: {item.stockQuantity ?? item.packageQuantity ?? 0}{" "}
+                    {item.unit}
+                  </small>
                   <div className="inventory-meter">
-                    <span style={{ width: `${Math.min(maxServings * 5, 100)}%` }} />
+                    <span
+                      style={{
+                        width: `${Math.min(Math.max(maxServings, 0) * 5, 100)}%`,
+                      }}
+                    />
                   </div>
                 </article>
               );
             })}
           </div>
+
+          <article className="inventory-history">
+            <div className="admin-section-heading">
+              <div>
+                <p className="admin-eyebrow">Trazabilidad</p>
+                <h3>Últimos movimientos</h3>
+              </div>
+            </div>
+            {!inventoryTransactions.length ? (
+              <p className="empty-state">
+                Aún no hay movimientos registrados.
+              </p>
+            ) : (
+              <div className="inventory-history-list">
+                {inventoryTransactions.slice(0, 20).map((movement) => (
+                  <div className="inventory-history-row" key={movement.id}>
+                    <div>
+                      <strong>{movement.ingredientName}</strong>
+                      <small>
+                        {movement.type === "purchase"
+                          ? "Compra"
+                          : movement.type === "consumption"
+                            ? "Consumo"
+                            : "Ajuste"}
+                        {movement.orderId
+                          ? ` · Pedido #${movement.orderId}`
+                          : ""}
+                      </small>
+                    </div>
+                    <div className="inventory-history-amount">
+                      <strong>
+                        {movement.quantityDelta > 0 ? "+" : ""}
+                        {movement.quantityDelta}
+                      </strong>
+                      <small>{movement.unit}</small>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </article>
         </section>
       )}
 
