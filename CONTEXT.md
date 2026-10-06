@@ -6,7 +6,7 @@
 - Type: Interactive sandwich configurator + ordering and operations platform
 - Developer: PALMI-D3V
 - Backend: Firebase
-- Current release line: Product Experience Evolution (FASE 7–10 built; release verification remains separate)
+- Current release line: Product Experience Evolution (FASE 7–11 built; release verification remains separate)
 - Project operating contract: `MASTERPROMPT.md`
 
 ## Product vision
