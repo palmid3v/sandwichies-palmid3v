@@ -9,7 +9,11 @@
     "build": "vite build",
     "lint": "eslint .",
     "test": "node --test",
-    "check": "npm run lint && npm run test && npm run build",
+    "security:test": "node test/security.rules.test.js",
+    "emulators:test": "firebase emulators:exec --only firestore --project demo-sandwichies \"npm run security:test\"",
+    "audit": "npm audit --omit=dev --audit-level=high",
+    "smoke": "node scripts/smoke.mjs",
+    "check": "npm run lint && npm test && npm run security:test && npm run build",
     "provision:admin": "node scripts/provision-admin.mjs",
     "preview": "vite preview"
   },
