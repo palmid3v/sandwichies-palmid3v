@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { formatMoney } from "../config/business";
 import {
   getOrderCost,
@@ -12,23 +13,45 @@ const isSameDay = (first, second) =>
   first.getMonth() === second.getMonth() &&
   first.getDate() === second.getDate();
 
+const PERIODS = [
+  { value: "today", label: "Hoy" },
+  { value: "7d", label: "Últimos 7 días" },
+  { value: "30d", label: "Últimos 30 días" },
+  { value: "all", label: "Todo" },
+];
+
+const isInPeriod = (date, period, now) => {
+  if (!date) return false;
+  if (period === "all") return true;
+  if (period === "today") return isSameDay(date, now);
+
+  const days = period === "7d" ? 7 : 30;
+  const start = new Date(now);
+  start.setDate(start.getDate() - (days - 1));
+  start.setHours(0, 0, 0, 0);
+  return date >= start && date <= now;
+};
+
 export default function Dashboard({ orders }) {
-  const operationalOrders = orders.filter((order) => order.status !== "cancelado");
-  // Until product defines a different accounting policy, a sale is recognized
-  // only when the order is both delivered and paid.
-  const completedSales = orders.filter(
-    (order) => order.status === "entregado" && order.payment?.status === "pagado",
+  const [period, setPeriod] = useState("today");
+  const now = new Date();
+
+  const scopedOrders = useMemo(
+    () => orders.filter((order) => isInPeriod(getOrderDate(order), period, now)),
+    [orders, period, now.getTime()],
   );
-  const today = new Date();
-  const todayOrders = operationalOrders.filter((order) =>
-    isSameDay(getOrderDate(order), today),
+
+  const operationalOrders = scopedOrders.filter(
+    (order) => order.status !== "cancelado",
+  );
+  // Product-owner approved accounting policy:
+  // a sale is recognized only when the order is delivered and payment is confirmed.
+  const completedSales = scopedOrders.filter(
+    (order) =>
+      order.status === "entregado" && order.payment?.status === "pagado",
   );
 
   const totalSales = completedSales.reduce(
-    (sum, order) => sum + getOrderTotal(order),
-    0,
-  );
-  const todaySales = completedSales.filter((order) => isSameDay(getOrderDate(order), today)).reduce(
     (sum, order) => sum + getOrderTotal(order),
     0,
   );
@@ -59,13 +82,25 @@ export default function Dashboard({ orders }) {
           <p className="admin-eyebrow">Rendimiento</p>
           <h2>Resumen del negocio</h2>
         </div>
-        <p>Ventas y utilidad: pedidos entregados y pagados. Pedidos operativos: no cancelados.</p>
+        <div className="reporting-toolbar">
+          <label>
+            Periodo
+            <select value={period} onChange={(event) => setPeriod(event.target.value)}>
+              {PERIODS.map((option) => (
+                <option value={option.value} key={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p>Ventas = pedidos entregados y pagados.</p>
+        </div>
       </div>
 
       <div className="metric-grid">
-        <Metric title="Ventas completadas hoy" value={formatMoney(todaySales)} />
-        <Metric title="Pedidos operativos hoy" value={todayOrders.length} />
         <Metric title="Ventas completadas" value={formatMoney(totalSales)} />
+        <Metric title="Pedidos operativos" value={operationalOrders.length} />
+        <Metric title="Pedidos completados" value={completedSales.length} />
         <Metric title="Ganancia estimada" value={formatMoney(totalProfit)} />
         <Metric title="Ticket promedio" value={formatMoney(averageTicket)} />
         <Metric
@@ -88,20 +123,22 @@ export default function Dashboard({ orders }) {
               </div>
             ))
           ) : (
-            <p className="empty-state">Aún no hay ventas para analizar.</p>
+            <p className="empty-state">No hay ventas completadas en este periodo.</p>
           )}
         </article>
 
         <article className="dashboard-panel">
           <h3>Estado operativo</h3>
-          {["pendiente", "confirmado", "preparando", "listo"].map((status) => (
-            <div className="status-summary" key={status}>
-              <span>{status}</span>
-              <strong>
-                {orders.filter((order) => order.status === status).length}
-              </strong>
-            </div>
-          ))}
+          {["pendiente", "confirmado", "preparando", "listo", "entregado", "cancelado"].map(
+            (status) => (
+              <div className="status-summary" key={status}>
+                <span>{status}</span>
+                <strong>
+                  {scopedOrders.filter((order) => order.status === status).length}
+                </strong>
+              </div>
+            ),
+          )}
         </article>
       </div>
     </section>
