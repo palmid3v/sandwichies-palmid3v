@@ -1,8 +1,24 @@
 # 🥪 Sandwichies
 
-A product-oriented sandwich configurator and operations platform covering customer ordering, trusted pricing, order management, inventory estimation, and admin workflows.
+A product-oriented sandwich configurator and operations platform evolving toward an interactive, distinctive food product covering customer ordering, trusted pricing, order management, inventory estimation, and admin workflows.
 
-> **Current status:** Active MVP hardening. `acceptingOrders = false`; checkout is intentionally disabled until release approval.
+> **Current status:** MVP hardening → Product Experience Evolution. `acceptingOrders = false`; checkout remains disabled until release approval.
+
+## Product direction
+
+Sandwichies is intentionally moving beyond a functional ordering CRUD experience.
+
+The next evolution focuses on:
+
+- Dark-first visual identity connected to the food product.
+- Strong UI/UX and product-design ownership.
+- Motion, transitions, microinteractions, and meaningful feedback.
+- Better product discovery.
+- New favorites and new creations.
+- Mobile-first customer experience.
+- Stronger product identity without weakening security or architecture.
+
+The project-specific operating contract is **`MASTERPROMPT.md`**.
 
 ## Product scope
 
@@ -14,6 +30,7 @@ A product-oriented sandwich configurator and operations platform covering custom
 - Customer and payment-method data
 - WhatsApp order summary
 - Order confirmation
+- Future discovery, favorites, recommendations, and new creations
 
 ### Admin
 - Firebase Authentication
@@ -61,6 +78,7 @@ Firestore Rules deny direct browser order creation/deletion and protect admin op
 sandwichies-palmid3v/
 ├── README.md
 ├── CONTEXT.md
+├── MASTERPROMPT.md
 ├── STEPBYSTEP.md
 ├── ROADMAP.md
 ├── .github/workflows/     # CI
@@ -75,14 +93,13 @@ sandwichies-palmid3v/
 └── archive/               # Historical material
 ```
 
-## Documentation
+## Documentation control plane
 
-Use the four repository-level documents as the master control plane:
-
-- `README.md` — product map
-- `CONTEXT.md` — project memory and constraints
-- `STEPBYSTEP.md` — engineering manual
-- `ROADMAP.md` — current destination and priorities
+- `README.md` — product/project map
+- `CONTEXT.md` — current project memory and constraints
+- `MASTERPROMPT.md` — Sandwichies product/engineering operating contract
+- `STEPBYSTEP.md` — execution manual and current phase sequence
+- `ROADMAP.md` — destination, priorities, and release path
 
 Detailed documentation lives under `app/docs/`. Historical `v0.1` documents remain preserved for traceability.
 
@@ -108,6 +125,6 @@ Do not enable customer checkout without completing the release gates in `ROADMAP
 
 ## Project boundary
 
-This repository is the application, backend/domain, and documentation source of truth for Sandwichies. Shared business modules must remain aligned with client behavior, trusted server reconstruction, and Firestore security rules.
+This repository is the application, backend/domain, product documentation, and project operating source of truth for Sandwichies.
 
 **PALMI-D3V · Sandwichies · 2026**
