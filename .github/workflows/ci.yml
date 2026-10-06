@@ -38,7 +38,7 @@ jobs:
         run: npm install --global firebase-tools
 
       - name: Firestore security regression
-        run: firebase emulators:exec --only firestore --project demo-sandwichies "npm run security:test"
+        run: npm run security:test
 
       - name: Production build
         run: npm run build
