@@ -149,3 +149,12 @@ Maintain parity between client configuration, shared business modules, Firebase 
 For product/UI work, also maintain parity between the visual system, interaction system, responsive behavior, and product goals.
 
 A task is not DONE until implementation, validation, security review, UX/UI review where relevant, and documentation are synchronized.
+
+
+## Current FASE 11 state
+
+FASE 11 Admin/Product Operations UX is implemented on branch feat/phase-11-admin-operations-ux.
+
+The admin experience now prioritizes active orders, confirmation/payment attention, ready orders, explicit payment state, safe next-status progression, inventory low-stock visibility and operational feedback. The existing Firebase Auth/custom-claim and Firestore Rules authorization model remains unchanged.
+
+Production ordering remains disabled through BUSINESS.acceptingOrders = false. Browser and Emulator validation evidence is still pending.
