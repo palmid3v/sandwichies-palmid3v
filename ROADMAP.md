@@ -2,7 +2,7 @@
 
 **Current release line:** MVP hardening → Product Experience Evolution  
 **Operational state:** `acceptingOrders = false`  
-**Status:** FASE 11 implementation executed on feature branch; production verification remains environment-dependent.
+**Status:** FASE 11 implementation is present on main; production verification remains environment-dependent.
 
 ## North star
 
