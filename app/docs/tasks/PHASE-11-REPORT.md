@@ -91,7 +91,7 @@ No test, build, CI, browser or emulator result is represented as passing without
 This phase does not:
 - deploy Firebase;
 - run GitHub Actions intentionally;
-- merge the branch;
+- change or bypass the current mainline release boundary;
 - create a pull request;
 - enable production ordering;
 - change payment policy.
