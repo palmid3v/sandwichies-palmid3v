@@ -2,7 +2,7 @@
 
 **Current release line:** MVP hardening → Product Experience Evolution  
 **Operational state:** `acceptingOrders = false`  
-**Status:** Active development; not yet release-approved.
+**Status:** FASE 1–4 implementation executed; release verification remains separate.
 
 ## North star
 
@@ -44,8 +44,8 @@ Customers should be able to discover, configure and submit sandwiches reliably. 
 - [x] Direct browser order creation denied
 - [x] Direct counter access denied
 - [x] Admin-only order reads/updates
-- [ ] Firebase Emulator Rules tests
-- [ ] Security regression suite in CI
+- [x] Firebase Emulator Rules tests
+- [x] Security regression suite in CI
 
 ## Phase 3 — Quality and CI
 
@@ -54,16 +54,16 @@ Customers should be able to discover, configure and submit sandwiches reliably. 
 - [x] Production build validation
 - [x] Single local `check` gate
 - [x] GitHub Actions CI gate
-- [ ] Dependency audit gate
-- [ ] Browser smoke test
+- [x] Dependency audit gate
+- [x] Browser smoke test
 - [ ] Production smoke test
 
 ## Phase 4 — Integration and browser validation
 
-- [ ] Customer ordering integration coverage
-- [ ] Admin authentication smoke coverage
-- [ ] Customer responsive/mobile smoke coverage
-- [ ] Admin responsive smoke coverage
+- [x] Customer ordering integration coverage (entrypoint smoke baseline)
+- [x] Admin authentication smoke coverage (entrypoint smoke baseline)
+- [x] Customer responsive/mobile smoke baseline
+- [x] Admin responsive smoke baseline
 - [ ] Critical error/empty/loading states
 - [ ] Browser regression baseline
 
@@ -106,9 +106,9 @@ These phases begin after release/security blockers are under control and may pro
 Goal: establish a recognizable dark-first Sandwichies design language.
 
 - [ ] Audit current customer visual hierarchy
-- [ ] Define color/token system
-- [ ] Define typography system
-- [ ] Define spacing/radius/elevation system
+- [x] Define color/token system
+- [x] Define typography system
+- [x] Define spacing/radius/elevation system
 - [ ] Define product-card language
 - [ ] Define button/input/control language
 - [ ] Define food/product visual motifs
