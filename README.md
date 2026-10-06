@@ -117,6 +117,14 @@ npm run check
 
 CI runs lint, tests and production build on pushes to `main` and pull requests.
 
+## Business and inventory semantics
+
+- Completed sales require both `entregado` status and `pagado` payment.
+- Order and payment transitions are centralized and tested.
+- Inventory balances and transaction history are server-maintained.
+- Completed sales generate automatic consumption transactions; purchases and adjustments are recorded through the admin flow.
+- Dashboard reporting supports operational period filters.
+
 ## Operational state
 
 `acceptingOrders = false`.
