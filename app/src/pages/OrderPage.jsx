@@ -7,7 +7,7 @@ import {
   calculateLineItem,
   calculateOrderTotals,
 } from "../utils/pricing";
-import { MENU } from "../data/menu";
+import DiscoverySection from "../components/DiscoverySection";
 import {
   BUSINESS,
   PAYMENT_METHODS,
@@ -97,7 +97,7 @@ export default function OrderPage() {
       .filter(Boolean);
 
     setProteins(selectedProteins);
-    setToppings([]);
+    setToppings((item.toppings || []).map((id) => INGREDIENTS.toppings.find((topping) => topping.id === id)).filter(Boolean));
     setExtras([]);
     setBaseIngredients(DEFAULT_BASE);
     setFavoriteId(item.id);
@@ -327,60 +327,14 @@ export default function OrderPage() {
         </div>
       </header>
 
-      <section className="recommended-placeholder" aria-labelledby="recommended-title">
-        <div>
-          <p className="eyebrow">Próximamente</p>
-          <h2 id="recommended-title">Sandwiches recomendados</h2>
-          <p>Combinaciones curadas para elegir en segundos, sin perder tu opción de personalizar.</p>
-        </div>
-        <span aria-hidden="true">🥪</span>
-      </section>
+      <DiscoverySection
+        onSelect={applyMenuItem}
+        selectedId={favoriteId}
+      />
 
       <div className="store-layout">
         <section className="builder">
-          <div className="section-card section-card--product" id="personaliza">
-            <div className="section-heading">
-              <span>1</span>
-              <div>
-                <h2>Elige un favorito</h2>
-                <p>Puedes personalizarlo después.</p>
-              </div>
-            </div>
-            <div className="menu-grid stagger-children">
-              {MENU.map((item) => {
-                const isSelected = selectedSuggestion === item.name;
-
-                return (
-                  <button
-                    type="button"
-                    className={
-                      isSelected
-                        ? "menu-option menu-option--selected motion-feedback motion-shimmer"
-                        : "menu-option motion-feedback motion-shimmer"
-                    }
-                    key={item.id}
-                    onClick={() => applyMenuItem(item)}
-                    aria-pressed={isSelected}
-                  >
-                    <span className="menu-option-top">
-                      <strong>{item.name}</strong>
-                      {isSelected && (
-                        <span className="menu-option-check" aria-hidden="true">
-                          ✓
-                        </span>
-                      )}
-                    </span>
-                    <span className="menu-option-meta">
-                      <small>Favorito</small>
-                      <small>Desde {formatMoney(item.startingPrice)}</small>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="section-card">
+          <div className="section-card" id="personaliza">
             <div className="section-heading">
               <span>2</span>
               <div>
