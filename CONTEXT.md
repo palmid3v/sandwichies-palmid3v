@@ -110,6 +110,16 @@ Detailed documentation is under `app/docs/`. Historical material remains under `
 
 `app/dataconnect/` is experimental/non-production and is not part of the active Firestore order architecture. Do not introduce it into production without an explicit architecture decision and migration plan.
 
+## Business semantics
+
+- A completed sale is recognized only when an order is `entregado` and payment is `pagado`.
+- Order statuses follow the formal transition graph in `app/shared/business.js`; delivered and cancelled are terminal.
+- Payment status is one-way: `pendiente → pagado`.
+- WhatsApp is a customer confirmation and communication channel after a trusted order is accepted; it is not the financial or operational source of truth.
+- Inventory uses `inventoryBalances` and `inventoryTransactions`. Catalog `stockQuantity` is the opening baseline; completed sales post consumption automatically.
+- Manual purchases and stock adjustments are recorded by the admin callable. Direct browser writes to inventory collections remain denied.
+- Historical orders without stored `ingredientUsage` are never silently converted into inventory consumption.
+
 ## Development
 
 ```bash
