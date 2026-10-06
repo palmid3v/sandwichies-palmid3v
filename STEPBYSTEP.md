@@ -352,3 +352,18 @@ A task is DONE only when:
 - the repository remains structurally coherent.
 
 If one of these is missing, the status is not DONE.
+
+
+## 12D. FASE 11 Admin/Product Operations UX
+
+FASE 11 is approved and implemented on branch feat/phase-11-admin-operations-ux.
+
+Operational workflow:
+- prioritize active orders and payment attention;
+- expose explicit order/payment state in detail;
+- provide a safe next-status shortcut using existing transition guards;
+- surface low inventory capacity without changing inventory authority;
+- provide success/error feedback for operational mutations;
+- preserve admin authorization boundaries through Firebase Auth/custom claims and Firestore Rules.
+
+No production deployment, GitHub Actions execution, or release-gate change is included. Browser/Emulator evidence remains pending.

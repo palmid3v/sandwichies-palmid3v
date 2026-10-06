@@ -8,9 +8,33 @@ import {
   getStatusMeta,
 } from "../utils/orders";
 
+const ACTIVE_STATUSES = ["pendiente", "confirmado", "preparando", "listo"];
+
 export default function OrdersHistory({ orders, setSelectedOrder }) {
   const [statusFilter, setStatusFilter] = useState("activos");
   const [search, setSearch] = useState("");
+
+  const summary = useMemo(() => {
+    const counts = Object.fromEntries(
+      ORDER_STATUSES.map((status) => [status.value, 0]),
+    );
+
+    orders.forEach((order) => {
+      if (counts[order.status] !== undefined) counts[order.status] += 1;
+    });
+
+    return counts;
+  }, [orders]);
+
+  const pendingPayments = useMemo(
+    () =>
+      orders.filter(
+        (order) =>
+          order.payment?.status !== "pagado" &&
+          !["cancelado", "entregado"].includes(order.status),
+      ).length,
+    [orders],
+  );
 
   const filteredOrders = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -20,7 +44,7 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
         statusFilter === "todos"
           ? true
           : statusFilter === "activos"
-            ? !["entregado", "cancelado"].includes(order.status)
+            ? ACTIVE_STATUSES.includes(order.status)
             : order.status === statusFilter;
 
       const matchesSearch =
@@ -43,24 +67,58 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
         <span className="order-count">{filteredOrders.length} visibles</span>
       </div>
 
-      <div className="order-tools">
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Buscar número, cliente o teléfono"
-        />
-        <select
-          value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value)}
+      <div className="ops-summary" aria-label="Resumen operativo de pedidos">
+        <button
+          className={statusFilter === "activos" ? "ops-summary-card active" : "ops-summary-card"}
+          onClick={() => setStatusFilter("activos")}
         >
-          <option value="activos">Pedidos activos</option>
-          <option value="todos">Todos los pedidos</option>
-          {ORDER_STATUSES.map((status) => (
-            <option value={status.value} key={status.value}>
-              {status.label}
-            </option>
-          ))}
-        </select>
+          <span>Activos</span>
+          <strong>{ACTIVE_STATUSES.reduce((sum, status) => sum + summary[status], 0)}</strong>
+        </button>
+        <button
+          className={statusFilter === "pendiente" ? "ops-summary-card active" : "ops-summary-card"}
+          onClick={() => setStatusFilter("pendiente")}
+        >
+          <span>Por confirmar</span>
+          <strong>{summary.pendiente}</strong>
+        </button>
+        <button
+          className={pendingPayments ? "ops-summary-card warning" : "ops-summary-card"}
+          onClick={() => setStatusFilter("todos")}
+        >
+          <span>Pagos pendientes</span>
+          <strong>{pendingPayments}</strong>
+        </button>
+        <div className="ops-summary-card readonly">
+          <span>Listos para entregar</span>
+          <strong>{summary.listo}</strong>
+        </div>
+      </div>
+
+      <div className="order-tools">
+        <label className="admin-search-field">
+          Buscar
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Número, cliente o teléfono"
+          />
+        </label>
+        <label className="admin-filter-field">
+          Estado
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+          >
+            <option value="activos">Pedidos activos</option>
+            <option value="todos">Todos los pedidos</option>
+            {ORDER_STATUSES.map((status) => (
+              <option value={status.value} key={status.value}>
+                {status.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="orders-grid">
@@ -68,6 +126,9 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
           const status = getStatusMeta(order.status);
           const items = getOrderItems(order);
           const date = getOrderDate(order);
+          const paymentPending =
+            order.payment?.status !== "pagado" &&
+            !["cancelado"].includes(order.status);
 
           return (
             <button
@@ -106,13 +167,20 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
                 </small>
                 <strong>{formatMoney(getOrderTotal(order))}</strong>
               </div>
+              <div className="order-card-meta">
+                <span>{paymentPending ? "Pago pendiente" : "Pago confirmado"}</span>
+                <span>Ver detalle →</span>
+              </div>
             </button>
           );
         })}
       </div>
 
       {!filteredOrders.length && (
-        <div className="empty-state">No hay pedidos que coincidan.</div>
+        <div className="empty-state">
+          <strong>No hay pedidos que coincidan.</strong>
+          <span>Prueba otro estado o limpia la búsqueda.</span>
+        </div>
       )}
     </section>
   );

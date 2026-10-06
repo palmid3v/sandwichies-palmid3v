@@ -25,6 +25,7 @@ export default function App() {
   const [inventoryTransactions, setInventoryTransactions] = useState([]);
   const [inventoryError, setInventoryError] = useState("");
   const [inventorySubmitting, setInventorySubmitting] = useState(false);
+  const [inventoryFeedback, setInventoryFeedback] = useState("");
   const [inventoryForm, setInventoryForm] = useState({
     ingredientId:
       CATALOG.ingredients.find((item) => item.active !== false)?.id || "",
@@ -160,6 +161,7 @@ export default function App() {
     event.preventDefault();
     setInventorySubmitting(true);
     setInventoryError("");
+    setInventoryFeedback("");
 
     try {
       const createMovement = httpsCallable(
@@ -178,12 +180,14 @@ export default function App() {
         quantityDelta: 1,
         reason: "",
       }));
+      setInventoryFeedback("Movimiento registrado correctamente.");
     } catch (error) {
       console.error("No se pudo registrar el movimiento:", error);
       setInventoryError(
         error?.message ||
           "No se pudo registrar el movimiento de inventario.",
       );
+      setInventoryFeedback("");
     } finally {
       setInventorySubmitting(false);
     }
@@ -221,13 +225,15 @@ export default function App() {
         </div>
       </header>
 
-      <nav className="admin-tabs" aria-label="Secciones administrativas">
+      <nav className="admin-tabs" aria-label="Secciones administrativas" role="tablist">
         {[
           ["pedidos", "Pedidos"],
           ["dashboard", "Resumen"],
           ["inventario", "Inventario"],
         ].map(([value, label]) => (
           <button
+            role="tab"
+            aria-selected={activeTab === value}
             className={activeTab === value ? "active motion-feedback" : "motion-feedback"}
             key={value}
             onClick={() => setActiveTab(value)}
@@ -340,6 +346,11 @@ export default function App() {
               {inventorySubmitting ? "Guardando..." : "Registrar movimiento"}
             </button>
           </form>
+          {inventoryFeedback && (
+            <div className="admin-feedback success" role="status">
+              {inventoryFeedback}
+            </div>
+          )}
 
           <div className="inventory-grid">
             {inventory.map((item) => {
@@ -352,9 +363,14 @@ export default function App() {
               const portion = item.portionQuantity || 1;
               const maxServings = Math.floor(available / portion);
 
+              const lowStock = maxServings <= 3;
+
               return (
-                <article className="inventory-card" key={item.id}>
-                  <small>{item.type}</small>
+                <article className={lowStock ? "inventory-card low-stock" : "inventory-card"} key={item.id}>
+                  <div className="inventory-card-heading">
+                    <small>{item.type}</small>
+                    {lowStock && <span className="stock-alert">Stock bajo</span>}
+                  </div>
                   <h3>{item.name}</h3>
                   <p>
                     Saldo actual: <strong>{available}</strong> {item.unit}

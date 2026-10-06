@@ -2,7 +2,7 @@
 
 **Current release line:** MVP hardening → Product Experience Evolution  
 **Operational state:** `acceptingOrders = false`  
-**Status:** FASE 9–10 implementation executed on feature branch; production verification remains environment-dependent.
+**Status:** FASE 11 implementation executed on feature branch; production verification remains environment-dependent.
 
 ## North star
 
@@ -166,16 +166,26 @@ Goal: establish a sustainable product-content system.
 
 ## Phase 11 — Admin/Product Operations UX
 
+**Execution:** APPROVED ALL — implementation baseline built.
+
 Goal: make operations clearer and more efficient without weakening the security model.
 
-- [ ] Audit admin information hierarchy
-- [ ] Improve order status visibility
-- [ ] Improve payment status visibility
-- [ ] Improve inventory visibility
-- [ ] Improve operational feedback
-- [ ] Improve responsive admin experience
-- [ ] Add safe operational shortcuts where justified
-- [ ] Validate admin authorization boundaries
+- [x] Audit admin information hierarchy
+- [x] Improve order status visibility
+- [x] Improve payment status visibility
+- [x] Improve inventory visibility
+- [x] Improve operational feedback
+- [x] Improve responsive admin experience
+- [x] Add safe operational shortcuts where justified
+- [x] Validate admin authorization boundaries
+
+Implementation notes:
+- Orders now surface active, confirmation, payment and readiness priorities before the detailed list.
+- Order detail exposes explicit payment state and a single safe next-status shortcut while preserving canonical transition checks.
+- Inventory highlights low serving capacity and confirms successful/failed movement recording.
+- Admin responsive behavior is consolidated through existing mobile breakpoints.
+- Authorization remains admin-claim based for reads and callable inventory writes, while Firestore Rules continue to validate order/payment transitions.
+- Browser and emulator evidence remains pending because this phase was implemented without executing GitHub Actions or production deployment.
 
 ## Phase 12 — Performance + Measurement
 
