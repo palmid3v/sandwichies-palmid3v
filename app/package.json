@@ -36,6 +36,6 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "vite": "^8.0.1",
-    "@firebase/rules-unit-testing": "^5.1.0"
+    "@firebase/rules-unit-testing": "^3.0.0"
   }
 }
