@@ -6,7 +6,7 @@
 - Type: Interactive sandwich configurator + ordering and operations platform
 - Developer: PALMI-D3V
 - Backend: Firebase
-- Current release line: Product Experience Evolution (FASE 7–8 built; release verification remains separate)
+- Current release line: Product Experience Evolution (FASE 7–10 built; release verification remains separate)
 - Project operating contract: `MASTERPROMPT.md`
 
 ## Product vision
@@ -126,6 +126,8 @@ Detailed documentation is under `app/docs/`. Historical material remains under `
 - FASE 8 defines reusable interaction patterns in `app/src/styles/motion.css`.
 - Reduced-motion behavior is part of the global interaction system.
 - Current UI/design decisions are documented in `app/docs/design/DESIGN-SYSTEM.md` and `app/docs/design/MOTION-INTERACTION.md`.
+- FASE 9 adds customer discovery segments, featured/product hierarchy and lower-friction selection into the ordering flow.
+- FASE 10 adds canonical production product metadata plus first new signature/seasonal creations in `app/shared/recipes.js`.
 - Screenshot/browser evidence is intentionally not fabricated; it remains an execution task.
 
 ## Development

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CATALOG } from "../shared/catalog.js";
-import { FAVORITES } from "../shared/recipes.js";
+import { DISCOVERY_SEGMENTS, FAVORITES, getFavoritesByDiscovery } from "../shared/recipes.js";
 import { buildTrustedOrder, normalizeOrderRequest } from "../shared/order-request.js";
 import {
   calculateInventoryConsumption,
@@ -22,6 +22,32 @@ const favorite = (id, size = "15", overrides = {}) => {
     ...overrides,
   });
 };
+
+
+test("new creations are canonical production products with trusted pricing", () => {
+  const serrano = favorite("serrano-verde");
+  const fuego = favorite("fuego-tropical", "15", { toppings: ["pimenton"] });
+
+  assert.equal(serrano.cost, 8982);
+  assert.equal(serrano.price, 15900);
+  assert.equal(fuego.cost, 6861);
+  assert.equal(fuego.price, 12900);
+  assert.equal(fuego.ingredientUsage["pimenton-asado"], 30);
+
+  assert.ok(FAVORITES.find((item) => item.id === "serrano-verde")?.new);
+  assert.ok(FAVORITES.find((item) => item.id === "fuego-tropical")?.seasonal);
+});
+
+test("discovery segments expose production products without duplicating product data", () => {
+  assert.deepEqual(
+    DISCOVERY_SEGMENTS.map((segment) => segment.id),
+    ["all", "featured", "popular", "new", "signature", "seasonal"],
+  );
+  assert.equal(getFavoritesByDiscovery("new").length, 2);
+  assert.equal(getFavoritesByDiscovery("seasonal").length, 1);
+  assert.equal(getFavoritesByDiscovery("popular").every((item) => item.status === "production"), true);
+  assert.equal(getFavoritesByDiscovery("unknown").length, 0);
+});
 
 test("catalog purchase costs match the latest supplied values", () => {
   assert.equal(CATALOG.sizes["15"].breadCost, 1750);

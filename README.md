@@ -139,6 +139,21 @@ FASE 7–8 introduces the current dark-first product visual language and reusabl
 
 Detailed design decisions live under `app/docs/design/`.
 
+
+## Customer discovery + product content
+
+FASE 9–10 extends the storefront from a simple configurator into a product-discovery experience:
+
+- canonical discovery segments: featured, popular, new, signature and seasonal;
+- curated product cards with descriptions, badges and starting-price anchors;
+- direct selection from discovery into the existing configurator;
+- mobile-first category navigation and empty-state feedback;
+- canonical production product metadata in `app/shared/recipes.js`;
+- first new creations: Serrano Verde and Fuego Tropical;
+- new creations use the same trusted pricing and order reconstruction path as existing products.
+
+Detailed execution evidence lives in `app/docs/tasks/PHASE-09-10-REPORT.md`.
+
 ## Operational state
 
 `acceptingOrders = false`.
@@ -149,6 +164,6 @@ Do not enable customer checkout without completing the release gates in `ROADMAP
 
 This repository is the application, backend/domain, product documentation, and project operating source of truth for Sandwichies.
 
-**Execution status:** FASE 1–8 implementation baseline applied on 2026-10-05. FASE 7–8 visual/interaction work is committed on the feature branch for manual merge. Production verification remains environment-dependent; acceptingOrders stays false.
+**Execution status:** FASE 1–10 implementation baseline applied on 2026-10-05. FASE 9–10 discovery/product work is committed on the feature branch for manual merge. Production verification remains environment-dependent; acceptingOrders stays false.
 
 **PALMI-D3V · Sandwichies · 2026**

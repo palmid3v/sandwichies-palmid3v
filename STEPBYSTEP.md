@@ -50,7 +50,7 @@ PHASE 13 Product Expansion
 
 **Important:** security and release blockers remain higher priority than visual/product expansion.
 
-**Current approved execution:** FASE 7–8 APPROVED ALL. Implementation is isolated on `feat/phase-7-8-visual-interaction-system`; do not merge automatically.
+**Current approved execution:** FASE 9–10 APPROVED ALL. Implementation is isolated on `feat/phase-9-10-discovery-product-system`; do not merge automatically.
 
 ## 3. Repository structure
 
@@ -296,6 +296,16 @@ Interaction source:
 Do not add animation without a product purpose. Prefer shared tokens/classes over one-off durations.
 
 Before closing the phase, the human reviewer should inspect the branch in a browser at mobile and desktop widths. That visual evidence is intentionally outside GitHub automation.
+
+## 12C. FASE 9–10 discovery/product workflow
+
+Discovery UI is a presentation layer over canonical product data. Product names, descriptions, classifications, recipes and pricing inputs remain in shared/domain sources.
+
+FASE 9 uses discovery segments for featured, popular, new, signature and seasonal products and connects selection directly to the existing trusted configuration flow.
+
+FASE 10 adds production product metadata and new creations without creating a second pricing or order-validation path. New products must pass the same shared pricing and trusted order reconstruction model.
+
+Browser evidence remains pending until the human reviewer inspects mobile, tablet and desktop behavior.
 
 ## 13. Release gate
 
