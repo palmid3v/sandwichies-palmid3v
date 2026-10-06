@@ -4,7 +4,7 @@
 **Effective:** 2026-10-05  
 **Project:** Sandwichies  
 **Owner:** PALMI-D3V  
-**Mode:** Approved execution — FASE 1–10  
+**Mode:** Approved execution — FASE 1–11  
 **Status:** BUILD / HARDEN / VERIFY
 
 ---
@@ -54,7 +54,8 @@ Never rewrite historical material to impersonate current behavior.
 **FASE 7 — Visual System: APPROVED**  
 **FASE 8 — Motion + Interaction System: APPROVED**  
 **FASE 9 — Customer Discovery + Ordering UX: APPROVED**  
-**FASE 10 — New Favorites + New Creations: APPROVED**
+**FASE 10 — New Favorites + New Creations: APPROVED**  
+**FASE 11 — Admin/Product Operations UX: APPROVED ALL**
 
 The implementation agent is authorized to execute all approved work without waiting for another approval between these phases.
 
@@ -565,7 +566,7 @@ Sandwichies work is complete only when:
 ## 24. Current execution directive
 
 **FASE 1–4: APPROVED ALL**  
-**FASE 7–10: APPROVED ALL**
+**FASE 7–11: APPROVED ALL**
 
 Proceed directly with implementation.
 
