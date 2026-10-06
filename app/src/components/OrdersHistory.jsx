@@ -71,7 +71,7 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
 
           return (
             <button
-              className="order-card"
+              className="order-card motion-feedback"
               key={order.id}
               onClick={() => setSelectedOrder(order)}
             >
