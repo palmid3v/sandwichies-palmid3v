@@ -4,7 +4,7 @@
 **Effective:** 2026-10-05  
 **Project:** Sandwichies  
 **Owner:** PALMI-D3V  
-**Mode:** Approved execution — FASE 1–8  
+**Mode:** Approved execution — FASE 1–10  
 **Status:** BUILD / HARDEN / VERIFY
 
 ---
@@ -52,14 +52,18 @@ Never rewrite historical material to impersonate current behavior.
 **FASE 3 — Quality + CI: APPROVED**  
 **FASE 4 — Integration + Browser Validation: APPROVED**  
 **FASE 7 — Visual System: APPROVED**  
-**FASE 8 — Motion + Interaction System: APPROVED**
+**FASE 8 — Motion + Interaction System: APPROVED**  
+**FASE 9 — Customer Discovery + Ordering UX: APPROVED**  
+**FASE 10 — New Favorites + New Creations: APPROVED**
 
 The implementation agent is authorized to execute all approved work without waiting for another approval between these phases.
 
 **FASE 7 — Visual System: APPROVED ALL**
-**FASE 8 — Motion + Interaction System: APPROVED ALL**
+**FASE 8 — Motion + Interaction System: APPROVED ALL**  
+**FASE 9 — Customer Discovery + Ordering UX: APPROVED ALL**  
+**FASE 10 — New Favorites + New Creations: APPROVED ALL**
 
-For FASE 7–8, visual and interaction improvements are authorized within the existing architecture. Do not expand into unrelated product features or release deployment.
+For FASE 7–10, visual, interaction, discovery and product-content improvements are authorized within the existing architecture. Do not expand into unrelated product features or release deployment.
 
 Do not interpret approval as permission to weaken security, fabricate test evidence, or enable production ordering without the separate release gate.
 
