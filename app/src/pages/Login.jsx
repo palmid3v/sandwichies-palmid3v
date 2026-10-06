@@ -39,7 +39,7 @@ export default function Login() {
             value={password} onChange={(event) => setPassword(event.target.value)} />
         </label>
         {error && <div className="login-error">{error}</div>}
-        <button disabled={isLoading}>
+        <button type="submit" className="motion-feedback" disabled={isLoading}>
           {isLoading ? "Ingresando..." : "Ingresar"}
         </button>
       </form>
