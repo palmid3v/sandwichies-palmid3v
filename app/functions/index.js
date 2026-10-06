@@ -3,6 +3,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { BUSINESS, isCompletedSale } from "../shared/business.js";
+import { getIngredient } from "../shared/catalog.js";
 import {
   buildOrderConsumption,
   InventoryValidationError,
@@ -72,7 +73,9 @@ export const recordInventoryTransaction = onCall(
     try {
       const movement = normalizeInventoryTransaction(request.data);
       if (movement.type === "consumption") {
-        throw new InventoryValidationError("Los consumos se generan automáticamente al completar una venta.");
+        throw new InventoryValidationError(
+          "Los consumos se generan automáticamente al completar una venta.",
+        );
       }
 
       const balanceRef = db.doc(`inventoryBalances/${movement.ingredientId}`);
@@ -81,11 +84,16 @@ export const recordInventoryTransaction = onCall(
       let balanceAfter;
       await db.runTransaction(async (transaction) => {
         const balance = await transaction.get(balanceRef);
-        const openingBalance = Number(balance.data()?.quantity ?? 0);
+        const openingBalance =
+          balance.data()?.quantity == null
+            ? Number(getIngredient(movement.ingredientId)?.stockQuantity || 0)
+            : Number(balance.data().quantity);
         const nextBalance = openingBalance + movement.quantityDelta;
 
         if (nextBalance < 0) {
-          throw new InventoryValidationError("El ajuste dejaría el inventario en negativo.");
+          throw new InventoryValidationError(
+            "El ajuste dejaría el inventario en negativo.",
+          );
         }
 
         balanceAfter = nextBalance;
@@ -116,7 +124,10 @@ export const recordInventoryTransaction = onCall(
         throw new HttpsError("invalid-argument", error.message);
       }
       console.error("Inventory transaction failed", error);
-      throw new HttpsError("internal", "No fue posible registrar el movimiento de inventario.");
+      throw new HttpsError(
+        "internal",
+        "No fue posible registrar el movimiento de inventario.",
+      );
     }
   },
 );
@@ -148,13 +159,17 @@ export const syncCompletedSaleInventory = onDocumentUpdated(
           {
             inventory: {
               consumptionStatus: "unavailable",
-              consumptionNote: "No existe consumo físico suficiente para reconstruir esta orden histórica.",
+              consumptionNote:
+                "No existe consumo físico suficiente para reconstruir esta orden histórica.",
             },
             updatedAt: FieldValue.serverTimestamp(),
           },
           { merge: true },
         );
-        console.warn("Inventory consumption skipped: missing ingredientUsage", event.params.orderId);
+        console.warn(
+          "Inventory consumption skipped: missing ingredientUsage",
+          event.params.orderId,
+        );
         return;
       }
 
@@ -168,6 +183,7 @@ export const syncCompletedSaleInventory = onDocumentUpdated(
           const balanceRef = db.doc(`inventoryBalances/${line.ingredientId}`);
           const existingTransaction = await transaction.get(transactionRef);
           const balance = await transaction.get(balanceRef);
+
           prepared.push({
             line,
             transactionRef,
@@ -180,18 +196,11 @@ export const syncCompletedSaleInventory = onDocumentUpdated(
         for (const item of prepared) {
           if (item.existingTransaction.exists) continue;
 
-          const openingBalance = Number(
-            item.balance.data()?.quantity ??
-              item.line.ingredientId &&
-              0,
-          );
-          const fallbackBalance =
+          const currentBalance =
             item.balance.data()?.quantity == null
-              ? Number(
-                  (await import("../shared/catalog.js")).getIngredient(item.line.ingredientId)?.stockQuantity || 0,
-                )
-              : openingBalance;
-          const nextBalance = fallbackBalance + item.line.quantityDelta;
+              ? Number(getIngredient(item.line.ingredientId)?.stockQuantity || 0)
+              : Number(item.balance.data().quantity);
+          const nextBalance = currentBalance + item.line.quantityDelta;
 
           transaction.set(
             item.balanceRef,
@@ -232,7 +241,8 @@ export const syncCompletedSaleInventory = onDocumentUpdated(
         {
           inventory: {
             consumptionStatus: "error",
-            consumptionNote: "No se pudo registrar automáticamente el consumo; requiere revisión.",
+            consumptionNote:
+              "No se pudo registrar automáticamente el consumo; requiere revisión.",
           },
           updatedAt: FieldValue.serverTimestamp(),
         },
