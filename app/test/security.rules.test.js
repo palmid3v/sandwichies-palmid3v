@@ -20,7 +20,7 @@ test.beforeEach(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (adminContext) => {
     const adminDb = adminContext.firestore();
-    await setDoc(doc(adminDb, "orders", "order-1"), { status: "pendiente" });
+    await setDoc(doc(adminDb, "orders", "order-1"), { status: "pendiente", payment: { status: "pendiente" } });
     await setDoc(doc(adminDb, "inventoryBalances", "pepperoni"), {
       ingredientId: "pepperoni",
       quantity: 39,
@@ -53,6 +53,10 @@ test("admin can read and update orders and read inventory", async () => {
   const db = env.authenticatedContext("admin-1", { admin: true }).firestore();
   await assertSucceeds(getDoc(doc(db, "orders", "order-1")));
   await assertSucceeds(updateDoc(doc(db, "orders", "order-1"), { status: "confirmado" }));
+  await assertFails(updateDoc(doc(db, "orders", "order-1"), { status: "entregado" }));
+  await assertFails(updateDoc(doc(db, "orders", "order-1"), { status: "cancelado", payment: { status: "pagado" } }));
+  await assertSucceeds(updateDoc(doc(db, "orders", "order-1"), { status: "confirmado", payment: { status: "pagado" } }));
+  await assertFails(updateDoc(doc(db, "orders", "order-1"), { payment: { status: "pendiente" } }));
   await assertSucceeds(getDoc(doc(db, "inventoryBalances", "pepperoni")));
   await assertSucceeds(getDoc(doc(db, "inventoryTransactions", "transaction-1")));
 });
