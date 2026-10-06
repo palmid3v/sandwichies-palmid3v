@@ -18,6 +18,7 @@ import {
 
 export default function OrderModal({ selectedOrder, setSelectedOrder }) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
     if (!selectedOrder) return undefined;
@@ -29,12 +30,22 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [selectedOrder, setSelectedOrder]);
 
+  useEffect(() => {
+    setFeedback(null);
+  }, [selectedOrder?.id]);
+
   if (!selectedOrder) return null;
 
   const items = getOrderItems(selectedOrder);
   const total = getOrderTotal(selectedOrder);
   const cost = getOrderCost(selectedOrder);
   const currentPaymentStatus = selectedOrder.payment?.status || "pendiente";
+  const statusMeta =
+    ORDER_STATUSES.find((item) => item.value === selectedOrder.status) ||
+    ORDER_STATUSES[0];
+  const nextStatus = ORDER_STATUSES.find((status) =>
+    canTransitionOrderStatus(selectedOrder.status, status.value),
+  );
 
   const updateOrder = async (updates) => {
     if (updates.status && !canTransitionOrderStatus(selectedOrder.status, updates.status)) {
@@ -48,6 +59,8 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
     }
 
     setIsUpdating(true);
+    setFeedback(null);
+
     try {
       await updateDoc(doc(db, "orders", selectedOrder.id), {
         ...updates,
@@ -67,8 +80,16 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
 
         return next;
       });
+      setFeedback({ type: "success", message: "Pedido actualizado correctamente." });
     } catch (error) {
       console.error("No se pudo actualizar el pedido:", error);
+      setFeedback({
+        type: "error",
+        message:
+          error?.code === "permission-denied"
+            ? "No tienes permisos para este cambio."
+            : "No se pudo guardar el cambio. Intenta de nuevo.",
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -87,6 +108,27 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
           <div>
             <p className="admin-eyebrow">Detalle del pedido</p>
             <h2>Orden #{selectedOrder.orderNumber || "—"}</h2>
+            <div className="modal-status-line">
+              <span
+                className="status-pill"
+                style={{
+                  color: statusMeta.color,
+                  borderColor: `${statusMeta.color}55`,
+                  background: `${statusMeta.color}16`,
+                }}
+              >
+                {statusMeta.label}
+              </span>
+              <span
+                className={
+                  currentPaymentStatus === "pagado"
+                    ? "payment-pill paid"
+                    : "payment-pill pending"
+                }
+              >
+                {currentPaymentStatus === "pagado" ? "Pago confirmado" : "Pago pendiente"}
+              </span>
+            </div>
           </div>
           <button
             className="close-button motion-feedback"
@@ -180,9 +222,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
             <span>Estado del pago</span>
             <button
               disabled={isUpdating || currentPaymentStatus === "pagado"}
-              onClick={() =>
-                updateOrder({ "payment.status": "pagado" })
-              }
+              onClick={() => updateOrder({ "payment.status": "pagado" })}
             >
               {currentPaymentStatus === "pagado" ? "Pagado" : "Marcar pagado"}
             </button>
@@ -198,6 +238,18 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
         </div>
 
         <div className="status-actions">
+          {nextStatus && nextStatus.value !== selectedOrder.status && (
+            <button
+              className="status-next-action motion-feedback"
+              disabled={
+                isUpdating ||
+                (nextStatus.value === "cancelado" && currentPaymentStatus === "pagado")
+              }
+              onClick={() => updateOrder({ status: nextStatus.value })}
+            >
+              Avanzar a {nextStatus.label}
+            </button>
+          )}
           {ORDER_STATUSES.map((status) => {
             const isActive = selectedOrder.status === status.value;
             const canMove = canTransitionOrderStatus(selectedOrder.status, status.value);
@@ -211,7 +263,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
                   isUpdating ||
                   (!isActive && !canMove) ||
                   (status.value === "cancelado" && currentPaymentStatus === "pagado") ||
-                  isCompletedOrClosed && !isActive
+                  (isCompletedOrClosed && !isActive)
                 }
                 className={isActive ? "active motion-feedback" : "motion-feedback"}
                 style={{ "--status-color": status.color }}
@@ -223,6 +275,15 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
             );
           })}
         </div>
+
+        {feedback && (
+          <div
+            className={`admin-feedback ${feedback.type}`}
+            role={feedback.type === "error" ? "alert" : "status"}
+          >
+            {feedback.message}
+          </div>
+        )}
       </section>
     </div>
   );
