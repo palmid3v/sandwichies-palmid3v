@@ -43,11 +43,15 @@ export default function Dashboard({ orders }) {
   const operationalOrders = scopedOrders.filter(
     (order) => order.status !== "cancelado",
   );
-  // Product-owner approved accounting policy:
-  // a sale is recognized only when the order is delivered and payment is confirmed.
   const completedSales = scopedOrders.filter(
     (order) =>
       order.status === "entregado" && order.payment?.status === "pagado",
+  );
+
+  const pendingPaymentOrders = scopedOrders.filter(
+    (order) =>
+      order.payment?.status !== "pagado" &&
+      !["cancelado", "entregado"].includes(order.status),
   );
 
   const totalSales = completedSales.reduce(
@@ -93,6 +97,25 @@ export default function Dashboard({ orders }) {
             </select>
           </label>
           <p>Ventas = pedidos entregados y pagados.</p>
+        </div>
+      </div>
+
+      <div className="ops-summary dashboard-ops-summary">
+        <div className="ops-summary-card readonly">
+          <span>Pedidos activos</span>
+          <strong>{operationalOrders.filter((order) => !["entregado"].includes(order.status)).length}</strong>
+        </div>
+        <div className={pendingPaymentOrders.length ? "ops-summary-card warning" : "ops-summary-card readonly"}>
+          <span>Pagos pendientes</span>
+          <strong>{pendingPaymentOrders.length}</strong>
+        </div>
+        <div className="ops-summary-card readonly">
+          <span>Listos</span>
+          <strong>{scopedOrders.filter((order) => order.status === "listo").length}</strong>
+        </div>
+        <div className="ops-summary-card readonly">
+          <span>Ventas completadas</span>
+          <strong>{completedSales.length}</strong>
         </div>
       </div>
 
