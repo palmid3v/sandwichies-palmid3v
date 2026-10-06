@@ -4,13 +4,13 @@ import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebas
 import { doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 
 const PROJECT_ID = "demo-sandwichies";
-const env = initializeTestEnvironment({
-  projectId: PROJECT_ID,
-  firestore: { host: "127.0.0.1", port: 8080 },
-});
+let env;
 
 test.before(async () => {
-  await env;
+  env = await initializeTestEnvironment({
+    projectId: PROJECT_ID,
+    firestore: { host: "127.0.0.1", port: 8080 },
+  });
 });
 
 test.after(async () => {
