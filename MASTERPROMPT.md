@@ -565,7 +565,7 @@ Sandwichies work is complete only when:
 ## 24. Current execution directive
 
 **FASE 1–4: APPROVED ALL**  
-**FASE 7–8: APPROVED ALL**
+**FASE 7–10: APPROVED ALL**
 
 Proceed directly with implementation.
 
