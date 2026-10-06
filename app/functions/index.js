@@ -202,6 +202,12 @@ export const syncCompletedSaleInventory = onDocumentUpdated(
               : Number(item.balance.data().quantity);
           const nextBalance = currentBalance + item.line.quantityDelta;
 
+          if (nextBalance < 0) {
+            throw new InventoryValidationError(
+              `El consumo del pedido #${after.orderNumber} dejaría ${item.line.ingredientName} en negativo.`,
+            );
+          }
+
           transaction.set(
             item.balanceRef,
             {
