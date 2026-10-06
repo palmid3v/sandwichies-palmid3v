@@ -89,7 +89,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
             <h2>Orden #{selectedOrder.orderNumber || "—"}</h2>
           </div>
           <button
-            className="close-button"
+            className="close-button motion-feedback"
             onClick={() => setSelectedOrder(null)}
             aria-label="Cerrar"
           >
@@ -213,7 +213,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
                   (status.value === "cancelado" && currentPaymentStatus === "pagado") ||
                   isCompletedOrClosed && !isActive
                 }
-                className={isActive ? "active" : ""}
+                className={isActive ? "active motion-feedback" : "motion-feedback"}
                 style={{ "--status-color": status.color }}
                 key={status.value}
                 onClick={() => updateOrder({ status: status.value })}
