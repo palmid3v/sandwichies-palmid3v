@@ -1,23 +1,29 @@
 # ROADMAP — Sandwichies
 
-**Current release line:** MVP hardening  
+**Current release line:** MVP hardening → Product Experience Evolution  
 **Operational state:** `acceptingOrders = false`  
 **Status:** Active development; not yet release-approved.
 
 ## North star
 
-Operate a trustworthy sandwich ordering system in which customers can configure and submit sandwiches reliably, prices and costs come from one domain source, order numbers and financial values are server-owned, administrators can operate orders safely, and inventory/metrics remain honest about their data quality.
+Build a trustworthy sandwich ordering product that feels distinctive, interactive, mobile-first and intentionally designed.
 
-## Phase 0 — Foundation
+Customers should be able to discover, configure and submit sandwiches reliably. Pricing and financial values must remain trusted. Administrators must operate safely. The visual and interaction system should make Sandwichies feel like a real food product rather than a generic CRUD application.
+
+---
+
+## Phase 0 — Governance + Masterprompt
 
 - [x] Root README
 - [x] Root CONTEXT
 - [x] Root STEPBYSTEP
 - [x] Root ROADMAP
+- [x] Root MASTERPROMPT
 - [x] Historical documentation preserved
 - [x] Repository placement rules
 - [x] Current architecture identified
 - [x] Data Connect classified as non-production/experimental
+- [x] Product/UX operating contract defined
 
 ## Phase 1 — Domain integrity
 
@@ -52,31 +58,16 @@ Operate a trustworthy sandwich ordering system in which customers can configure 
 - [ ] Browser smoke test
 - [ ] Production smoke test
 
-## Phase 4 — Operations
+## Phase 4 — Integration and browser validation
 
-- [x] Orders history
-- [x] Order details
-- [x] Dashboard
-- [x] Inventory capacity estimation
-- [x] Live order synchronization
-- [x] New-order notification
-- [ ] Real inventory transactions
-- [ ] Inventory purchase/consumption history
-- [ ] Explicit stock adjustments
-- [ ] Operational reporting period filters
+- [ ] Customer ordering integration coverage
+- [ ] Admin authentication smoke coverage
+- [ ] Customer responsive/mobile smoke coverage
+- [ ] Admin responsive smoke coverage
+- [ ] Critical error/empty/loading states
+- [ ] Browser regression baseline
 
-## Phase 5 — Business semantics
-
-- [x] Centralized pricing policy
-- [x] Delivery charge
-- [x] Cost and estimated profit calculations
-- [x] Completed-sale accounting rule implemented
-- [ ] Product-owner approval of completed-sale accounting policy
-- [ ] Formal payment-status transitions
-- [ ] Formal order-status transitions
-- [ ] Decide WhatsApp confirmation vs notification semantics
-
-## Phase 6 — Release readiness
+## Phase 5 — Release verification
 
 - [ ] Production Firebase configuration verified
 - [ ] Firebase Rules deployed and verified
@@ -89,37 +80,163 @@ Operate a trustworthy sandwich ordering system in which customers can configure 
 - [ ] Release checklist completed
 - [ ] Explicit approval to set `acceptingOrders = true`
 
-## Phase 7 — Performance and maintainability
+## Phase 6 — Business and inventory semantics
+
+- [x] Centralized pricing policy
+- [x] Delivery charge
+- [x] Cost and estimated profit calculations
+- [x] Completed-sale accounting rule implemented
+- [ ] Product-owner approval of completed-sale accounting policy
+- [ ] Formal payment-status transitions
+- [ ] Formal order-status transitions
+- [ ] Decide WhatsApp confirmation vs notification semantics
+- [ ] Real inventory transactions
+- [ ] Inventory purchase/consumption history
+- [ ] Explicit stock adjustments
+- [ ] Operational reporting period filters
+
+---
+
+# Product Experience Evolution
+
+These phases begin after release/security blockers are under control and may proceed in parallel with lower-risk hardening.
+
+## Phase 7 — Sandwichies Visual System
+
+Goal: establish a recognizable dark-first Sandwichies design language.
+
+- [ ] Audit current customer visual hierarchy
+- [ ] Define color/token system
+- [ ] Define typography system
+- [ ] Define spacing/radius/elevation system
+- [ ] Define product-card language
+- [ ] Define button/input/control language
+- [ ] Define food/product visual motifs
+- [ ] Define light/dark behavior where needed
+- [ ] Document accessibility contrast rules
+- [ ] Create current UI baseline screenshots/evidence
+
+## Phase 8 — Motion + Interaction System
+
+Goal: make Sandwichies feel responsive and alive without becoming distracting.
+
+- [ ] Define transition durations/easing
+- [ ] Define hover/focus/pressed states
+- [ ] Define product selection feedback
+- [ ] Define quantity/cart feedback
+- [ ] Define favorite interaction
+- [ ] Define modal/navigation transitions
+- [ ] Define loading/skeleton behavior
+- [ ] Define success/error feedback
+- [ ] Add reduced-motion behavior
+- [ ] Document reusable motion patterns
+
+## Phase 9 — Customer Discovery + Ordering UX
+
+Goal: change the customer experience from simple configuration toward product discovery.
+
+- [ ] Audit current landing/catalog experience
+- [ ] Improve hero/entry experience
+- [ ] Introduce stronger categories/featured areas
+- [ ] Improve product discovery hierarchy
+- [ ] Improve product detail/configuration
+- [ ] Improve cart feedback
+- [ ] Reduce checkout friction
+- [ ] Review every loading/empty/error state
+- [ ] Validate mobile-first flow
+- [ ] Browser-smoke the complete customer journey
+
+## Phase 10 — New Favorites + New Creations
+
+Goal: establish a sustainable product-content system.
+
+- [ ] Define product/favorite data model needs
+- [ ] Define featured/new/popular concepts
+- [ ] Create first new favorites
+- [ ] Create first new signature/seasonal creations
+- [ ] Review pricing/cost implications
+- [ ] Review inventory implications
+- [ ] Add discovery UI
+- [ ] Validate trusted server reconstruction
+- [ ] Document production vs experimental products
+
+## Phase 11 — Admin/Product Operations UX
+
+Goal: make operations clearer and more efficient without weakening the security model.
+
+- [ ] Audit admin information hierarchy
+- [ ] Improve order status visibility
+- [ ] Improve payment status visibility
+- [ ] Improve inventory visibility
+- [ ] Improve operational feedback
+- [ ] Improve responsive admin experience
+- [ ] Add safe operational shortcuts where justified
+- [ ] Validate admin authorization boundaries
+
+## Phase 12 — Performance + Measurement
+
+Goal: ensure richer UX remains fast and measurable.
 
 - [ ] Measure production bundle
-- [ ] Remove unnecessary client payload
-- [ ] Review `src/src.7z`
-- [ ] Confirm public assets
-- [ ] Review component boundaries after MVP stabilization
-- [ ] Keep business logic centralized in `shared/`
+- [ ] Measure critical customer path
+- [ ] Review client payload
+- [ ] Review image/assets strategy
+- [ ] Review render performance
+- [ ] Define product UX metrics
+- [ ] Define ordering funnel metrics
+- [ ] Measure discovery/selection/checkout behavior where instrumentation exists
+- [ ] Remove unnecessary complexity
 
-## Phase 8 — Future product growth
+## Phase 13 — Product Expansion
 
-Only start after MVP hardening and release approval.
+Only after the foundation and release path are stable.
 
 Candidate work:
+
 - richer inventory management
 - customer order history
 - repeat orders
+- recommendations
 - business analytics
-- recommended sandwiches
 - reporting/export
 - richer operational workflows
+- additional product discovery experiences
+
+---
 
 ## Priority order
 
 1. Security regression validation
 2. CI/dependency quality gates
-3. Production smoke validation
-4. Release readiness
-5. Inventory semantics
-6. Business semantics
-7. Performance
-8. New product features
+3. Integration/browser validation
+4. Production/release verification
+5. Business and inventory semantics
+6. Visual system
+7. Motion/interaction system
+8. Customer discovery and ordering UX
+9. New favorites and creations
+10. Admin/product operations UX
+11. Performance and measurement
+12. Product expansion
 
-A future feature must not outrank an unresolved release/security blocker without explicit approval.
+A future feature must not silently outrank an unresolved security or production blocker.
+
+## Master product loop
+
+```
+OBSERVE
+↓
+AUDIT
+↓
+UNDERSTAND
+↓
+DESIGN
+↓
+IMPLEMENT
+↓
+TEST
+↓
+MEASURE
+↓
+IMPROVE
+```
