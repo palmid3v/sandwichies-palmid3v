@@ -4,11 +4,18 @@ import { MENU, MENU_SEGMENTS } from "../data/menu";
 
 export default function DiscoverySection({ onSelect, selectedId }) {
   const [segment, setSegment] = useState("all");
+  const [search, setSearch] = useState("");
 
   const visibleItems = useMemo(() => {
-    if (segment === "all") return MENU;
-    return MENU.filter((item) => item[segment] === true);
-  }, [segment]);
+    const bySegment = segment === "all"
+      ? MENU
+      : MENU.filter((item) => item[segment] === true);
+    const query = search.trim().toLocaleLowerCase("es-CO");
+    if (!query) return bySegment;
+    return bySegment.filter((item) =>
+      `${item.name} ${item.description}`.toLocaleLowerCase("es-CO").includes(query),
+    );
+  }, [segment, search]);
 
   return (
     <section className="discovery-section" aria-labelledby="discovery-title">
@@ -42,6 +49,30 @@ export default function DiscoverySection({ onSelect, selectedId }) {
             </button>
           );
         })}
+      </div>
+
+      <div className="discovery-search">
+        <label htmlFor="menu-search">Buscar en el menú</label>
+        <div className="discovery-search-control">
+          <span aria-hidden="true">⌕</span>
+          <input
+            id="menu-search"
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Ej. pavo, picante, jamón…"
+            autoComplete="off"
+          />
+          {search && (
+            <button type="button" onClick={() => setSearch("")} aria-label="Limpiar búsqueda">
+              Limpiar
+            </button>
+          )}
+        </div>
+        <p className="discovery-result-count" aria-live="polite">
+          {visibleItems.length} {visibleItems.length === 1 ? "opción" : "opciones"}
+          {search.trim() ? ` para “${search.trim()}”` : " en esta selección"}
+        </p>
       </div>
 
       {visibleItems.length ? (
@@ -88,8 +119,9 @@ export default function DiscoverySection({ onSelect, selectedId }) {
         </div>
       ) : (
         <div className="discovery-empty" role="status">
-          <strong>Aún no hay creaciones en esta categoría.</strong>
-          <span>Prueba otra categoría o arma tu sandwich desde cero.</span>
+          <strong>{search.trim() ? "No encontramos coincidencias." : "Aún no hay creaciones en esta categoría."}</strong>
+          <span>{search.trim() ? "Prueba con otro ingrediente o limpia la búsqueda." : "Prueba otra categoría o arma tu sandwich desde cero."}</span>
+          {search.trim() && <button type="button" className="discovery-clear-search" onClick={() => setSearch("")}>Limpiar búsqueda</button>}
         </div>
       )}
     </section>
