@@ -23,7 +23,7 @@ The user-approved work sequence is:
 3. **Fase C — Storefront:** implement approved patterns after A/B validation, retaining the shared domain and trusted order path.
 4. **Fase D — Administración:** validate order/payment/inventory/report flows, error recovery and responsive behavior.
 
-**Current state:** A's security/code changes and B's prototype are committed directly to `main`. Automated tests and human visual review have not yet been run. Do not deploy or enable checkout; `BUSINESS.acceptingOrders` remains false.
+**Current state:** Fases A–B are treated as applied per product-owner confirmation. Fases C–D have direct-to-main commits for searchable storefront discovery, a hard checkout guard while orders are closed, and admin order/payment filters with reset actions. CI and browser verification must be checked before calling the phases fully complete. Do not deploy or enable checkout; `BUSINESS.acceptingOrders` remains false.
 
 ## 2. Current execution phases
 
