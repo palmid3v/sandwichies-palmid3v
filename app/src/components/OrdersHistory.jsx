@@ -13,6 +13,7 @@ const ACTIVE_STATUSES = ["pendiente", "confirmado", "preparando", "listo"];
 export default function OrdersHistory({ orders, setSelectedOrder }) {
   const [statusFilter, setStatusFilter] = useState("activos");
   const [search, setSearch] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState("todos");
 
   const summary = useMemo(() => {
     const counts = Object.fromEntries(
@@ -47,15 +48,19 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
             ? ACTIVE_STATUSES.includes(order.status)
             : order.status === statusFilter;
 
+      const matchesPayment = paymentFilter === "todos"
+        || (paymentFilter === "pendiente" && order.payment?.status !== "pagado" && order.status !== "cancelado")
+        || (paymentFilter === "pagado" && order.payment?.status === "pagado");
+
       const matchesSearch =
         !normalizedSearch ||
         String(order.orderNumber || "").includes(normalizedSearch) ||
         getCustomerName(order).toLowerCase().includes(normalizedSearch) ||
         order.customer?.phone?.includes(normalizedSearch);
 
-      return matchesStatus && matchesSearch;
+      return matchesStatus && matchesPayment && matchesSearch;
     });
-  }, [orders, search, statusFilter]);
+  }, [orders, search, statusFilter, paymentFilter]);
 
   return (
     <section className="admin-section">
@@ -84,7 +89,10 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
         </button>
         <button
           className={pendingPayments ? "ops-summary-card warning" : "ops-summary-card"}
-          onClick={() => setStatusFilter("todos")}
+          onClick={() => {
+            setStatusFilter("todos");
+            setPaymentFilter("pendiente");
+          }}
         >
           <span>Pagos pendientes</span>
           <strong>{pendingPayments}</strong>
@@ -119,6 +127,30 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
             ))}
           </select>
         </label>
+      </div>
+
+      <div className="order-tools order-tools--filters">
+        <label className="admin-filter-field">
+          Estado del pago
+          <select value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value)}>
+            <option value="todos">Todos los pagos</option>
+            <option value="pendiente">Pago pendiente</option>
+            <option value="pagado">Pago confirmado</option>
+          </select>
+        </label>
+        {(search || statusFilter !== "activos" || paymentFilter !== "todos") && (
+          <button
+            type="button"
+            className="admin-filter-reset"
+            onClick={() => {
+              setSearch("");
+              setStatusFilter("activos");
+              setPaymentFilter("todos");
+            }}
+          >
+            Restablecer filtros
+          </button>
+        )}
       </div>
 
       <div className="orders-grid">
@@ -177,9 +209,10 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
       </div>
 
       {!filteredOrders.length && (
-        <div className="empty-state">
+        <div className="empty-state" role="status">
           <strong>No hay pedidos que coincidan.</strong>
-          <span>Prueba otro estado o limpia la búsqueda.</span>
+          <span>Prueba otro estado, otro estado de pago o limpia la búsqueda.</span>
+          <button type="button" className="admin-filter-reset" onClick={() => { setSearch(""); setStatusFilter("activos"); setPaymentFilter("todos"); }}>Limpiar filtros</button>
         </div>
       )}
     </section>
