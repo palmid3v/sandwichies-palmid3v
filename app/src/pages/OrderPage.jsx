@@ -215,6 +215,11 @@ export default function OrderPage() {
   };
 
   const confirmOrder = async () => {
+    if (!BUSINESS.acceptingOrders) {
+      showToast("Los pedidos están temporalmente cerrados. Tu carrito sigue guardado.", "error");
+      return;
+    }
+
     const validationError = validateCheckout();
     if (validationError) {
       showToast(validationError, "error");
