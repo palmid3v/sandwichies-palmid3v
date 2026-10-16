@@ -31,3 +31,12 @@ button.ops-summary-card{cursor:pointer}
 @media(max-width:900px){.ops-summary,.dashboard-ops-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){.ops-summary,.dashboard-ops-summary{grid-template-columns:1fr 1fr}.ops-summary-card{min-height:68px}.order-card-meta{font-size:.62rem}.status-next-action{grid-column:1/-1}}
 @media(max-width:480px){.ops-summary,.dashboard-ops-summary{grid-template-columns:1fr}.status-actions{grid-template-columns:1fr}.modal-status-line{align-items:flex-start;flex-direction:column}}
+
+
+/* FASE D — payment filters and clear/reset actions */
+.order-tools--filters{display:flex;align-items:end;gap:12px;margin:10px 0 18px}
+.order-tools--filters .admin-filter-field{min-width:min(260px,100%)}
+.admin-filter-reset{min-height:42px;padding:10px 14px;border:1px solid var(--border-strong);border-radius:12px;color:var(--ink);background:var(--surface-2);font-size:.75rem;font-weight:850;cursor:pointer}
+.admin-filter-reset:hover{border-color:var(--tropical);background:var(--surface-3)}
+.empty-state .admin-filter-reset{margin-top:10px}
+@media(max-width:520px){.order-tools--filters{align-items:stretch;flex-direction:column}.order-tools--filters .admin-filter-field{min-width:0}.admin-filter-reset{width:100%}}
