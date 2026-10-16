@@ -16,6 +16,7 @@ import {
 import "../styles/storefront.css";
 import "../styles/creative-refresh.css";
 import "../styles/menu-world.css";
+import "../styles/charcuteria-club.css";
 
 const DEFAULT_BASE = [
   "Lechuga",
