@@ -672,3 +672,33 @@ select:focus-visible,
     transform: none !important;
   }
 }
+
+
+/* Original in-repo deli illustration, served locally with no third-party request. */
+.hero-banner::before {
+  inset: auto 4% -5% auto;
+  width: clamp(180px, 24vw, 330px);
+  height: clamp(125px, 17vw, 210px);
+  border: 0;
+  border-radius: 0;
+  background: url("/charcuteria-sandwich.svg") center / contain no-repeat;
+  opacity: .92;
+  transform: rotate(-4deg);
+}
+
+@media (max-width: 1099px) {
+  .hero-banner::before {
+    width: 190px;
+    height: 125px;
+    inset: auto 4% -4% auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .hero-banner::before {
+    width: 145px;
+    height: 100px;
+    inset: auto 3% -3% auto;
+    opacity: .72;
+  }
+}
