@@ -2,7 +2,7 @@
 
 A product-oriented sandwich configurator and operations platform evolving toward an interactive, distinctive food product covering customer ordering, trusted pricing, order management, inventory estimation, and admin workflows.
 
-> **Current status:** MVP hardening → Product Experience Evolution. `acceptingOrders = false`; checkout remains disabled until release approval.
+> **Current status:** Fase A hardening and Fase B static prototype committed on `main`; automated validation and visual review remain pending. `acceptingOrders = false`; checkout remains disabled until release approval.
 
 ## Product direction
 
@@ -170,6 +170,13 @@ FASE 11 improves the daily admin workflow without changing the security boundary
 - responsive admin behavior across mobile, tablet and desktop layouts.
 
 Detailed evidence is recorded in app/docs/tasks/PHASE-11-REPORT.md.
+
+## Active execution track A–D
+
+- **Fase A — Integrity/release:** Firestore order update fields are restricted; regression tests cover immutable commercial/customer/inventory data. Automated test execution is pending.
+- **Fase B — Design/prototype:** a standalone responsive storefront prototype is available at `app/docs/prototypes/phase-b-storefront.html`. It is not connected to Firebase or included in the production app bundle.
+- **Fase C — Storefront:** waits for A validation and B visual approval.
+- **Fase D — Admin:** operational, inventory, payment and reporting validation follows the storefront phase.
 
 ## Operational state
 

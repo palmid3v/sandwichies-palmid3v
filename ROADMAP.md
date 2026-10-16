@@ -2,13 +2,45 @@
 
 **Current release line:** MVP hardening → Product Experience Evolution  
 **Operational state:** `acceptingOrders = false`  
-**Status:** FASE 11 implementation is present on main; production verification remains environment-dependent.
+**Status:** FASE 11 baseline remains on main; the A–D execution track is active. Fase A code changes and Fase B static prototype are committed to main; validation is pending.
 
 ## North star
 
 Build a trustworthy sandwich ordering product that feels distinctive, interactive, mobile-first and intentionally designed.
 
 Customers should be able to discover, configure and submit sandwiches reliably. Pricing and financial values must remain trusted. Administrators must operate safely. The visual and interaction system should make Sandwichies feel like a real food product rather than a generic CRUD application.
+
+---
+
+## Execution track A–D — current work
+
+This track is the current hands-on sequence alongside the numbered historical/product phases.
+
+### Fase A — Integridad y release
+- [x] Reconcile the six Excel-defined recipes and current unit purchase costs in documentation.
+- [x] Restrict browser-admin order updates to operational status/payment status and update timestamp.
+- [x] Add regression cases for protected order, customer, financial and inventory fields.
+- [ ] Run dependency audit, lint, domain tests, Firestore Emulator rules tests, build and smoke.
+- [ ] Validate rules and error/retry behavior in a non-production environment.
+- [ ] Inspect inventory recovery/idempotency behavior for duplicate events and failure paths.
+
+### Fase B — Diseño y prototipo
+- [x] Add a standalone responsive storefront prototype outside the production app bundle.
+- [x] Document desktop/mobile hierarchy and loading, empty, error and checkout-disabled states.
+- [ ] Human visual review at mobile and desktop widths.
+- [ ] Approve prototype before implementing its patterns in the functional storefront.
+
+### Fase C — Storefront
+- [ ] Implement only after Fase A validation and Fase B visual approval.
+- [ ] Preserve shared catalog, pricing and trusted order contracts.
+- [ ] Browser-test discovery, configurator, cart and disabled-checkout behavior.
+
+### Fase D — Administración
+- [ ] Review order list/detail, payment, inventory and reports.
+- [ ] Validate permission failures, duplicate events, inventory recovery and responsive layouts.
+- [ ] Evaluate pagination only against observed order volume.
+
+**Release boundary:** no production deploy, no rules/functions deployment, and no enabling checkout during A–B. `BUSINESS.acceptingOrders` stays false.
 
 ---
 

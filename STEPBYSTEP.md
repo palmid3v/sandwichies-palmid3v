@@ -14,6 +14,17 @@ Master documents:
 
 Historical evidence remains under `app/docs/v0.1/`.
 
+## 2. Active execution track A–D
+
+The user-approved work sequence is:
+
+1. **Fase A — Integridad y release:** Firestore order-field restrictions, order/payment transitions, inventory idempotency/recovery, errors and test evidence.
+2. **Fase B — Diseño y prototipo:** static desktop/mobile flows, hierarchy, components, empty/loading/error/confirmation states. The prototype is under `app/docs/prototypes/phase-b-storefront.html`; it is not part of the production bundle.
+3. **Fase C — Storefront:** implement approved patterns after A/B validation, retaining the shared domain and trusted order path.
+4. **Fase D — Administración:** validate order/payment/inventory/report flows, error recovery and responsive behavior.
+
+**Current state:** A's security/code changes and B's prototype are committed directly to `main`. Automated tests and human visual review have not yet been run. Do not deploy or enable checkout; `BUSINESS.acceptingOrders` remains false.
+
 ## 2. Current execution phases
 
 The project now follows this sequence:
