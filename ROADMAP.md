@@ -2,7 +2,7 @@
 
 **Current release line:** MVP hardening → Product Experience Evolution  
 **Operational state:** `acceptingOrders = false`  
-**Status:** FASE 11 baseline remains on main; the A–D execution track is active. Fase A code changes and Fase B static prototype are committed to main; validation is pending.
+**Status:** Fases A–B previously applied; Fases C–D storefront/admin improvements committed directly to main. Automated CI and browser review are the remaining evidence gates.
 
 ## North star
 
@@ -31,16 +31,20 @@ This track is the current hands-on sequence alongside the numbered historical/pr
 - [ ] Approve prototype before implementing its patterns in the functional storefront.
 
 ### Fase C — Storefront
-- [ ] Implement only after Fase A validation and Fase B visual approval.
-- [ ] Preserve shared catalog, pricing and trusted order contracts.
+- [x] Add menu search across product names/descriptions alongside discovery segments.
+- [x] Improve empty search results and reset actions.
+- [x] Add an explicit submit-handler guard while `acceptingOrders = false`, preserving the cart.
+- [x] Preserve shared catalog, pricing and trusted order contracts.
 - [ ] Browser-test discovery, configurator, cart and disabled-checkout behavior.
 
 ### Fase D — Administración
-- [ ] Review order list/detail, payment, inventory and reports.
+- [x] Add payment-status filtering and resettable search/status/payment filters to order history.
+- [x] Make the payment-pending summary shortcut open orders with pending payments.
+- [x] Add responsive styling for the new admin filter controls.
 - [ ] Validate permission failures, duplicate events, inventory recovery and responsive layouts.
 - [ ] Evaluate pagination only against observed order volume.
 
-**Release boundary:** no production deploy, no rules/functions deployment, and no enabling checkout during A–B. `BUSINESS.acceptingOrders` stays false.
+**Release boundary:** no production deploy, no rules/functions deployment, and no enabling checkout during this work. `BUSINESS.acceptingOrders` stays false.
 
 ---
 
