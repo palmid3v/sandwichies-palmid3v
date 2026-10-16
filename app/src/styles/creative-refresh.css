@@ -1353,3 +1353,69 @@ button.ops-summary-card:hover {
     transform: none;
   }
 }
+
+
+/* Keep the hero intentional until a matching product photograph is art-directed. */
+.hero-banner img {
+  display: none !important;
+}
+
+.hero-banner::before {
+  inset: auto -8% -95% auto;
+  width: clamp(240px, 35vw, 560px);
+  height: clamp(240px, 35vw, 560px);
+  border: 1px solid rgba(255, 207, 74, 0.2);
+  background:
+    radial-gradient(circle, rgba(255, 207, 74, 0.1), transparent 68%);
+}
+
+@media (max-width: 1099px) {
+  .hero-banner {
+    min-height: 290px;
+  }
+
+  .hero-copy {
+    width: min(100%, 660px);
+    padding: 30px clamp(22px, 5vw, 42px);
+  }
+
+  .hero-copy h1 {
+    max-width: 8ch;
+    font-size: clamp(2.8rem, 8vw, 4.7rem);
+  }
+
+  .hero-copy > p:not(.eyebrow) {
+    max-width: 38ch;
+  }
+
+  .hero-cta {
+    margin-top: 18px;
+  }
+}
+
+@media (max-width: 620px) {
+  .hero-banner {
+    min-height: 300px;
+    border-radius: 22px;
+  }
+
+  .hero-copy {
+    padding: 30px 22px;
+  }
+
+  .hero-copy h1 {
+    max-width: 7ch;
+    font-size: clamp(2.7rem, 13vw, 3.6rem);
+  }
+
+  .hero-copy > p:not(.eyebrow) {
+    font-size: .92rem;
+  }
+
+  .open-badge {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: auto;
+  }
+}
