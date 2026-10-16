@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" fill="none">
+<defs><style>.ink{stroke:#762D40;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}.fine{stroke:#762D40;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.bread{fill:#E9B978}.cream{fill:#F6EEE5}.meat{fill:#C86D52}.green{fill:#879783}.cheese{fill:#E8C66D}</style></defs>
+<g transform="translate(45 35)">
+<path class="ink bread" d="M35 180 Q48 65 190 72 Q320 65 360 165 L345 190 L45 205Z"/><path class="fine" d="M70 133q25-25 50 0t50 0t50 0t50 0t50 0"/>
+<path class="ink green" d="M48 210q22-26 50-4t48-2t48 4t52-4t52 4t48-5l-5 22q-35 19-65 3t-56 3t-55-3t-58 4t-57-4Z"/>
+<path class="ink meat" d="M50 235q28-16 52 0t48 0t48 0t48 0t48 0t48 0l-8 28q-35 14-64 0t-58 0t-57 0t-55 0t-53 0Z"/>
+<path class="ink cheese" d="M48 270l300-4-15 26-275 8Z"/><path class="ink bread" d="M38 298q18-27 45-11t50 0t50 0t50 0t50 0t50 0t35 12l-8 28-316 5Z"/>
+<path class="fine" d="M80 104l8-10m70 0 8 10m55-8 8 10m-118 76 12-6m105 5 12-6"/>
+<path class="fine" d="M30 350q150 18 325-3"/><text x="190" y="395" fill="#762D40" font-family="Georgia,serif" font-size="27" text-anchor="middle" letter-spacing="5">SANDWICH CLÁSICO</text>
+</g>
+<g transform="translate(445 40) rotate(4 170 170)">
+<path class="ink bread" d="M28 165Q43 60 165 70Q290 62 325 160L315 181H35Z"/>
+<path class="ink meat" d="M34 190q25-24 50 0t50 0t50 0t50 0t50 0t45 0l-8 24q-25 13-50-1t-50 1t-50-1t-50 1t-50-1t-42 0Z"/>
+<path class="ink green" d="M35 226q22-21 45 0t45 0t45 0t45 0t45 0t45 0l-8 19q-25 10-45-1t-45 1t-45-1t-45 1t-45-1t-35 0Z"/>
+<path class="ink cream" d="M35 253l278-5-10 26-260 8Z"/><path class="ink bread" d="M25 283q20-22 45-7t45 0t45 0t45 0t45 0t45 0t27 10l-8 25-280 6Z"/>
+<g fill="#762D40"><circle cx="98" cy="113" r="5"/><circle cx="165" cy="95" r="5"/><circle cx="230" cy="119" r="5"/></g><text x="175" y="370" fill="#762D40" font-family="Georgia,serif" font-size="24" text-anchor="middle" letter-spacing="4">JAMÓN &amp; QUESO</text>
+</g>
+<g transform="translate(835 65)">
+<path class="ink bread" d="M22 160Q35 70 130 72Q230 70 255 155L245 178H30Z"/><path class="ink green" d="M27 185q20-20 40 0t40 0t40 0t40 0t40 0t28 0l-7 20q-20 12-40 0t-40 0t-40 0t-40 0t-40 0t-25 0Z"/><path class="ink meat" d="M30 213q18-18 38 0t38 0t38 0t38 0t38 0t30 0l-8 24q-20 12-40 0t-40 0t-40 0t-40 0t-35 0t-17 0Z"/><path class="ink bread" d="M22 246q15-22 38-7t38 0t38 0t38 0t38 0t38 0t20 10l-7 25H30Z"/><text x="135" y="325" fill="#762D40" font-family="Georgia,serif" font-size="22" text-anchor="middle" letter-spacing="3">DELI CLUB</text>
+</g>
+<g transform="translate(90 500)"><ellipse cx="70" cy="70" rx="58" ry="43" fill="#879783" stroke="#762D40" stroke-width="5"/><path class="fine" d="M30 60q30-22 60 0t25 0M25 80q30-22 60 0t25 0"/><text x="70" y="145" fill="#762D40" font-family="Georgia,serif" font-size="18" text-anchor="middle">LECHUGA</text></g>
+<g transform="translate(300 500)"><circle cx="65" cy="68" r="49" fill="#C86D52" stroke="#762D40" stroke-width="5"/><circle cx="65" cy="68" r="28" fill="#E9B978" stroke="#762D40" stroke-width="4"/><g fill="#762D40"><circle cx="54" cy="53" r="4"/><circle cx="74" cy="61" r="4"/><circle cx="58" cy="80" r="4"/><circle cx="78" cy="82" r="4"/></g><text x="65" y="145" fill="#762D40" font-family="Georgia,serif" font-size="18" text-anchor="middle">TOMATE</text></g>
+<g transform="translate(500 500)"><path class="ink cheese" d="M12 35L115 5L104 100L12 90Z"/><circle cx="48" cy="53" r="5" fill="#762D40"/><circle cx="82" cy="35" r="5" fill="#762D40"/><circle cx="72" cy="75" r="5" fill="#762D40"/><text x="60" y="145" fill="#762D40" font-family="Georgia,serif" font-size="18" text-anchor="middle">QUESO</text></g>
+<g transform="translate(720 500)"><path class="ink meat" d="M12 30q15-20 30 0t30 0t30 0t30 0l-10 70H20Z"/><path class="fine" d="M30 48l60 35m-42-39 55 30m-65-9 40 25"/><text x="65" y="145" fill="#762D40" font-family="Georgia,serif" font-size="18" text-anchor="middle">JAMÓN</text></g>
+<g transform="translate(930 500)"><path class="ink green" d="M12 55q-5-42 45-45t65 42q-10 45-58 46T12 55Z"/><path class="fine" d="M30 53q34-18 65 4M48 27l8 48m30-40-9 38"/><text x="65" y="145" fill="#762D40" font-family="Georgia,serif" font-size="18" text-anchor="middle">PEPINILLOS</text></g>
+</svg>
