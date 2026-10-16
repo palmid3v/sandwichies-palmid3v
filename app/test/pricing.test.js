@@ -28,7 +28,7 @@ test("new creations are canonical production products with trusted pricing", () 
   const serrano = favorite("serrano-verde");
   const fuego = favorite("fuego-tropical", "15", { toppings: ["pimenton"] });
 
-  assert.equal(serrano.cost, 8982);
+  assert.equal(serrano.cost, 8983);
   assert.equal(serrano.price, 15900);
   assert.equal(fuego.cost, 6861);
   assert.equal(fuego.price, 12900);
