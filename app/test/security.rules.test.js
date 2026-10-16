@@ -20,7 +20,18 @@ test.beforeEach(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (adminContext) => {
     const adminDb = adminContext.firestore();
-    await setDoc(doc(adminDb, "orders", "order-1"), { status: "pendiente", payment: { status: "pendiente" } });
+    await setDoc(doc(adminDb, "orders", "order-1"), {
+      status: "pendiente",
+      customer: { name: "Ana Pérez", phone: "3001234567" },
+      items: [{ name: "Turkey Finas Hierbas" }],
+      subtotal: 13900,
+      total: 13900,
+      cost: 7776,
+      profit: 6124,
+      payment: { status: "pendiente", method: "efectivo" },
+      inventory: { consumptionStatus: "pending" },
+      updatedAt: new Date("2026-10-15T12:00:00.000Z"),
+    });
     await setDoc(doc(adminDb, "inventoryBalances", "pepperoni"), {
       ingredientId: "pepperoni",
       quantity: 39,
@@ -87,4 +98,26 @@ test("counter remains inaccessible from browser", async () => {
   const db = env.authenticatedContext("admin-1", { admin: true }).firestore();
   await assertFails(getDoc(doc(db, "counters", "orders")));
   await assertFails(setDoc(doc(db, "counters", "orders"), { value: 99 }));
+});
+
+
+test("admin cannot mutate financial, customer, recipe or inventory snapshot fields", async () => {
+  const db = env.authenticatedContext("admin-1", { admin: true }).firestore();
+  const order = doc(db, "orders", "order-1");
+  await assertFails(updateDoc(order, { total: 1 }));
+  await assertFails(updateDoc(order, { cost: 1 }));
+  await assertFails(updateDoc(order, { profit: 999999 }));
+  await assertFails(updateDoc(order, { subtotal: 1 }));
+  await assertFails(updateDoc(order, { "customer.name": "Otro cliente" }));
+  await assertFails(updateDoc(order, { items: [] }));
+  await assertFails(updateDoc(order, { "inventory.consumptionStatus": "posted" }));
+  await assertFails(updateDoc(order, { "payment.method": "transferencia" }));
+});
+
+test("admin can update only order status and payment status", async () => {
+  const db = env.authenticatedContext("admin-1", { admin: true }).firestore();
+  const order = doc(db, "orders", "order-1");
+  await assertSucceeds(updateDoc(order, { status: "confirmado" }));
+  await assertSucceeds(updateDoc(order, { "payment.status": "pagado" }));
+  await assertFails(updateDoc(order, { "payment.status": "pendiente" }));
 });

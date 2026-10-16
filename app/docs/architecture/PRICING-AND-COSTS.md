@@ -62,3 +62,26 @@ Se mantiene sin cambios:
 La ganancia calculada por este motor es ganancia bruta de producto. No incluye empaque, mano de obra, merma, servicios, impuestos u otros gastos que todavía no estén modelados.
 
 No copies precios o fórmulas a componentes React ni a pruebas como fuente alternativa de verdad.
+
+
+## Reconciliación con Excel — 2026-10-15
+
+La hoja de costos del negocio es la fuente comercial para las seis recetas base. Los costos unitarios confirmados por compra son:
+
+| Ingrediente | Costo paquete COP | Cantidad comprada | Unitario COP |
+|---|---:|---:|---:|
+| Pan 15 cm | 3.500 | 2 | 1.750 |
+| Pavo finas hierbas | 13.950 | 20 | 697,50 |
+| Pechuga de pavo | 12.300 | 22 | 559,09 |
+| Jamón serrano | 8.700 | 6 | 1.450 |
+| Chorizo | 4.200 | 9 | 466,67 |
+| Salami | 4.200 | 9 | 466,67 |
+| Pepperoni | 4.990 | 39 | 127,95 |
+| Queso tajado | 9.300 | 15 | 620 |
+| Mozzarella tajada | 10.500 | 18 | 583,33 |
+| Prosciutto | 8.700 | 5 | 1.740 |
+| Base (lechuga + cebolla) | 10.000 | 10 | 1.000 |
+
+Las cantidades de las recetas de 15 cm se conservan en `shared/recipes.js`; el tamaño de 30 cm multiplica cantidades por dos. El motor conserva precisión durante el cálculo y redondea el costo final a pesos enteros. La fórmula de venta vigente no cambia: markup 1,75 y redondeo al siguiente millar menos $100.
+
+Serrano Verde y Fuego Tropical no están incluidos en la hoja recibida. No deben considerarse reconciliados por ella. El costo de pimentón asado sigue pendiente de confirmación con una compra actual. La mozzarella se conserva como ingrediente predeterminado del configurador personalizado y no sustituye al queso tajado usado por las seis recetas de la hoja.

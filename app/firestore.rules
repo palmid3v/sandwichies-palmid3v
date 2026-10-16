@@ -30,30 +30,10 @@ service cloud.firestore {
         (current == "confirmado" && next == "preparando") ||
         (current == "preparando" && next == "listo") ||
         (current == "listo" && next == "entregado") ||
-        (
-          current == "pendiente" &&
-          next == "cancelado" &&
-          currentPayment == "pendiente" &&
-          nextPayment == "pendiente"
-        ) ||
-        (
-          current == "confirmado" &&
-          next == "cancelado" &&
-          currentPayment == "pendiente" &&
-          nextPayment == "pendiente"
-        ) ||
-        (
-          current == "preparando" &&
-          next == "cancelado" &&
-          currentPayment == "pendiente" &&
-          nextPayment == "pendiente"
-        ) ||
-        (
-          current == "listo" &&
-          next == "cancelado" &&
-          currentPayment == "pendiente" &&
-          nextPayment == "pendiente"
-        )
+        (current == "pendiente" && next == "cancelado" && currentPayment == "pendiente" && nextPayment == "pendiente") ||
+        (current == "confirmado" && next == "cancelado" && currentPayment == "pendiente" && nextPayment == "pendiente") ||
+        (current == "preparando" && next == "cancelado" && currentPayment == "pendiente" && nextPayment == "pendiente") ||
+        (current == "listo" && next == "cancelado" && currentPayment == "pendiente" && nextPayment == "pendiente")
       );
     }
 
@@ -62,36 +42,41 @@ service cloud.firestore {
       let current = paymentStatus(resource.data);
       let next = paymentStatus(request.resource.data);
 
-      return (
-        (current == next) ||
-        (current == "pendiente" && next == "pagado")
-      ) && !(currentOrder == "cancelado" && current != next);
+      return ((current == next) || (current == "pendiente" && next == "pagado"))
+        && !(currentOrder == "cancelado" && current != next);
+    }
+
+    function validOrderUpdateFields() {
+      let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
+      let oldPayment = resource.data.get("payment", {});
+      let newPayment = request.resource.data.get("payment", {});
+      let paymentChangedKeys = newPayment.diff(oldPayment).affectedKeys();
+
+      return changedKeys.hasOnly(["status", "payment", "updatedAt"])
+        && paymentChangedKeys.hasOnly(["status"]);
     }
 
     match /orders/{orderId} {
-      // Customer writes are performed by the Admin SDK inside createOrder.
-      // Admin state changes stay browser-accessible for the trusted admin role,
-      // but status/payment transitions are validated by Rules.
+      // Browser admins can change operational state only. Trusted order, financial,
+      // customer, recipe and inventory snapshot fields remain immutable from clients.
       allow read: if isAdmin();
       allow update: if isAdmin()
+        && validOrderUpdateFields()
         && validOrderStatusTransition()
         && validPaymentStatusTransition();
       allow create, delete: if false;
     }
 
     match /counters/orders {
-      // The trusted function owns this counter transaction.
       allow read, write: if false;
     }
 
     match /inventoryBalances/{ingredientId} {
-      // Balances are server-maintained from inventory transactions.
       allow read: if isAdmin();
       allow write: if false;
     }
 
     match /inventoryTransactions/{transactionId} {
-      // Inventory movements are created by privileged server code only.
       allow read: if isAdmin();
       allow write: if false;
     }
