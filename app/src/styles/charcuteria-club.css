@@ -1,0 +1,674 @@
+/* Sandwichies — Charcutería Club
+   Retro deli identity: bone rose, burgundy, terracotta and sage.
+   CSS-only ornamental seals keep the storefront light and avoid external image dependencies. */
+:root {
+  --char-bone: #f6eee5;
+  --char-paper: #fff9f2;
+  --char-rose: #ead4cf;
+  --char-ink: #30272b;
+  --char-muted: #78696a;
+  --char-wine: #762d40;
+  --char-wine-deep: #57202f;
+  --char-terra: #c86d52;
+  --char-terra-light: #e8a18a;
+  --char-sage: #879783;
+  --char-sage-deep: #4e6655;
+  --char-line: rgba(68, 43, 48, .17);
+  --char-shadow: 0 14px 34px rgba(76, 43, 42, .09);
+
+  --menu-paper: var(--char-bone);
+  --menu-paper-light: var(--char-paper);
+  --menu-ink: var(--char-ink);
+  --menu-muted: var(--char-muted);
+  --menu-tomato: var(--char-wine);
+  --menu-tomato-dark: var(--char-wine-deep);
+  --menu-blue: var(--char-sage-deep);
+  --menu-blue-soft: #e1e7dd;
+  --menu-line: var(--char-line);
+  --menu-shadow: var(--char-shadow);
+  --creative-ink: var(--char-ink);
+  --creative-muted: var(--char-muted);
+  --creative-line: var(--char-line);
+  --creative-glow: var(--char-shadow);
+  --ink: var(--char-ink);
+  --muted: var(--char-muted);
+  --leaf: var(--char-sage-deep);
+  --tropical: var(--char-sage-deep);
+  --lime: #cbd7bf;
+  --mango: #d7a36e;
+  --papaya: var(--char-terra);
+  --coral: var(--char-terra);
+  --surface-0: #e5d5cd;
+  --surface-1: var(--char-paper);
+  --surface-2: var(--char-bone);
+  --surface-3: var(--char-rose);
+  --surface-raised: var(--char-paper);
+  --border: var(--char-line);
+  --border-strong: rgba(68, 43, 48, .3);
+  --shadow-focus: 0 0 0 3px rgba(78, 102, 85, .25);
+}
+
+html {
+  color-scheme: light;
+  background: #e8d9d0;
+}
+
+body {
+  color: var(--char-ink);
+  background:
+    radial-gradient(ellipse at 10% 0%, rgba(200,109,82,.12), transparent 29%),
+    radial-gradient(ellipse at 95% 80%, rgba(135,151,131,.15), transparent 30%),
+    repeating-linear-gradient(0deg, rgba(48,39,43,.012) 0, rgba(48,39,43,.012) 1px, transparent 1px, transparent 5px),
+    #e8d9d0;
+}
+
+::selection {
+  color: var(--char-paper);
+  background: var(--char-wine);
+}
+
+.storefront {
+  color: var(--char-ink);
+}
+
+.hero-banner {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(118,45,64,.22);
+  border-radius: 18px 38px 18px 38px;
+  color: var(--char-ink);
+  background:
+    radial-gradient(ellipse at 86% 16%, rgba(200,109,82,.19), transparent 30%),
+    radial-gradient(ellipse at 100% 100%, rgba(135,151,131,.25), transparent 43%),
+    repeating-linear-gradient(0deg, rgba(48,39,43,.018) 0, rgba(48,39,43,.018) 1px, transparent 1px, transparent 5px),
+    var(--char-bone);
+  box-shadow: 0 5px 0 rgba(118,45,64,.045), var(--char-shadow);
+}
+
+.hero-banner::before {
+  inset: auto 4% -48% auto;
+  width: clamp(180px, 25vw, 360px);
+  height: clamp(180px, 25vw, 360px);
+  border: 1px solid rgba(118,45,64,.22);
+  border-radius: 50%;
+  background: repeating-radial-gradient(circle, transparent 0 13px, rgba(118,45,64,.08) 14px 15px);
+  animation: none;
+  pointer-events: none;
+}
+
+.hero-banner::after {
+  content: "DELI  •  HECHO CON ANTOJO  •  DESDE LA COCINA";
+  position: absolute;
+  right: 24px;
+  bottom: 17px;
+  width: auto;
+  height: auto;
+  padding: 7px 10px;
+  border: 1px solid rgba(118,45,64,.25);
+  border-radius: 999px;
+  color: var(--char-wine);
+  background: rgba(255,249,242,.76);
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: .13em;
+  opacity: .92;
+  transform: rotate(-3deg);
+  pointer-events: none;
+}
+
+.hero-copy .eyebrow,
+.eyebrow {
+  color: var(--char-wine);
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.hero-copy .eyebrow::before {
+  background: var(--char-terra);
+}
+
+.hero-copy h1 {
+  color: var(--char-wine);
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 900;
+  letter-spacing: -.065em;
+}
+
+.hero-copy > p:not(.eyebrow) {
+  color: #625354;
+}
+
+.hero-cta,
+.primary-button,
+.checkout-button:not(:disabled) {
+  border: 1px solid var(--char-wine);
+  border-radius: 9px;
+  color: var(--char-paper);
+  background: var(--char-wine);
+  box-shadow: 0 4px 0 var(--char-wine-deep);
+}
+
+.hero-cta:hover,
+.primary-button:hover,
+.checkout-button:not(:disabled):hover {
+  color: white;
+  background: var(--char-wine-deep);
+  box-shadow: 0 5px 0 #401622, 0 10px 22px rgba(118,45,64,.16);
+}
+
+.open-badge {
+  border: 1px solid rgba(48,39,43,.15);
+  color: var(--char-ink);
+  background: rgba(255,249,242,.91);
+  box-shadow: 0 3px 12px rgba(48,39,43,.06);
+  backdrop-filter: blur(10px);
+}
+
+.open-badge span {
+  background: var(--char-terra);
+  box-shadow: 0 0 0 4px rgba(200,109,82,.15);
+}
+
+.discovery-section {
+  border: 1px solid var(--char-line);
+  border-radius: 16px 28px 16px 28px;
+  background:
+    repeating-linear-gradient(0deg, rgba(48,39,43,.012) 0, rgba(48,39,43,.012) 1px, transparent 1px, transparent 5px),
+    var(--char-bone);
+  box-shadow: var(--char-shadow);
+}
+
+.discovery-header h2,
+.section-heading h2,
+.cart-card h2 {
+  color: var(--char-wine);
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 800;
+  letter-spacing: -.045em;
+}
+
+.discovery-header p:not(.eyebrow),
+.section-heading p {
+  color: var(--char-muted);
+}
+
+.discovery-builder-link {
+  border: 1px solid rgba(118,45,64,.3);
+  border-radius: 9px;
+  color: var(--char-wine);
+  background: rgba(118,45,64,.035);
+}
+
+.discovery-builder-link:hover {
+  border-color: var(--char-wine);
+  color: var(--char-wine-deep);
+  background: rgba(118,45,64,.08);
+}
+
+.discovery-tab {
+  border: 1px solid var(--char-line);
+  border-radius: 999px;
+  color: var(--char-ink);
+  background: rgba(255,249,242,.7);
+}
+
+.discovery-tab:hover {
+  border-color: var(--char-sage-deep);
+  color: var(--char-sage-deep);
+  background: white;
+}
+
+.discovery-tab.active {
+  border-color: var(--char-wine);
+  color: var(--char-paper);
+  background: var(--char-wine);
+  box-shadow: 0 3px 0 rgba(87,32,47,.17);
+}
+
+.discovery-search > label,
+.discovery-result-count {
+  color: var(--char-muted);
+}
+
+.discovery-search-control {
+  border: 1px solid rgba(68,43,48,.2);
+  border-radius: 10px;
+  background: var(--char-paper);
+  box-shadow: inset 0 1px 2px rgba(48,39,43,.035);
+}
+
+.discovery-search-control > span {
+  color: var(--char-terra);
+}
+
+.discovery-search-control input {
+  color: var(--char-ink);
+}
+
+.discovery-search-control input::placeholder {
+  color: #9b8986;
+}
+
+.discovery-search-control button,
+.discovery-clear-search {
+  border-color: var(--char-line);
+  color: var(--char-ink);
+  background: #e1e7dd;
+}
+
+.discovery-grid {
+  scrollbar-color: rgba(118,45,64,.52) rgba(48,39,43,.04);
+}
+
+.discovery-card {
+  position: relative;
+  border: 1px solid rgba(68,43,48,.16);
+  border-radius: 12px 22px 12px 22px;
+  color: var(--char-ink);
+  background:
+    radial-gradient(circle at 94% 5%, rgba(200,109,82,.08), transparent 27%),
+    linear-gradient(110deg, rgba(255,255,255,.58), transparent 58%),
+    var(--char-paper);
+  box-shadow: 0 3px 0 rgba(48,39,43,.035);
+}
+
+.discovery-card::before {
+  left: 0;
+  right: auto;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  height: auto;
+  border-radius: 0 4px 4px 0;
+  background: var(--char-terra);
+  opacity: .9;
+}
+
+.discovery-card::after {
+  content: "S";
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border: 1px solid rgba(118,45,64,.32);
+  border-radius: 50%;
+  color: var(--char-wine);
+  background: var(--char-bone);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: .75rem;
+  font-weight: 900;
+  opacity: .82;
+  pointer-events: none;
+}
+
+.discovery-card:hover {
+  transform: translateY(-3px) rotate(-.12deg);
+  border-color: rgba(78,102,85,.46);
+  box-shadow: 0 8px 0 rgba(48,39,43,.035), 0 14px 26px rgba(76,43,42,.1);
+}
+
+.discovery-card--selected {
+  border-color: var(--char-sage-deep);
+  background: #edf0e8;
+  box-shadow: inset 0 0 0 1px rgba(78,102,85,.12), 0 4px 0 rgba(78,102,85,.08);
+}
+
+.discovery-badge {
+  border: 1px solid rgba(118,45,64,.15);
+  border-radius: 999px;
+  color: var(--char-paper);
+  background: var(--char-wine);
+  letter-spacing: .035em;
+}
+
+.discovery-featured {
+  color: var(--char-sage-deep);
+}
+
+.discovery-card-body h3 {
+  color: var(--char-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 800;
+}
+
+.discovery-card-body p {
+  color: var(--char-muted);
+}
+
+.discovery-card-footer {
+  border-top: 1px dashed rgba(68,43,48,.22);
+}
+
+.discovery-card-footer strong {
+  color: var(--char-wine);
+  font-weight: 900;
+}
+
+.discovery-card-footer .primary-button {
+  border-radius: 8px;
+  box-shadow: 0 3px 0 var(--char-wine-deep);
+}
+
+.store-layout {
+  gap: 14px;
+}
+
+.builder {
+  scrollbar-color: rgba(78,102,85,.56) rgba(48,39,43,.04);
+}
+
+.section-card,
+.cart-card,
+.confirmation-card {
+  border: 1px solid var(--char-line);
+  border-radius: 16px 28px 16px 28px;
+  color: var(--char-ink);
+  background:
+    repeating-linear-gradient(0deg, rgba(48,39,43,.01) 0, rgba(48,39,43,.01) 1px, transparent 1px, transparent 5px),
+    var(--char-paper);
+  box-shadow: var(--char-shadow);
+}
+
+.section-card {
+  padding: clamp(18px, 1.7vw, 26px);
+}
+
+.section-heading > span {
+  border: 1px solid rgba(118,45,64,.18);
+  border-radius: 50%;
+  color: var(--char-paper);
+  background: var(--char-wine);
+  box-shadow: 0 3px 0 var(--char-wine-deep);
+}
+
+.choice-group-heading h3,
+.choice-group h3 {
+  color: var(--char-ink);
+}
+
+.choice-group-hint {
+  color: var(--char-muted);
+}
+
+.choice-button {
+  border: 1px solid rgba(68,43,48,.16);
+  border-radius: 10px;
+  color: var(--char-ink);
+  background: #f1e5dc;
+}
+
+.choice-button:hover {
+  border-color: var(--char-sage-deep);
+  background: white;
+}
+
+.choice-option--selected .choice-button,
+.menu-option--selected,
+.choice-button[data-selected="true"] {
+  border-color: var(--char-sage-deep);
+  color: #fffaf2;
+  background: var(--char-sage-deep);
+  box-shadow: 0 3px 0 #354a3b;
+}
+
+.selection-mark {
+  color: #fffaf2;
+}
+
+.builder-total {
+  border: 1px solid var(--char-line);
+  border-radius: 13px;
+  color: var(--char-ink);
+  background: rgba(255,249,242,.97);
+  box-shadow: 0 7px 18px rgba(48,39,43,.08);
+}
+
+.builder-total strong,
+.grand-total strong {
+  color: var(--char-wine);
+}
+
+.cart-card {
+  border-top: 4px solid var(--char-wine);
+}
+
+.cart-header {
+  border-bottom-color: var(--char-line);
+}
+
+.empty-cart {
+  border: 1px dashed rgba(68,43,48,.25);
+  border-radius: 14px;
+  background: rgba(135,151,131,.10);
+}
+
+.empty-cart p {
+  color: var(--char-ink);
+}
+
+.empty-cart small,
+.checkout-help,
+.allergy-note {
+  color: var(--char-muted);
+}
+
+.cart-item {
+  border-bottom: 1px dashed rgba(68,43,48,.19);
+}
+
+.cart-item strong,
+.cart-item-price strong {
+  color: var(--char-ink);
+}
+
+.cart-item small {
+  color: var(--char-muted);
+}
+
+.cart-item-price button {
+  color: var(--char-wine);
+}
+
+.totals {
+  border-top-color: var(--char-line);
+}
+
+.totals p {
+  color: var(--char-muted);
+}
+
+.totals p strong {
+  color: var(--char-ink);
+}
+
+.totals .grand-total {
+  border-top: 1px dashed rgba(68,43,48,.23);
+  color: var(--char-ink);
+}
+
+.checkout-button:disabled {
+  border: 1px solid rgba(68,43,48,.12);
+  color: #8c7e7a;
+  background: #e4d8d1;
+  box-shadow: none;
+}
+
+.form-grid input,
+.full-field input,
+.full-field textarea,
+.form-grid select {
+  border: 1px solid rgba(68,43,48,.19);
+  border-radius: 9px;
+  color: var(--char-ink);
+  background: #fffdf8;
+}
+
+.form-grid input::placeholder,
+.full-field input::placeholder,
+.full-field textarea::placeholder {
+  color: #9b8986;
+}
+
+.payment-options label {
+  border-color: var(--char-line);
+  color: var(--char-ink);
+  background: #f1e5dc;
+}
+
+.payment-options input,
+.form-grid input,
+.full-field input,
+.full-field textarea {
+  accent-color: var(--char-sage-deep);
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.primary-button:focus-visible,
+.hero-cta:focus-visible,
+.checkout-button:focus-visible,
+.discovery-tab:focus-visible {
+  outline: 3px solid rgba(78,102,85,.58);
+  outline-offset: 3px;
+}
+
+/* Retro deli stamp, built with CSS to avoid another image payload. */
+.discovery-header {
+  position: relative;
+}
+
+.discovery-header::after {
+  content: "DELI CLUB  •  FRESCO";
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  border: 2px double rgba(118,45,64,.4);
+  border-radius: 50%;
+  color: rgba(118,45,64,.72);
+  font-size: .48rem;
+  font-weight: 900;
+  letter-spacing: .09em;
+  line-height: 1.5;
+  text-align: center;
+  transform: rotate(10deg);
+  pointer-events: none;
+}
+
+.cart-card {
+  position: relative;
+}
+
+.cart-card::after {
+  content: "PREPARADO CON CARIÑO";
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 18px auto 0;
+  padding: 7px 10px;
+  border: 1px dashed rgba(118,45,64,.35);
+  border-radius: 4px;
+  color: rgba(118,45,64,.74);
+  font-size: .55rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-align: center;
+  transform: rotate(-2deg);
+}
+
+.discovery-card .primary-button,
+.hero-cta,
+.checkout-button:not(:disabled) {
+  transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.discovery-card .primary-button:hover,
+.hero-cta:hover,
+.checkout-button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+@media (min-width: 1100px) {
+  .storefront {
+    background: transparent;
+  }
+
+  .hero-banner {
+    box-shadow: 0 5px 0 rgba(118,45,64,.04), var(--char-shadow);
+  }
+
+  .discovery-grid,
+  .builder,
+  .cart-card {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(118,45,64,.56) rgba(48,39,43,.04);
+  }
+
+  .discovery-grid::-webkit-scrollbar,
+  .builder::-webkit-scrollbar,
+  .cart-card::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .discovery-grid::-webkit-scrollbar-thumb,
+  .builder::-webkit-scrollbar-thumb,
+  .cart-card::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--char-wine), var(--char-sage)) padding-box;
+  }
+}
+
+@media (max-width: 1099px) {
+  .hero-banner {
+    border-radius: 14px 28px 14px 28px;
+  }
+
+  .discovery-header::after {
+    width: 54px;
+    height: 54px;
+    top: 0;
+    right: 0;
+    font-size: .4rem;
+  }
+
+  .discovery-section,
+  .section-card,
+  .cart-card {
+    border-radius: 14px 24px 14px 24px;
+  }
+}
+
+@media (max-width: 520px) {
+  .discovery-header::after {
+    display: none;
+  }
+
+  .hero-banner::after {
+    right: 12px;
+    bottom: 10px;
+    font-size: .46rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-banner::before {
+    animation: none !important;
+  }
+
+  .discovery-card:hover,
+  .discovery-card .primary-button:hover,
+  .hero-cta:hover,
+  .checkout-button:not(:disabled):hover {
+    transform: none !important;
+  }
+}
