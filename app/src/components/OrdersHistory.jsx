@@ -49,7 +49,7 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
             : order.status === statusFilter;
 
       const matchesPayment = paymentFilter === "todos"
-        || (paymentFilter === "pendiente" && order.payment?.status !== "pagado" && order.status !== "cancelado")
+        || (paymentFilter === "pendiente" && order.payment?.status !== "pagado" && !["cancelado", "entregado"].includes(order.status))
         || (paymentFilter === "pagado" && order.payment?.status === "pagado");
 
       const matchesSearch =
