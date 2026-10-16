@@ -15,6 +15,7 @@ import {
 } from "../config/business";
 import "../styles/storefront.css";
 import "../styles/creative-refresh.css";
+import "../styles/menu-world.css";
 
 const DEFAULT_BASE = [
   "Lechuga",
