@@ -1176,3 +1176,61 @@ select:focus-visible,
     max-height: none;
   }
 }
+
+
+/* Illustration accents: original vector companion artwork prepared from the Canva deli-art direction. */
+.hero-banner {
+  background-image:
+    url("/assets/charcuteria-sandwich.svg"),
+    radial-gradient(ellipse at 86% 16%, rgba(200,109,82,.19), transparent 30%),
+    radial-gradient(ellipse at 100% 100%, rgba(135,151,131,.25), transparent 43%),
+    repeating-linear-gradient(0deg, rgba(48,39,43,.018) 0, rgba(48,39,43,.018) 1px, transparent 1px, transparent 5px),
+    linear-gradient(var(--char-bone), var(--char-bone));
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+  background-position: 78% center, center, center, center, center;
+  background-size: auto 92%, auto, auto, auto, auto;
+}
+
+.discovery-header {
+  position: relative;
+}
+
+.discovery-header::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 104px;
+  height: 82px;
+  background: url("/assets/illustrations/charcuteria-collection.svg") center / 225% auto no-repeat;
+  opacity: .76;
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .hero-banner {
+    background-position: 95% bottom, center, center, center, center;
+    background-size: auto 52%, auto, auto, auto, auto;
+  }
+
+  .discovery-header::after {
+    width: 74px;
+    height: 62px;
+    opacity: .45;
+  }
+}
+
+@media (max-width: 420px) {
+  .hero-banner {
+    background-image:
+      radial-gradient(ellipse at 86% 16%, rgba(200,109,82,.19), transparent 30%),
+      radial-gradient(ellipse at 100% 100%, rgba(135,151,131,.25), transparent 43%),
+      repeating-linear-gradient(0deg, rgba(48,39,43,.018) 0, rgba(48,39,43,.018) 1px, transparent 1px, transparent 5px),
+      linear-gradient(var(--char-bone), var(--char-bone));
+    background-size: auto, auto, auto, auto;
+  }
+
+  .discovery-header::after {
+    display: none;
+  }
+}
