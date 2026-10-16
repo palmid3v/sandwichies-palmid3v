@@ -1234,3 +1234,171 @@ select:focus-visible,
     display: none;
   }
 }
+
+
+/* Product illustration system: use the real supplied artwork, not placeholder vectors. */
+@media (min-width: 1100px) {
+  .hero-banner {
+    background-image:
+      url("/assets/illustrations/sandwich-hero.jpg"),
+      radial-gradient(ellipse at 86% 16%, rgba(200,109,82,.19), transparent 30%),
+      radial-gradient(ellipse at 100% 100%, rgba(135,151,131,.25), transparent 43%),
+      repeating-linear-gradient(0deg, rgba(48,39,43,.018) 0, rgba(48,39,43,.018) 1px, transparent 1px, transparent 5px),
+      linear-gradient(var(--char-bone), var(--char-bone));
+    background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+    background-position: 82% center, center, center, center, center;
+    background-size: auto 110%, auto, auto, auto, auto;
+  }
+}
+
+.discovery-card {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 12px;
+  min-height: 164px;
+  height: auto;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.discovery-card::after {
+  content: none;
+}
+
+.discovery-card-art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 112px;
+  align-self: stretch;
+  overflow: hidden;
+  border-radius: 9px 16px 9px 16px;
+  background:
+    radial-gradient(ellipse at 50% 55%, rgba(200,109,82,.12), transparent 70%),
+    #f2e4d7;
+}
+
+.discovery-card-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 148px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+  transition: transform 260ms ease;
+}
+
+.discovery-card:hover .discovery-card-art img {
+  transform: scale(1.06) rotate(-1deg);
+}
+
+.discovery-card-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.discovery-card-content .discovery-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  min-width: 0;
+}
+
+.discovery-card-content .discovery-card-body {
+  min-width: 0;
+  padding: 0;
+}
+
+.discovery-card-content .discovery-card-body h3 {
+  margin: 0 0 5px;
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+
+.discovery-card-content .discovery-card-body p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.discovery-card-content .discovery-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.discovery-card-content .discovery-card-footer .primary-button {
+  min-height: 36px;
+  padding: 7px 10px;
+}
+
+@media (min-width: 1100px) {
+  .discovery-card {
+    grid-template-columns: 92px minmax(0, 1fr);
+    min-height: 148px;
+  }
+
+  .discovery-card-art {
+    min-height: 120px;
+  }
+}
+
+@media (max-width: 760px) {
+  .hero-banner {
+    background-image:
+      url("/assets/illustrations/sandwich-hero.jpg"),
+      radial-gradient(ellipse at 86% 16%, rgba(200,109,82,.19), transparent 30%),
+      radial-gradient(ellipse at 100% 100%, rgba(135,151,131,.25), transparent 43%),
+      repeating-linear-gradient(0deg, rgba(48,39,43,.018) 0, rgba(48,39,43,.018) 1px, transparent 1px, transparent 5px),
+      linear-gradient(var(--char-bone), var(--char-bone));
+    background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+    background-position: 96% bottom, center, center, center, center;
+    background-size: auto 58%, auto, auto, auto, auto;
+  }
+
+  .discovery-card {
+    grid-template-columns: 88px minmax(0, 1fr);
+    min-height: 142px;
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .discovery-card-art {
+    min-height: 108px;
+  }
+
+  .discovery-card-content .discovery-card-footer {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 420px) {
+  .discovery-card {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .discovery-card-art {
+    min-height: 96px;
+  }
+
+  .discovery-card-content .discovery-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .discovery-card-content .discovery-card-footer .primary-button {
+    width: 100%;
+  }
+}
