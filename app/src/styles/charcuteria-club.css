@@ -1402,3 +1402,98 @@ select:focus-visible,
     width: 100%;
   }
 }
+
+
+/* Screenshot polish: one hero illustration, a clean stamp, and predictable initial viewport. */
+.hero-banner {
+  background-image:
+    radial-gradient(ellipse at 86% 16%, rgba(200,109,82,.13), transparent 30%),
+    radial-gradient(ellipse at 100% 100%, rgba(135,151,131,.22), transparent 43%),
+    repeating-linear-gradient(0deg, rgba(48,39,43,.018) 0, rgba(48,39,43,.018) 1px, transparent 1px, transparent 5px),
+    linear-gradient(var(--char-bone), var(--char-bone));
+  background-repeat: no-repeat, no-repeat, repeat, no-repeat;
+  background-position: center, center, center, center;
+  background-size: auto, auto, auto, auto;
+}
+
+.hero-banner::before {
+  content: "";
+  inset: 0 0 0 auto;
+  width: 36%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: url("/assets/illustrations/sandwich-hero.jpg") center / contain no-repeat;
+  opacity: .98;
+  animation: none;
+  pointer-events: none;
+}
+
+.hero-banner::after {
+  z-index: 2;
+}
+
+.discovery-header::after {
+  content: "DELI\A CLUB";
+  white-space: pre;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 82px;
+  height: 82px;
+  border: 3px double rgba(118,45,64,.5);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 54%, rgba(118,45,64,.09) 55%, transparent 57%),
+    var(--char-bone);
+  color: var(--char-wine);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: .62rem;
+  font-weight: 900;
+  line-height: 1.25;
+  letter-spacing: .16em;
+  text-align: center;
+  transform: rotate(8deg);
+}
+
+@media (min-width: 1100px) {
+  .hero-banner {
+    background-image:
+      radial-gradient(ellipse at 86% 16%, rgba(200,109,82,.13), transparent 30%),
+      radial-gradient(ellipse at 100% 100%, rgba(135,151,131,.22), transparent 43%),
+      repeating-linear-gradient(0deg, rgba(48,39,43,.018) 0, rgba(48,39,43,.018) 1px, transparent 1px, transparent 5px),
+      linear-gradient(var(--char-bone), var(--char-bone));
+  }
+
+  .hero-banner::before {
+    width: 35%;
+    background-size: auto 108%;
+    background-position: center 56%;
+  }
+
+  .discovery-header::after {
+    width: 76px;
+    height: 76px;
+  }
+}
+
+@media (max-width: 760px) {
+  .hero-banner::before {
+    width: 42%;
+    background-size: contain;
+    background-position: center bottom;
+  }
+
+  .discovery-header::after {
+    width: 62px;
+    height: 62px;
+    font-size: .5rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .hero-banner::before {
+    width: 34%;
+    opacity: .65;
+  }
+}
