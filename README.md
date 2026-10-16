@@ -2,7 +2,7 @@
 
 A product-oriented sandwich configurator and operations platform evolving toward an interactive, distinctive food product covering customer ordering, trusted pricing, order management, inventory estimation, and admin workflows.
 
-> **Current status:** Fase A hardening and Fase B static prototype committed on `main`; automated validation and visual review remain pending. `acceptingOrders = false`; checkout remains disabled until release approval.
+> **Current status:** Fases A–D have implementation commits on `main`; Fases C–D add searchable storefront discovery, a submit-handler guard while ordering is closed, and admin payment filters. Automated CI and browser review remain verification gates. `acceptingOrders = false`; checkout remains disabled until release approval.
 
 ## Product direction
 
