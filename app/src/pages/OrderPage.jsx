@@ -15,7 +15,6 @@ import {
 } from "../config/business";
 import "../styles/storefront.css";
 import "../styles/creative-refresh.css";
-import heroImage from "../assets/hero.png";
 
 const DEFAULT_BASE = [
   "Lechuga",
@@ -322,7 +321,6 @@ export default function OrderPage() {
           <p>{BUSINESS.tagline}. Tú eliges el sabor y nosotros hacemos el resto.</p>
           <a className="hero-cta" href="#personaliza">Arma el tuyo <span aria-hidden="true">→</span></a>
         </div>
-        <img src={heroImage} alt="Sandwich artesanal listo para personalizar" />
         <div
           className={
             BUSINESS.acceptingOrders ? "open-badge" : "open-badge closed"
