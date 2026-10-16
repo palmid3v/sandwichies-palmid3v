@@ -14,6 +14,7 @@ import {
   formatMoney,
 } from "../config/business";
 import "../styles/storefront.css";
+import "../styles/creative-refresh.css";
 import heroImage from "../assets/hero.png";
 
 const DEFAULT_BASE = [
