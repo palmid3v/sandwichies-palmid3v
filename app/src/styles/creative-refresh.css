@@ -1574,3 +1574,231 @@ button.ops-summary-card:hover {
     margin-top: 5px;
   }
 }
+
+
+/* Final desktop composition correction based on the local screenshot.
+   The actual hero element is .hero-banner (not .store-header). */
+@media (min-width: 1100px) {
+  .storefront {
+    grid-template-columns: minmax(280px, .92fr) minmax(380px, 1.15fr) minmax(280px, .82fr);
+    grid-template-rows: 156px minmax(0, 1fr);
+    gap: 14px;
+    height: 100dvh;
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .hero-banner {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: 100%;
+    height: 156px;
+    min-height: 156px;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .hero-copy {
+    width: min(72%, 760px);
+    padding: 14px 28px;
+  }
+
+  .hero-copy .eyebrow {
+    display: inline-flex;
+    margin: 0 0 5px;
+    line-height: 1.3;
+  }
+
+  .hero-copy h1 {
+    margin: 0 0 5px;
+    font-size: clamp(2rem, 3vw, 3rem);
+    line-height: 1;
+  }
+
+  .hero-copy > p:not(.eyebrow) {
+    margin: 0;
+    font-size: .82rem;
+    line-height: 1.35;
+  }
+
+  .hero-cta {
+    min-height: 34px;
+    margin-top: 8px;
+    padding: 0 14px;
+  }
+
+  .open-badge {
+    top: 12px;
+    right: 14px;
+  }
+
+  .discovery-section {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .discovery-grid {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+  }
+
+  .discovery-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 142px;
+    height: auto;
+    flex: 0 0 auto;
+    padding: 12px 14px;
+    overflow: visible;
+  }
+
+  .discovery-card-top {
+    flex: 0 0 auto;
+  }
+
+  .discovery-card-body {
+    display: block !important;
+    flex: 0 0 auto;
+    min-height: auto !important;
+    height: auto !important;
+    padding: 10px 0 12px;
+    overflow: visible !important;
+    visibility: visible !important;
+  }
+
+  .discovery-card-body h3 {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 0 5px;
+    overflow: visible !important;
+    color: var(--creative-ink) !important;
+    font-size: .95rem;
+    line-height: 1.25;
+    visibility: visible !important;
+  }
+
+  .discovery-card-body p {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0;
+    overflow: visible !important;
+    color: var(--creative-muted) !important;
+    font-size: .73rem;
+    line-height: 1.4;
+    visibility: visible !important;
+  }
+
+  .discovery-card-footer {
+    flex: 0 0 auto;
+    margin-top: auto;
+    padding-top: 9px;
+  }
+
+  .store-layout {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    align-self: stretch;
+  }
+
+  .builder {
+    min-width: 0;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .section-card {
+    overflow: visible;
+  }
+
+  .builder-total {
+    position: static;
+    margin-top: 18px;
+    backdrop-filter: none;
+  }
+
+  .cart-card {
+    min-height: 0;
+    height: 100%;
+  }
+}
+
+@media (min-width: 1100px) and (max-height: 760px) {
+  .storefront {
+    grid-template-rows: 142px minmax(0, 1fr);
+  }
+
+  .hero-banner {
+    height: 142px;
+    min-height: 142px;
+  }
+
+  .hero-copy {
+    padding-block: 10px;
+  }
+
+  .hero-copy .eyebrow {
+    margin-bottom: 3px;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(1.8rem, 2.6vw, 2.5rem);
+  }
+
+  .hero-copy > p:not(.eyebrow) {
+    font-size: .76rem;
+  }
+
+  .hero-cta {
+    min-height: 30px;
+    margin-top: 5px;
+  }
+
+  .discovery-section,
+  .section-card,
+  .cart-card {
+    padding: 14px;
+  }
+
+  .discovery-card {
+    min-height: 128px;
+    padding: 10px 12px;
+  }
+
+  .discovery-card-body {
+    padding: 7px 0 8px;
+  }
+}
+
+@media (min-width: 1100px) and (max-height: 620px) {
+  .storefront {
+    grid-template-rows: 124px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .hero-banner {
+    height: 124px;
+    min-height: 124px;
+  }
+
+  .hero-copy h1 {
+    font-size: 1.8rem;
+  }
+
+  .hero-copy > p:not(.eyebrow) {
+    font-size: .72rem;
+  }
+
+  .hero-cta {
+    min-height: 28px;
+    margin-top: 4px;
+  }
+}
