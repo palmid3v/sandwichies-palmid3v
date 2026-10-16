@@ -2,6 +2,17 @@ import { useMemo, useState } from "react";
 import { formatMoney } from "../config/business";
 import { MENU, MENU_SEGMENTS } from "../data/menu";
 
+const MENU_ART = {
+  "turkey-finas-hierbas": "/assets/illustrations/sandwich-pavo-hierbas.jpg",
+  explosivo: "/assets/illustrations/sandwich-explosivo.jpg",
+  "doble-jamon": "/assets/illustrations/sandwich-italiano.jpg",
+  "spicy-mix": "/assets/illustrations/sandwich-explosivo.jpg",
+  "triple-stack": "/assets/illustrations/sandwich-roast-beef.jpg",
+  "full-house": "/assets/illustrations/sandwich-hero.jpg",
+  "serrano-verde": "/assets/illustrations/sandwich-mediterraneo.jpg",
+  "fuego-tropical": "/assets/illustrations/sandwich-mediterraneo.jpg",
+};
+
 export default function DiscoverySection({ onSelect, selectedId }) {
   const [segment, setSegment] = useState("all");
   const [search, setSearch] = useState("");
@@ -94,6 +105,8 @@ export default function DiscoverySection({ onSelect, selectedId }) {
                 className={isSelected ? "discovery-card discovery-card--selected" : "discovery-card"}
                 key={item.id}
               >
+                <div className="discovery-card-art" aria-hidden="true"><img src={MENU_ART[item.id] || "/assets/illustrations/sandwich-hero.jpg"} alt="" loading="lazy" /></div>
+                <div className="discovery-card-content">
                 <div className="discovery-card-top">
                   <span className="discovery-badge">{badge}</span>
                   {item.featured && <span className="discovery-featured">★ Destacado</span>}
@@ -112,6 +125,7 @@ export default function DiscoverySection({ onSelect, selectedId }) {
                   >
                     {isSelected ? "Seleccionado" : "Personalizar"}
                   </button>
+                </div>
                 </div>
               </article>
             );
