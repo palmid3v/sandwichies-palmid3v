@@ -158,3 +158,10 @@ FASE 11 Admin/Product Operations UX is implemented on main.
 The admin experience now prioritizes active orders, confirmation/payment attention, ready orders, explicit payment state, safe next-status progression, inventory low-stock visibility and operational feedback. The existing Firebase Auth/custom-claim and Firestore Rules authorization model remains unchanged.
 
 Production ordering remains disabled through BUSINESS.acceptingOrders = false. Browser and Emulator validation evidence is still pending.
+
+
+## Documentation checkpoint — 2026-10-18
+
+README.md actualizado para describir producto y estado sin ocultar bloqueos: acceptingOrders=false, checkout deshabilitado hasta aprobación. El Excel vigente es la fuente de verdad de cantidades y costos. La auditoría Fase A–D, reglas Firestore, pruebas, build, Emulator y revisión browser siguen siendo gates según la evidencia disponible.
+
+Public README states the product scope and release limits. Use the source code, tests and latest audit reports to decide whether a milestone is actually complete.
