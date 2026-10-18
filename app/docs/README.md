@@ -47,3 +47,8 @@ Historical documents are preserved for traceability and should not be rewritten 
 For repository-wide engineering rules, use `STEPBYSTEP.md`.
 For the complete product/engineering operating contract, use `MASTERPROMPT.md`.
 For current priorities, use `ROADMAP.md`.
+
+
+## Documentation checkpoint — 2026-10-18
+
+Start with the root README.md for public product scope and ROADMAP.md / MASTERPROMPT.md for current release constraints. Current ordering safety state is acceptingOrders=false. Use app/docs/architecture/PRICING-AND-COSTS.md and the Phase A audit for the spreadsheet-derived source of truth. Do not mark release ready until security rules, automated tests, build, Firebase Emulator and browser review have evidence.
