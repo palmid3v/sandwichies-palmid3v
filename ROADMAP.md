@@ -290,3 +290,12 @@ MEASURE
 ↓
 IMPROVE
 ```
+
+
+## Documentation checkpoint — 2026-10-18
+
+- Operational safety: `acceptingOrders = false`; checkout stays disabled until explicit release approval.
+- Spreadsheet-defined recipes, quantities and current unit purchase costs remain the business source of truth.
+- Fases A–D have implementation commits on main, but implementation is not equivalent to release validation.
+- Remaining gates include dependency audit, lint, domain tests, Firestore Emulator rules tests, production build and browser review. Re-check the latest phase audit and CI before marking anything validated.
+- Preserve separation between customer-facing product experience and admin operational permissions.
