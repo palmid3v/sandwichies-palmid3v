@@ -1990,3 +1990,151 @@ select:focus-visible,
     padding-block: 12px;
   }
 }
+
+
+/* Final catalog-only desktop composition: override legacy two-column builder layout. */
+@media (min-width: 1100px) {
+  .storefront {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    width: 100%;
+    max-width: none;
+    min-height: 100vh;
+    height: auto !important;
+    max-height: none !important;
+    padding: clamp(16px, 2vw, 32px);
+    overflow: visible !important;
+  }
+
+  .store-header,
+  .catalog-anchor,
+  .discovery-section,
+  .store-layout {
+    width: min(100%, 1480px);
+    max-width: 1480px;
+    min-width: 0;
+    margin-inline: auto;
+  }
+
+  .store-header { flex: none; }
+  .catalog-anchor { display: block; }
+  .discovery-section {
+    display: block;
+    height: auto;
+    max-height: none;
+    padding: clamp(22px, 2.5vw, 36px);
+    overflow: visible;
+  }
+
+  .discovery-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .discovery-header h2 {
+    max-width: none;
+    font-size: clamp(2.2rem, 3.2vw, 3.4rem);
+    line-height: 1.03;
+  }
+
+  .discovery-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    overflow: visible;
+  }
+
+  .discovery-toolbar {
+    grid-template-columns: minmax(260px, 1.5fr) minmax(190px, .7fr) minmax(210px, .8fr);
+  }
+
+  .discovery-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    align-content: start;
+    gap: 18px;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .discovery-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .discovery-card-art { height: clamp(160px, 14vw, 230px); }
+  .discovery-card-content { flex: 1; min-width: 0; }
+  .discovery-card-body { flex: 1; }
+  .discovery-card-footer { align-items: center; }
+
+  .store-layout {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .store-layout > .builder { display: none !important; }
+  .store-layout > .cart-card {
+    display: block;
+    position: static;
+    width: min(100%, 900px);
+    max-width: 900px;
+    height: auto;
+    max-height: none;
+    margin: 0 auto 20px;
+    overflow: visible;
+  }
+}
+
+@media (min-width: 1100px) and (max-width: 1350px) {
+  .discovery-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1099px) {
+  .storefront {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .store-layout { display: flex !important; flex-direction: column; }
+  .store-layout > .builder { display: none !important; }
+  .store-layout > .cart-card {
+    display: block;
+    position: static;
+    width: 100%;
+    max-width: none;
+    height: auto;
+    max-height: none;
+    margin: 0;
+    overflow: visible;
+  }
+  .discovery-section { width: 100%; max-height: none; }
+}
+
+@media (min-width: 700px) and (max-width: 1099px) {
+  .discovery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .discovery-card { grid-template-columns: 110px minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discovery-card,
+  .discovery-card-art img {
+    animation: none !important;
+    transition: none !important;
+  }
+}
