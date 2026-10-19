@@ -46,8 +46,8 @@ export default function DiscoverySection({ onSelect, selectedId }) {
       <div className="discovery-header">
         <div>
           <p className="eyebrow">Nuestro menú</p>
-          <h2 id="discovery-title">Encuentra tu próximo favorito</h2>
-          <p>Explora las recetas existentes de Sandwichies, revisa sus ingredientes y elige cómo quieres disfrutarlas.</p>
+          <h2 id="discovery-title">El menú, a tu manera</h2>
+          <p>Tus favoritos de siempre, preparados con ingredientes frescos. Elige, agrega al carrito y listo.</p>
         </div>
         <a className="discovery-builder-link" href="#personaliza">Armar mi sandwich →</a>
       </div>
@@ -138,7 +138,7 @@ export default function DiscoverySection({ onSelect, selectedId }) {
                   <div className="discovery-card-footer">
                     <strong>Desde {formatMoney(item.startingPrice)}</strong>
                     <button type="button" className="primary-button motion-feedback" onClick={() => onSelect(item)} aria-pressed={isSelected}>
-                      {isSelected ? "Seleccionado" : "Personalizar"}
+                      Agregar
                     </button>
                   </div>
                 </div>
