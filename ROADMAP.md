@@ -1,3 +1,19 @@
+## Customer phone verification — implemented behind an explicit feature flag
+
+- [x] Normalize valid Colombian mobile numbers to E.164 (+57XXXXXXXXXX)
+- [x] Reject landlines, malformed lengths and non-mobile Colombian prefixes in checkout validation
+- [x] Add Firebase Phone Auth SMS request/code confirmation UI with invisible reCAPTCHA
+- [x] Require a confirmed Firebase phone number to match the checkout number when verification is enabled
+- [x] Clear verified state when the customer edits the phone field
+- [x] Add tests for phone normalization and invalid formats
+- [x] Keep SMS verification disabled unless `VITE_PHONE_VERIFICATION_ENABLED=true`
+- [ ] Before enabling, confirm Firebase Phone provider settings, authorized domains, reCAPTCHA behavior and current SMS billing/quotas
+- [ ] Test SMS verification end-to-end in a controlled Firebase project
+- [ ] Decide whether SMS is acceptable or an approved WhatsApp Business verification provider is required
+- [x] Keep orders closed; no Firebase deployment or order activation
+
+**Cost/safety note:** SMS verification is intentionally feature-flagged off by default. Enabling it can incur SMS charges depending on Firebase configuration and usage. A WhatsApp click-to-chat link is not phone verification.
+
 ## Storefront typography refinement — implemented
 
 - [x] Load DM Sans for product controls, body UI, filter/search controls and cart
