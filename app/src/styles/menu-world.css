@@ -934,3 +934,25 @@ body {
   border-color: #f4d27d;
   box-shadow: 0 0 0 3px rgba(244,210,125,.13);
 }
+
+
+/* Correct label contrast against the light catalog panel. */
+.discovery-toolbar .discovery-search > label,
+.discovery-toolbar > .discovery-select,
+.discovery-toolbar .discovery-select {
+  color: #7b293e !important;
+  background: transparent !important;
+  -webkit-text-fill-color: #7b293e;
+}
+.discovery-toolbar .discovery-search-control > span {
+  color: #d95343 !important;
+  background: transparent !important;
+}
+.discovery-toolbar .discovery-search-control input {
+  color: #fff3df !important;
+  -webkit-text-fill-color: #fff3df;
+}
+.discovery-toolbar .discovery-search-control input::placeholder {
+  color: #d5c5b4 !important;
+  opacity: 1;
+}
