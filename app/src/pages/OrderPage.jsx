@@ -687,7 +687,7 @@ export default function OrderPage() {
             <input autoComplete="tel" inputMode="tel" value={phone} onChange={(event) => { setPhone(event.target.value); setVerifiedPhone(""); }} placeholder="Ej. 300 123 4567" />
           </label>
           <div className="full-field">
-            <PhoneVerification phone={phone} onVerified={setVerifiedPhone} />
+            <PhoneVerification key={phone} phone={phone} onVerified={setVerifiedPhone} />
           </div>
         </div>
         <div className="segmented-control">
