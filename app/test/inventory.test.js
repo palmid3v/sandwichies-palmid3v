@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { FAVORITES } from "../shared/recipes.js";
 import {
   buildOrderConsumption,
+  getPendingOrderConsumption,
+  inventoryConsumptionTransactionId,
   InventoryValidationError,
   normalizeInventoryTransaction,
 } from "../shared/inventory.js";
@@ -86,4 +88,37 @@ test("historical orders without ingredient usage are not silently consumed", () 
   assert.equal(result.complete, false);
   assert.equal(result.missingUsage, true);
   assert.deepEqual(result.lines, []);
+});
+
+test("inventory consumption IDs are deterministic and retries omit already-posted movements", () => {
+  const lines = [
+    { ingredientId: "pepperoni", quantityDelta: -9 },
+    { ingredientId: "chorizo", quantityDelta: -2 },
+  ];
+  const firstAttempt = getPendingOrderConsumption("order-77", lines);
+  assert.deepEqual(
+    firstAttempt.map((line) => line.transactionId),
+    ["order-77-pepperoni", "order-77-chorizo"],
+  );
+  assert.equal(
+    inventoryConsumptionTransactionId("order-77", "pepperoni"),
+    firstAttempt[0].transactionId,
+  );
+
+  const retry = getPendingOrderConsumption(
+    "order-77",
+    lines,
+    new Set(["order-77-pepperoni", "order-77-chorizo"]),
+  );
+  assert.deepEqual(retry, []);
+
+  const partialRetry = getPendingOrderConsumption(
+    "order-77",
+    lines,
+    new Set(["order-77-pepperoni"]),
+  );
+  assert.deepEqual(
+    partialRetry.map((line) => line.transactionId),
+    ["order-77-chorizo"],
+  );
 });
