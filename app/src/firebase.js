@@ -14,3 +14,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+// Keep customer anonymous sessions isolated from the administrator session.
+const customerApp = initializeApp(firebaseConfig, "sandwichies-customer");
+export const customerAuth = getAuth(customerApp);
