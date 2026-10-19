@@ -1,0 +1,47 @@
+# Customer Storefront — Product Requirements
+
+## Approved direction
+
+Build a responsive Sandwichies customer storefront inspired by familiar food-ordering catalogs, using Sandwichies' existing brand, recipes, product IDs, categories, and shared pricing rules. Do not create duplicate products or silently modify the existing recipes.
+
+## Catalog
+
+- Reuse `shared/recipes.js` as the existing product source and `app/src/data/menu.js` as the storefront projection.
+- Display product name, description, recipe ingredients in human-readable names, starting price in COP, category/discovery badges, and a clear customization action.
+- Support existing discovery segments, text search, price filtering, and sorting by featured, price, or name.
+- Keep product identifiers stable; catalog cards must select the existing recipe rather than create a new product.
+- Product images may reuse existing local assets. Missing/bad image assets must not block browsing.
+
+## Responsive behavior
+
+- Desktop: multi-column product cards and visible catalog controls.
+- Tablet/mobile: responsive grid, horizontally scrollable categories, readable card content, large touch targets, and stacked filters at narrow widths.
+- Respect reduced-motion preferences and existing accessibility patterns.
+
+## Address and delivery
+
+- Provide address search/selection and explicit confirmation for delivery.
+- Confirm service coverage before checkout can be enabled.
+- Do not invent a delivery zone or imply an address was validated when it was only typed.
+- Select a geocoding/address provider only after checking terms, attribution, rate limits, privacy, and $0 budget constraints. Avoid a production dependency on an unapproved public endpoint.
+
+## Customer identity
+
+- Customer login should be phone-based, with proof of control of the number.
+- SMS OTP or WhatsApp verification must use a real verification flow, not merely a phone-number field.
+- Evaluate Firebase Phone Auth and WhatsApp-compatible providers against current project configuration, anti-abuse requirements, privacy, and the required $0 budget before implementation. Do not silently introduce paid services.
+- Keep customer identity and authorization separate from the existing admin custom-claim flow.
+
+## Cart and order safety
+
+- Reuse existing cart and trusted `createOrder` callable; do not trust browser-supplied totals.
+- Keep `BUSINESS.acceptingOrders = false` until the release gate has been explicitly approved.
+- Do not deploy Firebase Rules or Functions as part of storefront UI changes.
+- Preserve the current server-side order/inventory idempotency behavior. Cupboard integration must be designed separately after Firebase project/configuration boundaries are verified.
+
+## Current implementation baseline
+
+- Catalog search and discovery categories already exist.
+- Price filtering and sorting were added to the functional storefront.
+- Existing recipes, shared price calculation, local image assets, customizer, cart, and server-validated order callable remain the source of truth.
+- Address autocomplete/coverage validation and phone verification are not yet implemented; do not describe them as available.
