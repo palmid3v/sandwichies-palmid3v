@@ -1,3 +1,14 @@
+## Customer delivery details — implementation started
+
+- [x] Add visible customer name and WhatsApp fields outside the retired sandwich builder
+- [x] Add pickup vs. delivery selection with the configured delivery fee
+- [x] Capture street/number, neighborhood and optional delivery reference
+- [x] Add a map lookup link for the composed address
+- [x] Validate required delivery address parts and keep the existing trusted server address contract
+- [ ] Confirm official delivery zones/radius and the operational address used as the delivery origin
+- [ ] Browser-test mobile/desktop form, map link and pickup/delivery totals
+- [ ] Keep checkout closed; do not deploy functions/rules or enable orders
+
 ## Storefront catalog-only redesign — implementation started
 
 - [x] Remove the visible custom sandwich builder from the customer journey
