@@ -1063,3 +1063,63 @@ body {
   .cart-item-controls { min-width: 90px; }
   .cart-quantity { gap: 7px; }
 }
+
+
+.checkout-details {
+  width: min(100%, 900px);
+  max-width: 900px;
+  margin: 24px auto 36px;
+  padding: clamp(18px, 2.5vw, 32px);
+  color: var(--menu-ink);
+  border: 1px solid var(--menu-line);
+  border-top: 3px solid var(--menu-tomato);
+  border-radius: 16px 28px 16px 28px;
+  background: var(--menu-paper-light);
+  box-shadow: var(--menu-shadow);
+}
+.checkout-details .section-heading { margin-bottom: 22px; }
+.checkout-details .section-heading > span {
+  display: grid; place-items: center; width: 38px; height: 38px;
+  flex: 0 0 38px; border-radius: 50%; color: #fff8ec;
+  background: var(--menu-tomato); font-weight: 900;
+}
+.checkout-details .form-grid,
+.delivery-address-fields {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;
+}
+.checkout-details label {
+  display: grid; gap: 7px; min-width: 0; color: var(--menu-ink);
+  font-size: .88rem; font-weight: 750;
+}
+.checkout-details input {
+  width: 100%; min-width: 0; min-height: 48px; padding: 12px 14px;
+  border: 1px solid rgba(32,38,58,.2); border-radius: 10px;
+  color: var(--menu-ink); background: #fffaf1; font: inherit;
+}
+.checkout-details input::placeholder { color: #958a7c; font-weight: 450; }
+.checkout-details input:focus-visible {
+  outline: 3px solid rgba(199,71,50,.18); border-color: var(--menu-tomato);
+}
+.checkout-details .segmented-control { display: flex; gap: 8px; margin: 18px 0; }
+.checkout-details .segmented-control button {
+  flex: 1; min-height: 46px; padding: 10px 14px;
+  border: 1px solid var(--menu-line); border-radius: 10px;
+  color: var(--menu-ink); background: var(--menu-paper); font: inherit;
+  font-weight: 800; cursor: pointer;
+}
+.checkout-details .segmented-control button.active {
+  border-color: var(--menu-tomato); color: #fff8ec; background: var(--menu-tomato);
+}
+.delivery-address-fields { padding-top: 4px; animation: catalog-card-enter .24s ease both; }
+.delivery-address-fields .full-field, .delivery-coverage-note { grid-column: 1 / -1; }
+.delivery-coverage-note {
+  margin: 0; padding: 12px 14px; border-left: 3px solid #d5a13c;
+  border-radius: 0 8px 8px 0; color: #65553b; background: #f8edcf;
+  font-size: .84rem; line-height: 1.5;
+}
+@media (max-width: 600px) {
+  .checkout-details { margin: 16px auto 24px; }
+  .checkout-details .form-grid, .delivery-address-fields { grid-template-columns: minmax(0, 1fr); }
+  .delivery-address-fields .full-field, .delivery-coverage-note { grid-column: auto; }
+  .checkout-details .segmented-control { flex-direction: column; }
+}
