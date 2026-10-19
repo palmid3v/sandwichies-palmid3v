@@ -1123,3 +1123,11 @@ body {
   .delivery-address-fields .full-field, .delivery-coverage-note { grid-column: auto; }
   .checkout-details .segmented-control { flex-direction: column; }
 }
+
+
+.delivery-address-actions { grid-column: 1 / -1; display: flex; justify-content: flex-start; }
+.delivery-address-actions a {
+  color: var(--menu-tomato-dark); font-size: .88rem; font-weight: 800;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.delivery-address-actions a[aria-disabled="true"] { opacity: .45; pointer-events: none; }
