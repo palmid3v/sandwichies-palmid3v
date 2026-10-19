@@ -4,8 +4,10 @@ import { initializeApp, deleteApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
 const PROJECT_ID = "demo-sandwichies";
-const host = process.env.FIRESTORE_EMULATOR_HOST;
-assert.ok(host, "Run this test through Firebase Emulator Suite (FIRESTORE_EMULATOR_HOST missing).");
+assert.ok(
+  typeof process !== "undefined" && process.env.FIRESTORE_EMULATOR_HOST,
+  "Run this test through Firebase Emulator Suite (FIRESTORE_EMULATOR_HOST missing).",
+);
 
 const app = initializeApp({ projectId: PROJECT_ID }, "inventory-integration");
 const db = getFirestore(app);
