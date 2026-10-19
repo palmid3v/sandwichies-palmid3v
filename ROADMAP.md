@@ -93,10 +93,11 @@ This track is the current hands-on sequence alongside the numbered historical/pr
 - [x] Reconcile the six Excel-defined recipes and current unit purchase costs in documentation.
 - [x] Restrict browser-admin order updates to operational status/payment status and update timestamp.
 - [x] Add regression cases for protected order, customer, financial and inventory fields.
-- [ ] Run dependency audit, lint, domain tests, Firestore Emulator rules tests, build and smoke.
+- [x] Run dependency audit, lint, domain tests, Firestore Emulator rules tests, build and smoke locally (owner-confirmed 2026-10-19).
 - [ ] Validate rules and error/retry behavior in a non-production environment.
 - [x] Add an emulator integration test that completes a sale, verifies inventory consumption, then updates the completed order again to assert no duplicate deduction.
-- [ ] Run the Functions + Firestore emulator integration test locally and in CI; investigate any failures before marking recovery/idempotency validated.
+- [x] Run the Functions + Firestore emulator integration test locally; completed-sale inventory was posted once and a later order update did not duplicate the deduction (owner-confirmed 2026-10-19).
+- [ ] Confirm the GitHub Actions CI result for the integration test before marking recovery/idempotency validated for CI.
 
 ### Fase B — Diseño y prototipo
 - [x] Add a standalone responsive storefront prototype outside the production app bundle.
