@@ -699,6 +699,17 @@ export default function OrderPage() {
               Punto de referencia (opcional)
               <input value={addressReference} onChange={(event) => setAddressReference(event.target.value)} placeholder="Edificio, local, portería, indicaciones…" maxLength={45} />
             </label>
+            <div className="delivery-address-actions">
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([address, neighborhood, addressReference, "Colombia"].filter(Boolean).join(", "))}`}
+                target="_blank"
+                rel="noreferrer"
+                aria-disabled={!address.trim() || !neighborhood.trim()}
+                onClick={(event) => {
+                  if (!address.trim() || !neighborhood.trim()) event.preventDefault();
+                }}
+              >Ver dirección en el mapa ↗</a>
+            </div>
             <p className="delivery-coverage-note">La cobertura se confirmará antes de aceptar el pedido. No mostraremos una dirección como cubierta hasta definir las zonas de reparto.</p>
           </div>
         )}
