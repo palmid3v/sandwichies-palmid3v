@@ -956,3 +956,110 @@ body {
   color: #d5c5b4 !important;
   opacity: 1;
 }
+
+
+/* Cart quantity and management controls. */
+.cart-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+  color: var(--menu-muted);
+  font-size: .8rem;
+}
+.cart-clear-button,
+.cart-remove-button {
+  border: 0;
+  padding: 5px 0;
+  color: #e88d7b;
+  background: transparent;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+  transition: color .18s ease, opacity .18s ease;
+}
+.cart-clear-button:hover,
+.cart-remove-button:hover { color: #ffb7a7; }
+.cart-item {
+  align-items: center;
+  gap: 16px;
+}
+.cart-item-description {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.cart-item-description > strong {
+  color: var(--menu-ink);
+  overflow-wrap: anywhere;
+}
+.cart-item-description small {
+  line-height: 1.45;
+}
+.cart-item-description .cart-unit-price {
+  color: #e7c87e;
+  font-weight: 700;
+}
+.cart-item-controls {
+  display: grid;
+  justify-items: end;
+  align-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.cart-line-total {
+  color: #f0c35e;
+  white-space: nowrap;
+}
+.cart-quantity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 36px;
+  padding: 3px 6px;
+  border: 1px solid rgba(240,195,94,.3);
+  border-radius: 999px;
+  background: #171c17;
+}
+.cart-quantity button {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border: 1px solid rgba(240,195,94,.22);
+  border-radius: 50%;
+  color: #1a1710;
+  background: #f0c35e;
+  font-size: 1.1rem;
+  line-height: 1;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform .18s ease, background .18s ease;
+}
+.cart-quantity button:hover {
+  transform: scale(1.08);
+  background: #ffe09a;
+}
+.cart-quantity button:focus-visible,
+.cart-clear-button:focus-visible,
+.cart-remove-button:focus-visible {
+  outline: 2px solid #f0c35e;
+  outline-offset: 3px;
+}
+.cart-quantity output {
+  min-width: 1.25rem;
+  color: #fff3df;
+  text-align: center;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 520px) {
+  .cart-item {
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .cart-item-controls { min-width: 90px; }
+  .cart-quantity { gap: 7px; }
+}
