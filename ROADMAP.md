@@ -10,7 +10,8 @@
 - [ ] Before enabling, confirm Firebase Phone provider settings, authorized domains, reCAPTCHA behavior and current SMS billing/quotas
 - [ ] Test SMS verification end-to-end in a controlled Firebase project
 - [ ] Decide whether SMS is acceptable or an approved WhatsApp Business verification provider is required
-- [x] Keep orders closed; no Firebase deployment or order activation
+- [x] Keep SMS verification out of the customer flow; use Firebase Anonymous Auth for customer sessions
+- [x] Enable order submission in source for owner-approved testing; do not deploy Firebase as part of this commit
 
 **Cost/safety note:** SMS verification is intentionally feature-flagged off by default. Enabling it can incur SMS charges depending on Firebase configuration and usage. A WhatsApp click-to-chat link is not phone verification.
 
@@ -54,7 +55,7 @@
 - [ ] Confirm official delivery zones/radius and the operational address used as the delivery origin
 - [x] Browser-test mobile/desktop form, map link and pickup/delivery totals (owner-confirmed)
 - [x] Automated lint, domain tests, build and smoke pass (owner-confirmed)
-- [x] Keep checkout closed; no functions/rules deployment or order activation
+- [x] Enable checkout in source for testing; no functions/rules deployment performed
 
 ## Storefront catalog-only redesign — implementation started
 
@@ -73,7 +74,7 @@
 # ROADMAP — Sandwichies
 
 **Current release line:** MVP hardening → Product Experience Evolution  
-**Operational state:** `acceptingOrders = false`  
+**Operational state:** `acceptingOrders = true` in source for owner-approved local testing; production Functions are not deployed by this change.  
 **Status:** Fases A–B previously applied; Fases C–D storefront/admin improvements committed directly to main. Automated CI and browser review are the remaining evidence gates.
 
 ## North star
@@ -384,3 +385,14 @@ IMPROVE
 - Fases A–D have implementation commits on main, but implementation is not equivalent to release validation.
 - Remaining gates include dependency audit, lint, domain tests, Firestore Emulator rules tests, production build and browser review. Re-check the latest phase audit and CI before marking anything validated.
 - Preserve separation between customer-facing product experience and admin operational permissions.
+
+
+## Anonymous customer identity — approved implementation
+
+- [x] Create Firebase anonymous sessions automatically in the storefront
+- [x] Load a saved display name into the checkout when available
+- [x] Require a customer name and persist it to the anonymous Firebase Auth profile
+- [x] Remove Phone Auth verification from the customer checkout; retain phone as order contact data
+- [x] Keep email/password authentication and admin custom-claim authorization unchanged
+- [ ] Run lint, tests, build, smoke and browser test after pulling
+- [ ] Deploy Functions only after explicitly deciding which environment should accept real callable orders
