@@ -6,8 +6,9 @@
 - [x] Add a map lookup link for the composed address
 - [x] Validate required delivery address parts and keep the existing trusted server address contract
 - [ ] Confirm official delivery zones/radius and the operational address used as the delivery origin
-- [ ] Browser-test mobile/desktop form, map link and pickup/delivery totals
-- [ ] Keep checkout closed; do not deploy functions/rules or enable orders
+- [x] Browser-test mobile/desktop form, map link and pickup/delivery totals (owner-confirmed)
+- [x] Automated lint, domain tests, build and smoke pass (owner-confirmed)
+- [x] Keep checkout closed; no functions/rules deployment or order activation
 
 ## Storefront catalog-only redesign — implementation started
 
