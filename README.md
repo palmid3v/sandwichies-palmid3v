@@ -28,7 +28,7 @@ Consulta los documentos del proyecto antes de configurar servicios, credenciales
 
 ## 📍 Estado del proyecto
 
-En desarrollo. Los pedidos están desactivados (`acceptingOrders = false`) hasta cerrar validación funcional, de seguridad y aprobación de release. Las cantidades y costos del Excel de referencia son la fuente de verdad del negocio.
+En desarrollo. El código fuente tiene `acceptingOrders = true` para pruebas locales aprobadas por el propietario. Esto no autoriza el despliegue ni confirma el estado del backend en producción: la verificación de release debe demostrar que el endpoint desplegado mantiene el checkout cerrado hasta completar las validaciones y recibir aprobación explícita. Las cantidades y costos del Excel de referencia son la fuente de verdad del negocio.
 
 ## 📚 Documentación
 
