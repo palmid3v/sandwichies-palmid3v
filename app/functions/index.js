@@ -6,6 +6,7 @@ import { BUSINESS, isCompletedSale } from "../shared/business.js";
 import { getIngredient } from "../shared/catalog.js";
 import {
   buildOrderConsumption,
+  getPendingOrderConsumption,
   InventoryValidationError,
   normalizeInventoryTransaction,
 } from "../shared/inventory.js";
@@ -178,7 +179,7 @@ export const syncCompletedSaleInventory = onDocumentUpdated(
 
         for (const line of consumption.lines) {
           const transactionRef = db.doc(
-            `inventoryTransactions/${event.params.orderId}-${line.ingredientId}`,
+            `inventoryTransactions/${getPendingOrderConsumption(event.params.orderId, [line])[0].transactionId}`,
           );
           const balanceRef = db.doc(`inventoryBalances/${line.ingredientId}`);
           const existingTransaction = await transaction.get(transactionRef);
@@ -193,8 +194,21 @@ export const syncCompletedSaleInventory = onDocumentUpdated(
           });
         }
 
+        const existingTransactionIds = new Set(
+          prepared
+            .filter((item) => item.existingTransaction.exists)
+            .map((item) => item.transactionRef.id),
+        );
+        const pendingTransactionIds = new Set(
+          getPendingOrderConsumption(
+            event.params.orderId,
+            consumption.lines,
+            existingTransactionIds,
+          ).map((line) => line.transactionId),
+        );
+
         for (const item of prepared) {
-          if (item.existingTransaction.exists) continue;
+          if (!pendingTransactionIds.has(item.transactionRef.id)) continue;
 
           const currentBalance =
             item.balance.data()?.quantity == null
