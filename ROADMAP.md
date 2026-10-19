@@ -7,6 +7,9 @@
 - [x] Add subtle card entrance, hover, and image transitions with reduced-motion support
 - [ ] Run lint, domain tests, build, and smoke against this commit
 - [ ] Visually inspect product imagery and responsive layout in browser
+- [x] Add cart quantity increment/decrement, per-line totals, remove, and clear actions
+- [x] Merge repeated additions of the same recipe configuration into a quantity
+- [x] Recalculate totals from quantities and expand quantities into separate trusted order line configurations
 - [ ] Verify cart contents, quantities, trusted order request, and closed-checkout behavior end-to-end
 
 # ROADMAP — Sandwichies
