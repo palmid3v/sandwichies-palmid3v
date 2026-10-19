@@ -1288,3 +1288,61 @@ body {
     transition: none;
   }
 }
+
+
+
+/* Brand typography: DM Sans for controls/body, Fraunces for editorial headings. */
+:root {
+  --font-ui: "DM Sans", "Avenir Next", Avenir, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
+}
+.storefront,
+.storefront button,
+.storefront input,
+.storefront select,
+.storefront textarea,
+.storefront option,
+.storefront label,
+.storefront .discovery-toolbar,
+.storefront .discovery-toolbar *,
+.storefront .cart-card,
+.storefront .cart-card *,
+.storefront .checkout-details,
+.storefront .checkout-details * {
+  font-family: var(--font-ui);
+}
+.storefront h1,
+.storefront h2,
+.storefront .hero-copy h1,
+.storefront .discovery-header h2,
+.storefront .cart-header h2,
+.storefront .section-heading h2 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -.025em;
+}
+.storefront .discovery-toolbar .discovery-select select,
+.storefront .discovery-toolbar .discovery-search-control input {
+  font-size: .92rem;
+  font-weight: 650;
+  letter-spacing: .005em;
+}
+.storefront .discovery-toolbar .discovery-select select option {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.storefront .discovery-toolbar .discovery-select,
+.storefront .discovery-toolbar .discovery-search > label {
+  font-family: var(--font-ui);
+  font-size: .83rem;
+  font-weight: 800;
+  letter-spacing: .015em;
+}
+.storefront .cart-card .cart-item-description > strong {
+  font-weight: 750;
+  letter-spacing: -.01em;
+}
+.storefront .hero-copy h1 {
+  letter-spacing: -.04em;
+}
