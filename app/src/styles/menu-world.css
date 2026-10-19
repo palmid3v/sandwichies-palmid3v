@@ -1131,3 +1131,10 @@ body {
   text-decoration: underline; text-underline-offset: 3px;
 }
 .delivery-address-actions a[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+
+
+.delivery-coverage-note {
+  display: grid;
+  gap: 5px;
+}
+.delivery-coverage-note strong { color: #5e4422; }
