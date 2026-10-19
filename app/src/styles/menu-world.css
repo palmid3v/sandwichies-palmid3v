@@ -1346,3 +1346,54 @@ body {
 .storefront .hero-copy h1 {
   letter-spacing: -.04em;
 }
+
+
+
+/* Phone verification status and code entry. */
+.phone-verification {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--menu-line);
+  border-radius: 12px;
+  color: var(--menu-ink);
+  background: rgba(255, 248, 236, .72);
+  font-size: .88rem;
+}
+.phone-verification p { margin: 0; line-height: 1.5; }
+.phone-verification form { display: grid; gap: 9px; }
+.phone-verification button {
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid var(--menu-tomato);
+  border-radius: 9px;
+  color: #fff8ec;
+  background: var(--menu-tomato);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.phone-verification button:disabled { opacity: .55; cursor: not-allowed; }
+.phone-verification input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--menu-line);
+  border-radius: 8px;
+  color: var(--menu-ink);
+  background: #fffaf1;
+  font: inherit;
+}
+.phone-verification .phone-verification-secondary {
+  color: var(--menu-tomato-dark);
+  background: transparent;
+}
+.phone-verification--disabled {
+  border-left: 3px solid #d5a13c;
+  background: #f8edcf;
+}
+.phone-verification--disabled strong { color: #654b28; }
+.phone-verification--disabled p { color: #65553b; }
+.phone-verification-success { color: #315b3e; font-weight: 800; }
+.phone-verification-feedback { color: var(--menu-muted); }
