@@ -8,6 +8,7 @@ import {
   calculateOrderTotals,
 } from "../utils/pricing";
 import DiscoverySection from "../components/DiscoverySection";
+import { DELIVERY_COVERAGE } from "../../shared/delivery-coverage.js";
 import {
   BUSINESS,
   PAYMENT_METHODS,
@@ -710,7 +711,11 @@ export default function OrderPage() {
                 }}
               >Ver dirección en el mapa ↗</a>
             </div>
-            <p className="delivery-coverage-note">La cobertura se confirmará antes de aceptar el pedido. No mostraremos una dirección como cubierta hasta definir las zonas de reparto.</p>
+            <div className="delivery-coverage-note" role="status" aria-live="polite">
+              <strong>Verificación manual de cobertura</strong>
+              <span>Radio de referencia: hasta {DELIVERY_COVERAGE.radiusKm} km desde {DELIVERY_COVERAGE.originAddress}.</span>
+              <span>Esta dirección aún no está aprobada automáticamente. El equipo confirmará la distancia y la disponibilidad del domicilio antes de aceptar el pedido.</span>
+            </div>
           </div>
         )}
       </section>
