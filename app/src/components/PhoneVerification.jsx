@@ -20,16 +20,6 @@ export default function PhoneVerification({ phone, onVerified }) {
     verifier.current = null;
   }, []);
 
-  useEffect(() => {
-    setConfirmation(null);
-    setCode("");
-    setVerifiedPhone("");
-    setFeedback("");
-    onVerified("");
-    verifier.current?.clear();
-    verifier.current = null;
-  }, [phone, onVerified]);
-
   const normalizedPhone = normalizeColombianPhone(phone);
 
   const requestCode = async () => {
