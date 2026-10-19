@@ -39,6 +39,8 @@ export default function OrderPage() {
   const [phone, setPhone] = useState("");
   const [fulfillmentType, setFulfillmentType] = useState("recoger");
   const [address, setAddress] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [addressReference, setAddressReference] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("efectivo");
   const [notes, setNotes] = useState("");
 
@@ -208,11 +210,19 @@ export default function OrderPage() {
     showToast("Carrito vaciado.");
   };
 
+  const buildDeliveryAddress = () => [
+    address.trim(),
+    neighborhood.trim() ? `Barrio: ${neighborhood.trim()}` : "",
+    addressReference.trim() ? `Referencia: ${addressReference.trim()}` : "",
+  ].filter(Boolean).join(" · ");
+
   const validateCheckout = () => {
     if (clientName.trim().length < 2) return "Escribe tu nombre.";
     if (cleanPhone(phone).length < 10) return "Escribe un WhatsApp válido.";
-    if (fulfillmentType === "domicilio" && address.trim().length < 8) {
-      return "Escribe la dirección de entrega completa.";
+    if (fulfillmentType === "domicilio") {
+      if (address.trim().length < 5) return "Escribe la dirección (calle y número).";
+      if (neighborhood.trim().length < 2) return "Escribe el barrio de entrega.";
+      if (buildDeliveryAddress().length > 180) return "La dirección es demasiado larga; resume las referencias.";
     }
     if (!cart.length) return "Agrega al menos un sandwich.";
     return null;
@@ -283,7 +293,7 @@ export default function OrderPage() {
           { length: item.quantity || 1 },
           () => item.configuration,
         )),
-        fulfillment: { type: fulfillmentType, address: fulfillmentType === "domicilio" ? address.trim() : "" },
+        fulfillment: { type: fulfillmentType, address: fulfillmentType === "domicilio" ? buildDeliveryAddress() : "" },
         paymentMethod,
         notes: notes.trim(),
       });
@@ -652,6 +662,47 @@ export default function OrderPage() {
           </small>
         </aside>
       </div>
+
+      <section className="checkout-details section-card" aria-labelledby="delivery-details-title">
+        <div className="section-heading">
+          <span>3</span>
+          <div>
+            <h2 id="delivery-details-title">Datos y entrega</h2>
+            <p>Prepara los datos para cuando habilitemos los pedidos.</p>
+          </div>
+        </div>
+        <div className="form-grid">
+          <label>
+            Nombre
+            <input autoComplete="name" value={clientName} onChange={(event) => setClientName(event.target.value)} placeholder="Tu nombre" />
+          </label>
+          <label>
+            WhatsApp
+            <input autoComplete="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Ej. 300 123 4567" />
+          </label>
+        </div>
+        <div className="segmented-control">
+          <button type="button" className={fulfillmentType === "recoger" ? "active motion-feedback" : "motion-feedback"} onClick={() => setFulfillmentType("recoger")} aria-pressed={fulfillmentType === "recoger"}>Recoger</button>
+          <button type="button" className={fulfillmentType === "domicilio" ? "active motion-feedback" : "motion-feedback"} onClick={() => setFulfillmentType("domicilio")} aria-pressed={fulfillmentType === "domicilio"}>Domicilio +{formatMoney(BUSINESS.deliveryFee)}</button>
+        </div>
+        {fulfillmentType === "domicilio" && (
+          <div className="delivery-address-fields">
+            <label>
+              Dirección (calle y número)
+              <input autoComplete="address-line1" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Ej. Calle 10 # 20-30" maxLength={80} />
+            </label>
+            <label>
+              Barrio
+              <input autoComplete="address-level3" value={neighborhood} onChange={(event) => setNeighborhood(event.target.value)} placeholder="Nombre del barrio" maxLength={50} />
+            </label>
+            <label className="full-field">
+              Punto de referencia (opcional)
+              <input value={addressReference} onChange={(event) => setAddressReference(event.target.value)} placeholder="Edificio, local, portería, indicaciones…" maxLength={45} />
+            </label>
+            <p className="delivery-coverage-note">La cobertura se confirmará antes de aceptar el pedido. No mostraremos una dirección como cubierta hasta definir las zonas de reparto.</p>
+          </div>
+        )}
+      </section>
     </main>
   );
 }
