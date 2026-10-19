@@ -95,7 +95,8 @@ This track is the current hands-on sequence alongside the numbered historical/pr
 - [x] Add regression cases for protected order, customer, financial and inventory fields.
 - [ ] Run dependency audit, lint, domain tests, Firestore Emulator rules tests, build and smoke.
 - [ ] Validate rules and error/retry behavior in a non-production environment.
-- [ ] Inspect inventory recovery/idempotency behavior for duplicate events and failure paths.
+- [x] Add an emulator integration test that completes a sale, verifies inventory consumption, then updates the completed order again to assert no duplicate deduction.
+- [ ] Run the Functions + Firestore emulator integration test locally and in CI; investigate any failures before marking recovery/idempotency validated.
 
 ### Fase B — Diseño y prototipo
 - [x] Add a standalone responsive storefront prototype outside the production app bundle.
