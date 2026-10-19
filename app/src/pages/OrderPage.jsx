@@ -88,6 +88,41 @@ export default function OrderPage() {
     setSelectedSuggestion(null);
   };
 
+  const addMenuItemToCart = (item) => {
+    try {
+      const preview = calculateLineItem({
+        size: "15",
+        favoriteId: item.id,
+        proteins: item.proteins,
+        toppings: item.toppings || [],
+        extras: [],
+        base: DEFAULT_BASE,
+      });
+      const configuration = {
+        size: preview.size,
+        favoriteId: preview.favoriteId,
+        proteins: preview.proteins,
+        toppings: preview.toppings,
+        extras: preview.extras,
+        base: preview.base,
+      };
+      setCart((current) => [
+        ...current,
+        {
+          lineId: crypto.randomUUID(),
+          name: item.name,
+          size: "15",
+          configuration,
+          preview,
+        },
+      ]);
+      showToast(`${item.name} agregado al carrito.`);
+    } catch (error) {
+      console.error("No se pudo agregar el producto:", error);
+      showToast("No pudimos agregar este producto. Inténtalo de nuevo.", "error");
+    }
+  };
+
   const applyMenuItem = (item) => {
     const selectedProteins = item.proteins
       .map((protein) => {
@@ -321,7 +356,7 @@ export default function OrderPage() {
           <p className="eyebrow">Hecho fresco</p>
           <h1>{BUSINESS.name}</h1>
           <p>{BUSINESS.tagline}. Tú eliges el sabor y nosotros hacemos el resto.</p>
-          <a className="hero-cta" href="#personaliza">Arma el tuyo <span aria-hidden="true">→</span></a>
+          <a className="hero-cta" href="#nuestro-menu">Explorar menú <span aria-hidden="true">→</span></a>
         </div>
         <div
           className={
@@ -333,10 +368,12 @@ export default function OrderPage() {
         </div>
       </header>
 
+      <div id="nuestro-menu" className="catalog-anchor">
       <DiscoverySection
-        onSelect={applyMenuItem}
+        onSelect={addMenuItemToCart}
         selectedId={favoriteId}
       />
+      </div>
 
       <div className="store-layout">
         <section className="builder">
