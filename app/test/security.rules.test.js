@@ -66,7 +66,10 @@ test("admin can read and update orders and read inventory", async () => {
   await assertSucceeds(updateDoc(doc(db, "orders", "order-1"), { status: "confirmado" }));
   await assertFails(updateDoc(doc(db, "orders", "order-1"), { status: "entregado" }));
   await assertFails(updateDoc(doc(db, "orders", "order-1"), { status: "cancelado", payment: { status: "pagado" } }));
-  await assertSucceeds(updateDoc(doc(db, "orders", "order-1"), { status: "confirmado", payment: { status: "pagado" } }));
+  await assertSucceeds(updateDoc(doc(db, "orders", "order-1"), {
+  status: "confirmado",
+  "payment.status": "pagado"
+}));
   await assertFails(updateDoc(doc(db, "orders", "order-1"), { payment: { status: "pendiente" } }));
   await assertSucceeds(getDoc(doc(db, "inventoryBalances", "pepperoni")));
   await assertSucceeds(getDoc(doc(db, "inventoryTransactions", "transaction-1")));
