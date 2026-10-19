@@ -8,6 +8,8 @@ import {
   calculateOrderTotals,
 } from "../utils/pricing";
 import DiscoverySection from "../components/DiscoverySection";
+import PhoneVerification from "../components/PhoneVerification";
+import { normalizeColombianPhone } from "../../shared/phone.js";
 import { DELIVERY_COVERAGE } from "../../shared/delivery-coverage.js";
 import {
   BUSINESS,
@@ -38,6 +40,7 @@ export default function OrderPage() {
 
   const [clientName, setClientName] = useState("");
   const [phone, setPhone] = useState("");
+  const [verifiedPhone, setVerifiedPhone] = useState("");
   const [fulfillmentType, setFulfillmentType] = useState("recoger");
   const [address, setAddress] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
@@ -219,7 +222,11 @@ export default function OrderPage() {
 
   const validateCheckout = () => {
     if (clientName.trim().length < 2) return "Escribe tu nombre.";
-    if (cleanPhone(phone).length < 10) return "Escribe un WhatsApp válido.";
+    const normalizedPhone = normalizeColombianPhone(phone);
+    if (!normalizedPhone) return "Escribe un celular colombiano válido de 10 dígitos que empiece por 3.";
+    if (import.meta.env.VITE_PHONE_VERIFICATION_ENABLED === "true" && verifiedPhone !== normalizedPhone) {
+      return "Verifica tu teléfono antes de continuar.";
+    }
     if (fulfillmentType === "domicilio") {
       if (address.trim().length < 5) return "Escribe la dirección (calle y número).";
       if (neighborhood.trim().length < 2) return "Escribe el barrio de entrega.";
@@ -289,7 +296,7 @@ export default function OrderPage() {
 
       const createOrder = httpsCallable(getFunctions(), "createOrder");
       const result = await createOrder({
-        customer: { name: clientName.trim(), phone: cleanPhone(phone) },
+        customer: { name: clientName.trim(), phone: normalizeColombianPhone(phone) },
         items: cart.flatMap((item) => Array.from(
           { length: item.quantity || 1 },
           () => item.configuration,
@@ -679,8 +686,11 @@ export default function OrderPage() {
           </label>
           <label>
             WhatsApp
-            <input autoComplete="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Ej. 300 123 4567" />
+            <input autoComplete="tel" inputMode="tel" value={phone} onChange={(event) => { setPhone(event.target.value); setVerifiedPhone(""); }} placeholder="Ej. 300 123 4567" />
           </label>
+          <div className="full-field">
+            <PhoneVerification phone={phone} onVerified={setVerifiedPhone} />
+          </div>
         </div>
         <div className="segmented-control">
           <button type="button" className={fulfillmentType === "recoger" ? "active motion-feedback" : "motion-feedback"} onClick={() => setFulfillmentType("recoger")} aria-pressed={fulfillmentType === "recoger"}>Recoger</button>
