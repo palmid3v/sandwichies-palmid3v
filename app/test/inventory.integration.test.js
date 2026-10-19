@@ -4,8 +4,9 @@ import { initializeApp, deleteApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
 const PROJECT_ID = "demo-sandwichies";
+const emulatorHost = globalThis?.process?.env?.FIRESTORE_EMULATOR_HOST;
 assert.ok(
-  typeof process !== "undefined" && process.env.FIRESTORE_EMULATOR_HOST,
+  emulatorHost,
   "Run this test through Firebase Emulator Suite (FIRESTORE_EMULATOR_HOST missing).",
 );
 
