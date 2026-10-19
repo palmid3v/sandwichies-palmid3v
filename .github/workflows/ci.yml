@@ -46,6 +46,9 @@ jobs:
       - name: Firestore security regression
         run: npm run security:test
 
+      - name: Inventory Functions + Firestore integration
+        run: npm run integration:test
+
       - name: Production build
         run: npm run build
 
