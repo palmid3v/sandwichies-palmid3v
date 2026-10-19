@@ -223,8 +223,13 @@ test("trusted order request rejects forged totals and invalid delivery data", ()
   };
 
   assert.throws(() => normalizeOrderRequest({ ...request, total: 1 }), OrderValidationError);
+  assert.throws(() => normalizeOrderRequest({ ...request, subtotal: 1 }), OrderValidationError);
   assert.throws(() => normalizeOrderRequest({ ...request, cost: 1 }), OrderValidationError);
   assert.throws(() => normalizeOrderRequest({ ...request, profit: 1 }), OrderValidationError);
+  assert.throws(() => normalizeOrderRequest({ ...request, orderNumber: 1 }), OrderValidationError);
+  assert.throws(() => normalizeOrderRequest({ ...request, status: "completado" }), OrderValidationError);
+  assert.throws(() => normalizeOrderRequest({ ...request, createdAt: "forged" }), OrderValidationError);
+  assert.throws(() => normalizeOrderRequest({ ...request, updatedAt: "forged" }), OrderValidationError);
   assert.throws(
     () => normalizeOrderRequest({
       ...request,
@@ -268,4 +273,26 @@ test("trusted order recalculates favorite cost and owns its order number", () =>
   assert.equal(order.total, order.subtotal);
   assert.equal(order.cost, 16291);
   assert.ok(order.cost > 0);
+  assert.equal(order.source, "web");
+  assert.equal(order.payment.method, "transferencia");
+  assert.equal(order.payment.status, "pendiente");
+
+  for (const invalidOrderNumber of [0, -1, 1.5, "48", Number.NaN]) {
+    assert.throws(
+      () => buildTrustedOrder({
+        customer: { name: "Ana Pérez", phone: "312 345 6789" },
+        items: [{
+          size: "15",
+          favoriteId: recipe.id,
+          proteins: recipe.proteins,
+          toppings: [],
+          extras: [],
+        }],
+        fulfillment: { type: "recoger", address: "" },
+        paymentMethod: "transferencia",
+        notes: "",
+      }, invalidOrderNumber),
+      OrderValidationError,
+    );
+  }
 });
