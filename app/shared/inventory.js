@@ -12,6 +12,17 @@ const assert = (condition, message) => {
   if (!condition) throw new InventoryValidationError(message);
 };
 
+export const inventoryConsumptionTransactionId = (orderId, ingredientId) =>
+  `${orderId}-${ingredientId}`;
+
+export const getPendingOrderConsumption = (orderId, lines, existingTransactionIds = new Set()) =>
+  lines
+    .map((line) => ({
+      ...line,
+      transactionId: inventoryConsumptionTransactionId(orderId, line.ingredientId),
+    }))
+    .filter((line) => !existingTransactionIds.has(line.transactionId));
+
 export const normalizeInventoryTransaction = (payload) => {
   assert(payload && typeof payload === "object" && !Array.isArray(payload), "Movimiento de inventario inválido.");
 
