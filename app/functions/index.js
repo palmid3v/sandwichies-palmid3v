@@ -7,6 +7,7 @@ import { getIngredient } from "../shared/catalog.js";
 import {
   buildOrderConsumption,
   getPendingOrderConsumption,
+  inventoryConsumptionTransactionId,
   InventoryValidationError,
   normalizeInventoryTransaction,
 } from "../shared/inventory.js";
@@ -179,7 +180,7 @@ export const syncCompletedSaleInventory = onDocumentUpdated(
 
         for (const line of consumption.lines) {
           const transactionRef = db.doc(
-            `inventoryTransactions/${getPendingOrderConsumption(event.params.orderId, [line])[0].transactionId}`,
+            `inventoryTransactions/${inventoryConsumptionTransactionId(event.params.orderId, line.ingredientId)}`,
           );
           const balanceRef = db.doc(`inventoryBalances/${line.ingredientId}`);
           const existingTransaction = await transaction.get(transactionRef);
