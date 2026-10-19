@@ -86,7 +86,7 @@ if (!functionBody.includes("Los pedidos no están disponibles.")) {
 }
 
 const firebaseJson = JSON.parse(await readFile(new URL("../firebase.json", import.meta.url), "utf8"));
-if (firebaseJson.functions?.runtime !== "nodejs20") {
+if (firebaseJson.functions?.runtime !== "nodejs22") {
   throw new Error("Production functions runtime differs from the repository contract.");
 }
 
