@@ -26,8 +26,6 @@ const DEFAULT_BASE = [
   "Cebolla",
 ];
 
-const cleanPhone = (value) => value.replace(/\D/g, "");
-
 export default function OrderPage() {
   const [size, setSize] = useState("15");
   const [proteins, setProteins] = useState([]);
