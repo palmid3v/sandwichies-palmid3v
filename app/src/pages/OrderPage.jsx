@@ -68,9 +68,14 @@ export default function OrderPage() {
     extras: currentLine.extras,
     base: currentLine.base,
   };
+  const cartUnits = cart.reduce((total, item) => total + (item.quantity || 1), 0);
+  const expandedCart = useMemo(
+    () => cart.flatMap((item) => Array.from({ length: item.quantity || 1 }, () => item.preview)),
+    [cart],
+  );
   const totals = useMemo(
-    () => calculateOrderTotals(cart.map((item) => item.preview), fulfillmentType),
-    [cart, fulfillmentType],
+    () => calculateOrderTotals(expandedCart, fulfillmentType),
+    [expandedCart, fulfillmentType],
   );
 
   const showToast = (message, type = "success") => {
@@ -106,16 +111,23 @@ export default function OrderPage() {
         extras: preview.extras,
         base: preview.base,
       };
-      setCart((current) => [
-        ...current,
-        {
+      const signature = JSON.stringify(configuration);
+      setCart((current) => {
+        const existing = current.find((line) => JSON.stringify(line.configuration) === signature);
+        if (existing) {
+          return current.map((line) => line.lineId === existing.lineId
+            ? { ...line, quantity: (line.quantity || 1) + 1 }
+            : line);
+        }
+        return [...current, {
           lineId: crypto.randomUUID(),
           name: item.name,
           size: "15",
           configuration,
           preview,
-        },
-      ]);
+          quantity: 1,
+        }];
+      });
       showToast(`${item.name} agregado al carrito.`);
     } catch (error) {
       console.error("No se pudo agregar el producto:", error);
@@ -179,8 +191,21 @@ export default function OrderPage() {
     showToast("Sandwich agregado al pedido.");
   };
 
+  const changeCartQuantity = (lineId, amount) => {
+    setCart((current) => current
+      .map((item) => item.lineId === lineId
+        ? { ...item, quantity: (item.quantity || 1) + amount }
+        : item)
+      .filter((item) => (item.quantity || 1) > 0));
+  };
+
   const removeFromCart = (lineId) => {
     setCart((current) => current.filter((item) => item.lineId !== lineId));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    showToast("Carrito vaciado.");
   };
 
   const validateCheckout = () => {
@@ -254,7 +279,10 @@ export default function OrderPage() {
       const createOrder = httpsCallable(getFunctions(), "createOrder");
       const result = await createOrder({
         customer: { name: clientName.trim(), phone: cleanPhone(phone) },
-        items: cart.map((item) => item.configuration),
+        items: cart.flatMap((item) => Array.from(
+          { length: item.quantity || 1 },
+          () => item.configuration,
+        )),
         fulfillment: { type: fulfillmentType, address: fulfillmentType === "domicilio" ? address.trim() : "" },
         paymentMethod,
         notes: notes.trim(),
@@ -543,7 +571,7 @@ export default function OrderPage() {
           <div className="cart-header">
             <div>
               <p className="eyebrow">Tu pedido</p>
-              <h2>{cart.length} producto{cart.length === 1 ? "" : "s"}</h2>
+              <h2>{cartUnits} producto{cartUnits === 1 ? "" : "s"}</h2>
             </div>
           </div>
 
@@ -555,26 +583,30 @@ export default function OrderPage() {
             </div>
           ) : (
             <div className="cart-items">
+              <div className="cart-actions">
+                <span>{cart.length} referencia{cart.length === 1 ? "" : "s"} de producto</span>
+                <button type="button" onClick={clearCart} className="cart-clear-button">Vaciar carrito</button>
+              </div>
               {cart.map((item) => (
                 <article className="cart-item state-cart-item" key={item.lineId}>
-                  <div>
+                  <div className="cart-item-description">
                     <strong>{item.name}</strong>
                     <small>
                       {item.preview.size} cm ·{" "}
                       {item.configuration.proteins
-                        .map((protein) => INGREDIENTS.proteins.find((candidate) => candidate.id === protein.id)?.name)
+                        .map((protein) => INGREDIENTS.proteins.find((candidate) => candidate.id === protein.id)?.name || protein.id)
                         .join(", ")}
                     </small>
+                    <small className="cart-unit-price">{formatMoney(item.preview.price)} por unidad</small>
                   </div>
-                  <div className="cart-item-price">
-                    <strong>{formatMoney(item.preview.price)}</strong>
-                    <button
-                      type="button"
-                      onClick={() => removeFromCart(item.lineId)}
-                      aria-label={`Quitar ${item.name} del pedido`}
-                    >
-                      Quitar
-                    </button>
+                  <div className="cart-item-controls">
+                    <strong className="cart-line-total">{formatMoney(item.preview.price * (item.quantity || 1))}</strong>
+                    <div className="cart-quantity" aria-label={`Cantidad de ${item.name}`}>
+                      <button type="button" onClick={() => changeCartQuantity(item.lineId, -1)} aria-label={`Reducir cantidad de ${item.name}`}>−</button>
+                      <output aria-live="polite">{item.quantity || 1}</output>
+                      <button type="button" onClick={() => changeCartQuantity(item.lineId, 1)} aria-label={`Aumentar cantidad de ${item.name}`}>+</button>
+                    </div>
+                    <button type="button" onClick={() => removeFromCart(item.lineId)} className="cart-remove-button" aria-label={`Eliminar ${item.name} del pedido`}>Eliminar</button>
                   </div>
                 </article>
               ))}
