@@ -1,3 +1,11 @@
+## Storefront typography refinement — implemented
+
+- [x] Load DM Sans for product controls, body UI, filter/search controls and cart
+- [x] Load Fraunces for editorial storefront headings
+- [x] Apply the same font family to native filter/sort selects and their option list
+- [ ] Owner to verify typography visually on desktop/mobile; external Google Fonts availability may affect fallback
+- [ ] Keep ordering disabled; no Firebase deployment
+
 ## Cart presentation polish — implemented
 
 - [x] Increase cart width for a less cramped desktop summary
