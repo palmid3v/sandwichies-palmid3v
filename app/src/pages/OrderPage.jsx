@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signInAnonymously, updateProfile } from "firebase/auth";
-import { auth } from "../firebase";
+import { customerAuth } from "../firebase";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import Category from "../components/Category";
 import { generateName } from "../utils/generateName";
@@ -54,7 +54,7 @@ export default function OrderPage() {
 
   useEffect(() => {
     let mounted = true;
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(customerAuth, (user) => {
       if (!mounted) return;
       if (user) {
         setClientName(user.displayName || "");
@@ -64,7 +64,7 @@ export default function OrderPage() {
       }
 
       setAuthReady(false);
-      signInAnonymously(auth).catch((error) => {
+      signInAnonymously(customerAuth).catch((error) => {
         console.error("No se pudo iniciar la sesión anónima:", error);
         if (mounted) {
           setAuthError("No pudimos iniciar tu sesión de cliente. Recarga la página e inténtalo de nuevo.");
@@ -81,7 +81,7 @@ export default function OrderPage() {
 
   const persistCustomerName = async () => {
     const name = clientName.trim();
-    const user = auth.currentUser;
+    const user = customerAuth.currentUser;
     if (name.length < 2 || !user) return false;
 
     try {
@@ -329,7 +329,7 @@ export default function OrderPage() {
       return;
     }
 
-    if (!authReady || !auth.currentUser) {
+    if (!authReady || !customerAuth.currentUser) {
       showToast("Estamos preparando tu sesión. Espera un momento e inténtalo de nuevo.", "error");
       return;
     }
