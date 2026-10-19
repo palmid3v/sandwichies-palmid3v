@@ -1,3 +1,14 @@
+## Storefront catalog-only redesign — implementation started
+
+- [x] Remove the visible custom sandwich builder from the customer journey
+- [x] Make existing menu cards add the existing recipe directly to the cart at its 15 cm base price
+- [x] Reorganize catalog into a responsive multi-column product grid
+- [x] Shift visual system to dark, appetizing surfaces with warm food accents
+- [x] Add subtle card entrance, hover, and image transitions with reduced-motion support
+- [ ] Run lint, domain tests, build, and smoke against this commit
+- [ ] Visually inspect product imagery and responsive layout in browser
+- [ ] Verify cart contents, quantities, trusted order request, and closed-checkout behavior end-to-end
+
 # ROADMAP — Sandwichies
 
 **Current release line:** MVP hardening → Product Experience Evolution  
