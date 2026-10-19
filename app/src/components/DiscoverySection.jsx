@@ -49,8 +49,7 @@ export default function DiscoverySection({ onSelect, selectedId }) {
           <h2 id="discovery-title">El menú, a tu manera</h2>
           <p>Tus favoritos de siempre, preparados con ingredientes frescos. Elige, agrega al carrito y listo.</p>
         </div>
-        <a className="discovery-builder-link" href="#personaliza">Armar mi sandwich →</a>
-      </div>
+        </div>
 
       <div className="discovery-tabs" role="tablist" aria-label="Categorías del menú">
         {MENU_SEGMENTS.map((item) => {
