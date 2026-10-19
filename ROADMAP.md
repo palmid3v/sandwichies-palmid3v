@@ -173,18 +173,31 @@ Goal: make Sandwichies feel responsive and alive without becoming distracting.
 
 ## Phase 9 — Customer Discovery + Ordering UX
 
-Goal: change the customer experience from simple configuration toward product discovery.
+Goal: move the customer experience toward a responsive product catalog while preserving the current trusted domain and ordering flow.
 
 - [x] Audit current landing/catalog experience
 - [x] Improve hero/entry experience
-- [x] Introduce stronger categories/featured areas
-- [x] Improve product discovery hierarchy
-- [x] Improve product detail/configuration
-- [x] Improve cart feedback
-- [x] Reduce checkout friction
-- [x] Review every loading/empty/error state
-- [x] Validate mobile-first flow in implementation
-- [ ] Browser-smoke the complete customer journey
+- [x] Reuse existing recipe catalog and category metadata
+- [x] Add product-name/description search
+- [x] Add price filter and sorting by featured, price, and name
+- [x] Display recipe ingredients with readable ingredient names
+- [x] Keep existing shared price calculation and customization flow
+- [ ] Browser-smoke the complete customer journey at desktop and mobile widths
+- [ ] Verify product cards against the actual asset set and review visual consistency
+- [ ] Validate address search, address confirmation, and delivery coverage
+- [ ] Choose a $0-compatible address lookup approach after reviewing provider limits/privacy
+
+## Phase 10 — Phone identity + order readiness
+
+- [ ] Evaluate Firebase Phone Auth against current Firebase configuration and $0 budget
+- [ ] Evaluate WhatsApp verification alternatives without introducing unapproved paid services
+- [ ] Implement real phone ownership verification before customer checkout
+- [ ] Keep customer auth separate from admin custom claims
+- [ ] Test OTP abuse/rate limiting, errors, resend, and mobile behavior
+- [ ] Verify trusted order creation and inventory idempotency end-to-end
+- [ ] Preserve `BUSINESS.acceptingOrders = false` until explicit release approval
+
+Requirements: `app/docs/product/CUSTOMER-STOREFRONT.md`.
 
 ## Phase 10 — New Favorites + New Creations
 
