@@ -123,24 +123,6 @@ export default function OrderPage() {
     }
   };
 
-  const applyMenuItem = (item) => {
-    const selectedProteins = item.proteins
-      .map((protein) => {
-        const ingredient = INGREDIENTS.proteins.find(
-          (candidate) => candidate.id === protein.id,
-        );
-        return ingredient ? { ...ingredient, quantity: protein.quantity } : null;
-      })
-      .filter(Boolean);
-
-    setProteins(selectedProteins);
-    setToppings((item.toppings || []).map((id) => INGREDIENTS.toppings.find((topping) => topping.id === id)).filter(Boolean));
-    setExtras([]);
-    setBaseIngredients(DEFAULT_BASE);
-    setFavoriteId(item.id);
-    setSelectedSuggestion(item.name);
-  };
-
   const toggleBase = (item) => {
     setBaseIngredients((current) =>
       current.includes(item)
