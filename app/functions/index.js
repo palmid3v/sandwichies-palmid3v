@@ -11,7 +11,8 @@ import {
   InventoryValidationError,
   normalizeInventoryTransaction,
 } from "../shared/inventory.js";
-import { buildTrustedOrder, OrderValidationError } from "../shared/order-request.js";
+import { buildTrustedOrder } from "../shared/order-request.js";
+import { OrderValidationError } from "../shared/pricing.js";
 
 initializeApp();
 const db = getFirestore();
