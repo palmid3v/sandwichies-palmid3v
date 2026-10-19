@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { onAuthStateChanged, signInAnonymously, updateProfile } from "firebase/auth";
+import { auth } from "../firebase";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import Category from "../components/Category";
 import { generateName } from "../utils/generateName";
@@ -8,7 +10,6 @@ import {
   calculateOrderTotals,
 } from "../utils/pricing";
 import DiscoverySection from "../components/DiscoverySection";
-import PhoneVerification from "../components/PhoneVerification";
 import { normalizeColombianPhone } from "../../shared/phone.js";
 import { DELIVERY_COVERAGE } from "../../shared/delivery-coverage.js";
 import {
@@ -38,7 +39,8 @@ export default function OrderPage() {
 
   const [clientName, setClientName] = useState("");
   const [phone, setPhone] = useState("");
-  const [verifiedPhone, setVerifiedPhone] = useState("");
+  const [authReady, setAuthReady] = useState(false);
+  const [authError, setAuthError] = useState("");
   const [fulfillmentType, setFulfillmentType] = useState("recoger");
   const [address, setAddress] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
@@ -49,6 +51,50 @@ export default function OrderPage() {
   const [toast, setToast] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedOrder, setCompletedOrder] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!mounted) return;
+      if (user) {
+        setClientName(user.displayName || "");
+        setAuthError("");
+        setAuthReady(true);
+        return;
+      }
+
+      setAuthReady(false);
+      signInAnonymously(auth).catch((error) => {
+        console.error("No se pudo iniciar la sesión anónima:", error);
+        if (mounted) {
+          setAuthError("No pudimos iniciar tu sesión de cliente. Recarga la página e inténtalo de nuevo.");
+          setAuthReady(false);
+        }
+      });
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const persistCustomerName = async () => {
+    const name = clientName.trim();
+    const user = auth.currentUser;
+    if (name.length < 2 || !user) return false;
+
+    try {
+      if (user.displayName !== name) await updateProfile(user, { displayName: name });
+      setClientName(name);
+      setAuthError("");
+      return true;
+    } catch (error) {
+      console.error("No se pudo guardar el nombre del cliente:", error);
+      setAuthError("No pudimos guardar tu nombre. Comprueba la conexión e inténtalo de nuevo.");
+      return false;
+    }
+  };
 
   const currentLine = useMemo(() => {
     try {
@@ -222,9 +268,6 @@ export default function OrderPage() {
     if (clientName.trim().length < 2) return "Escribe tu nombre.";
     const normalizedPhone = normalizeColombianPhone(phone);
     if (!normalizedPhone) return "Escribe un celular colombiano válido de 10 dígitos que empiece por 3.";
-    if (import.meta.env.VITE_PHONE_VERIFICATION_ENABLED === "true" && verifiedPhone !== normalizedPhone) {
-      return "Verifica tu teléfono antes de continuar.";
-    }
     if (fulfillmentType === "domicilio") {
       if (address.trim().length < 5) return "Escribe la dirección (calle y número).";
       if (neighborhood.trim().length < 2) return "Escribe el barrio de entrega.";
@@ -286,11 +329,18 @@ export default function OrderPage() {
       return;
     }
 
+    if (!authReady || !auth.currentUser) {
+      showToast("Estamos preparando tu sesión. Espera un momento e inténtalo de nuevo.", "error");
+      return;
+    }
+
     setIsSubmitting(true);
     const whatsappWindow = window.open("", "_blank");
 
     try {
       let savedOrder;
+      const nameSaved = await persistCustomerName();
+      if (!nameSaved) throw new Error("No se pudo guardar el nombre del cliente.");
 
       const createOrder = httpsCallable(getFunctions(), "createOrder");
       const result = await createOrder({
@@ -652,16 +702,19 @@ export default function OrderPage() {
             type="button"
             className="checkout-button motion-feedback"
             disabled={
-              isSubmitting || !cart.length || !BUSINESS.acceptingOrders
+              isSubmitting || !cart.length || !BUSINESS.acceptingOrders || !authReady
             }
             onClick={confirmOrder}
           >
             {!BUSINESS.acceptingOrders
               ? "Pedidos cerrados"
-              : isSubmitting
+              : !authReady
+                ? "Preparando sesión..."
+                : isSubmitting
                 ? "Enviando pedido..."
                 : "Confirmar pedido"}
           </button>
+          {authError && <p className="checkout-help" role="alert">{authError}</p>}
           <small className="checkout-help">
             Al confirmar, tu pedido se guardará y abriremos WhatsApp con el
             resumen.
@@ -674,21 +727,18 @@ export default function OrderPage() {
           <span>3</span>
           <div>
             <h2 id="delivery-details-title">Datos y entrega</h2>
-            <p>Prepara los datos para cuando habilitemos los pedidos.</p>
+            <p>Tu nombre se guardará para que no tengas que escribirlo en tu próximo pedido.</p>
           </div>
         </div>
         <div className="form-grid">
           <label>
             Nombre
-            <input autoComplete="name" value={clientName} onChange={(event) => setClientName(event.target.value)} placeholder="Tu nombre" />
+            <input autoComplete="name" value={clientName} onChange={(event) => setClientName(event.target.value)} onBlur={() => { void persistCustomerName(); }} placeholder="Tu nombre" minLength={2} maxLength={80} required />
           </label>
           <label>
             WhatsApp
-            <input autoComplete="tel" inputMode="tel" value={phone} onChange={(event) => { setPhone(event.target.value); setVerifiedPhone(""); }} placeholder="Ej. 300 123 4567" />
+            <input autoComplete="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Ej. 300 123 4567" required />
           </label>
-          <div className="full-field">
-            <PhoneVerification key={phone} phone={phone} onVerified={setVerifiedPhone} />
-          </div>
         </div>
         <div className="segmented-control">
           <button type="button" className={fulfillmentType === "recoger" ? "active motion-feedback" : "motion-feedback"} onClick={() => setFulfillmentType("recoger")} aria-pressed={fulfillmentType === "recoger"}>Recoger</button>
