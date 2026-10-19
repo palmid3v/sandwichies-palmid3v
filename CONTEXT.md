@@ -19,9 +19,7 @@ The experience should evolve around discovery, favorites, new creations, meaning
 
 ## Current operational state
 
-`acceptingOrders = false`.
-
-Checkout remains intentionally disabled until release validation and approval are complete.
+`acceptingOrders = true` in source for owner-approved local testing. This is not deployment approval and does not establish the deployed backend's state. The production release gate must verify that the deployed order endpoint remains closed until functional/security validation and explicit release approval are complete.
 
 ## Customer flow
 
@@ -157,7 +155,7 @@ FASE 11 Admin/Product Operations UX is implemented on main.
 
 The admin experience now prioritizes active orders, confirmation/payment attention, ready orders, explicit payment state, safe next-status progression, inventory low-stock visibility and operational feedback. The existing Firebase Auth/custom-claim and Firestore Rules authorization model remains unchanged.
 
-Production ordering remains disabled through BUSINESS.acceptingOrders = false. Browser and Emulator validation evidence is still pending.
+Source configuration currently has `BUSINESS.acceptingOrders = true` for owner-approved local testing. Do not deploy or treat production ordering as approved based on this source setting. Production endpoint state and browser/Emulator evidence must be verified independently before release.
 
 
 ## Documentation checkpoint — 2026-10-18
