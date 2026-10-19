@@ -1,3 +1,15 @@
+## Delivery coverage policy — implemented, manual only
+
+- [x] Set the operational origin label to `Cra 96a #49-110`
+- [x] Configure a 10 km reference radius
+- [x] Add Haversine distance assessment when verified coordinates are supplied
+- [x] Keep all coverage decisions in manual review; no address is automatically approved or rejected
+- [x] Explain the radius and manual confirmation in the customer delivery form
+- [x] Add automated tests for radius configuration, missing/invalid coordinates, inside/outside radius
+- [x] Keep `BUSINESS.acceptingOrders = false`; no Firebase deploy or order activation
+- [ ] Confirm the city/country and geocoded coordinates for the operational origin before using distance estimates operationally
+- [ ] Add a trusted address-geocoding source only if approved; current map link is for customer lookup, not a verified geocode
+
 ## Customer delivery details — implementation started
 
 - [x] Add visible customer name and WhatsApp fields outside the retired sandwich builder
