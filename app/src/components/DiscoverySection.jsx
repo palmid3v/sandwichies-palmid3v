@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { formatMoney } from "../config/business";
 import { MENU, MENU_SEGMENTS } from "../data/menu";
+import { INGREDIENTS } from "../data/ingredients";
 
 const MENU_ART = {
   "turkey-finas-hierbas": "/assets/illustrations/sandwich-pavo-hierbas.jpg",
@@ -127,7 +128,11 @@ export default function DiscoverySection({ onSelect, selectedId }) {
                     <h3>{item.name}</h3>
                     <p>{item.description}</p>
                     <p className="discovery-card-ingredients">
-                      {item.proteins.map((protein) => protein.quantity > 1 ? `${protein.quantity} × ${protein.id}` : protein.id).join(" · ")}
+                      {item.proteins.map((protein) => {
+                        const ingredient = INGREDIENTS.proteins.find((candidate) => candidate.id === protein.id);
+                        const name = ingredient?.name || protein.id;
+                        return protein.quantity > 1 ? `${protein.quantity} × ${name}` : name;
+                      }).join(" · ")}
                     </p>
                   </div>
                   <div className="discovery-card-footer">
