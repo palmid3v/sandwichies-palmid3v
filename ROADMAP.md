@@ -1,3 +1,13 @@
+## Cart presentation polish — implemented
+
+- [x] Increase cart width for a less cramped desktop summary
+- [x] Give each line item a clear dark surface, readable ingredient details and visual separation
+- [x] Align line total, quantity controls and remove action into a consistent hierarchy
+- [x] Improve empty/clear-cart controls and subtotal/total contrast
+- [x] Add a stacked mobile layout and reduced-motion support
+- [ ] Owner to verify visual result in desktop and mobile browser after pull
+- [ ] Do not activate checkout or deploy Firebase as part of visual polish
+
 ## Delivery coverage policy — implemented, manual only
 
 - [x] Set the operational origin label to `Cra 96a #49-110`
