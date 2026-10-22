@@ -430,6 +430,7 @@ export const recordInventoryTransaction = onCall(
           "CUPBOARD_PRODUCT_MISSING",
           "CUPBOARD_STOCK_INSUFFICIENT",
           "CUPBOARD_STOCK_INVALID",
+          "CUPBOARD_IDEMPOTENCY_CONFLICT",
         ].includes(error.code)
           ? "failed-precondition"
           : "invalid-argument";
