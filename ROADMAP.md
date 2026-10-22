@@ -74,8 +74,8 @@
 # ROADMAP — Sandwichies
 
 **Current release line:** MVP hardening → Product Experience Evolution  
-**Operational state:** `acceptingOrders = true` in source for owner-approved local testing; production Functions are not deployed by this change.  
-**Status:** Fases A–B previously applied; Fases C–D storefront/admin improvements committed directly to main. Automated CI and browser review are the remaining evidence gates.
+**Operational state:** `acceptingOrders = false` in source; customer checkout remains closed pending explicit release approval.  
+**Status:** Fases A–D have implementation baselines on main. The owner confirmed local `npm run check` and browser functionality on 2026-10-22; CI confirmation and production release gates remain pending.
 
 ## North star
 
@@ -398,3 +398,15 @@ IMPROVE
 - [x] Keep email/password authentication and admin custom-claim authorization unchanged
 - [ ] Run lint, tests, build, smoke and browser test after pulling
 - [ ] Deploy Functions only after explicitly deciding which environment should accept real callable orders
+
+
+## Current checkpoint — 2026-10-22
+
+- [x] Owner-confirmed local quality gate after the route split and Functions discovery-timeout fix: dependency audit, lint, 27 domain tests, 8 Firestore rules tests, inventory integration test, build and entrypoint smoke.
+- [x] Owner-confirmed manual browser review: storefront and admin are working.
+- [x] Keep `BUSINESS.acceptingOrders = false` in source; this is not production release approval.
+- [x] Add explicit Vite/Rolldown code-splitting groups for React/router, Firebase SDK and remaining vendor dependencies to address the 549 kB minified chunk reported by the previous local build.
+- [ ] Re-run `npm run check` after the new chunking configuration and inspect emitted chunk sizes plus `/` and `/admin`.
+- [ ] Confirm the latest GitHub Actions CI result. The available commit-status lookup has not returned published checks.
+- [ ] Align the local emulator runtime with the declared Node.js 22 runtime; the last run fell back to global Node.js 24.
+- [ ] Complete production-release verification separately; no Functions/Rules deployment or real-order activation is part of this performance task.
