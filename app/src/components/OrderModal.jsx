@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { db } from "../firebase";
 import {
   canTransitionOrderStatus,
@@ -64,15 +65,37 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
     setFeedback(null);
 
     try {
-      await updateDoc(doc(db, "orders", selectedOrder.id), {
-        ...updates,
-        updatedAt: serverTimestamp(),
-      });
+      if (updates.status) {
+        const transitionOrderStatus = httpsCallable(
+          getFunctions(),
+          "transitionOrderStatus",
+        );
+        await transitionOrderStatus({
+          orderId: selectedOrder.id,
+          status: updates.status,
+        });
+      } else {
+        await updateDoc(doc(db, "orders", selectedOrder.id), {
+          ...updates,
+          updatedAt: serverTimestamp(),
+        });
+      }
 
       setSelectedOrder((current) => {
         const next = { ...current };
 
-        if (updates.status) next.status = updates.status;
+        if (updates.status) {
+          next.status = updates.status;
+          next.inventory = {
+            ...current.inventory,
+            cupboardConsumptionStatus:
+              updates.status === "confirmado"
+                ? "posted"
+                : updates.status === "cancelado" && current.status !== "pendiente"
+                  ? "reversed"
+                  : current.inventory?.cupboardConsumptionStatus,
+          };
+        }
         if (updates["payment.status"]) {
           next.payment = {
             ...current.payment,
@@ -90,7 +113,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
         message:
           error?.code === "permission-denied"
             ? "No tienes permisos para este cambio."
-            : "No se pudo guardar el cambio. Intenta de nuevo.",
+            : (error?.message || "No se pudo guardar el cambio. Intenta de nuevo."),
       });
     } finally {
       setIsUpdating(false);
