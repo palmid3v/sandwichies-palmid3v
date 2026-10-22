@@ -269,8 +269,9 @@ export default function App() {
               <h2>Inventario</h2>
             </div>
             <p>
-              El saldo inicial viene del catálogo. Compras y ajustes generan
-              movimientos; los consumos de ventas completadas son automáticos.
+              Cupboard es la fuente real de existencias. Las compras y ajustes
+              se sincronizan allí; confirmar un pedido descuenta stock y cancelarlo
+              lo repone una sola vez.
             </p>
           </div>
 
