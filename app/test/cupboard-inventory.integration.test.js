@@ -19,7 +19,6 @@ assert.ok(
 const projectId = process.env.CUPBOARD_PROJECT_ID;
 const app = initializeApp({ projectId }, "cupboard-adapter-integration-test");
 const db = getFirestore(app);
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 test("Cupboard movements are atomic, retry-safe, and reversible once per order", async () => {
   const orderId = `bridge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -55,6 +54,7 @@ test("Cupboard movements are atomic, retry-safe, and reversible once per order",
     });
     assert.equal(consumed.applied, true);
     assert.equal((await inventoryRef.get()).data().portions, 18);
+    assert.equal((await inventoryRef.get()).data().unit, "unidad");
     assert.equal((await consumeRef.get()).exists, true);
 
     await applyCupboardInventoryMovement({
