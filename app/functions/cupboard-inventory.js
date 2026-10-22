@@ -329,7 +329,7 @@ export async function applyCupboardManualInventoryMovement({
 
   const collectionPath = `households/${householdId}/workspaces/sandwichies`;
   const inventoryRef = cupboardDb.doc(`${collectionPath}/inventory/${productId}`);
-  const movementId = `sandwichies-manual-${safeId(operationId)}-${safeId(line.ingredientId)}-${operation}`;
+  const movementId = `sandwichies-manual-${safeId(operationId)}`;
   const movementRef = cupboardDb.doc(`${collectionPath}/movements/${movementId}`);
 
   return cupboardDb.runTransaction(async (transaction) => {
@@ -356,6 +356,18 @@ export async function applyCupboardManualInventoryMovement({
 
     const revision = Number(data.sandwichiesInventoryRevision) || 0;
     if (movementSnapshot.exists) {
+      const existingMovement = movementSnapshot.data();
+      if (
+        existingMovement.ingredientId !== line.ingredientId ||
+        existingMovement.type !== operation ||
+        existingMovement.quantityDelta !== line.quantityDelta ||
+        existingMovement.reason !== line.reason
+      ) {
+        throw new CupboardInventoryError(
+          "CUPBOARD_IDEMPOTENCY_CONFLICT",
+          "Este identificador ya corresponde a otro movimiento. Revisa el historial antes de registrar uno nuevo.",
+        );
+      }
       return {
         applied: false,
         skipped: true,
