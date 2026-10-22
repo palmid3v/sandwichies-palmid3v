@@ -65,12 +65,13 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
     setFeedback(null);
 
     try {
+      let transitionResult = null;
       if (updates.status) {
         const transitionOrderStatus = httpsCallable(
           getFunctions(),
           "transitionOrderStatus",
         );
-        await transitionOrderStatus({
+        transitionResult = await transitionOrderStatus({
           orderId: selectedOrder.id,
           status: updates.status,
         });
@@ -88,12 +89,9 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
           next.status = updates.status;
           next.inventory = {
             ...current.inventory,
-            cupboardConsumptionStatus:
-              updates.status === "confirmado"
-                ? "posted"
-                : updates.status === "cancelado" && current.status !== "pendiente"
-                  ? "reversed"
-                  : current.inventory?.cupboardConsumptionStatus,
+            ...(transitionResult?.data?.cupboardConsumptionStatus
+              ? { cupboardConsumptionStatus: transitionResult.data.cupboardConsumptionStatus }
+              : {}),
           };
         }
         if (updates["payment.status"]) {
