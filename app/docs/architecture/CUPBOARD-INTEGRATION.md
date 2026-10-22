@@ -2,7 +2,7 @@
 
 ## Estado
 
-El backend de Sandwichies se conecta al espacio comercial `Negocio · Sandwichies` de Cupboard. Sandwichies conserva la lógica confiable de recetas y calcula el consumo; Cupboard es la fuente operativa de existencias. El panel administrativo cambia el estado de un pedido mediante la callable `transitionOrderStatus`.
+El backend de Sandwichies se conecta al espacio comercial `Negocio · Sandwichies` de Cupboard. Sandwichies conserva la lógica confiable de recetas y calcula el consumo; Cupboard es la fuente operativa de existencias. El panel administrativo cambia el estado de un pedido mediante la callable `transitionOrderStatus`. Las compras y ajustes iniciados en el panel de Sandwichies también se aplican en Cupboard mediante un ID idempotente; si la conexión no está configurada, el backend rechaza el movimiento sin crear un saldo local ficticio.
 
 Al confirmar, todos los ingredientes se descuentan en una transacción de Firestore en el proyecto Cupboard. Si algún producto no existe, falta un mapeo o no hay suficiente stock, se rechaza la confirmación sin cambios parciales ni avance del estado del pedido. Si se cancela un pedido ya confirmado y aún no entregado, se restaura la cantidad exacta con una reversión idempotente. Cancelar un pedido pendiente no genera movimientos.
 
