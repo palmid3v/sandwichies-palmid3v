@@ -105,8 +105,8 @@ test("Cupboard purchases and adjustments are idempotent and keep the real balanc
   const inventoryRef = db.doc(`${collectionPath}/inventory/${productId}`);
   const purchaseId = `purchase-${suffix}`;
   const adjustmentId = `adjustment-${suffix}`;
-  const purchaseRef = db.doc(`${collectionPath}/movements/sandwichies-manual-${purchaseId}-pepperoni-purchase`);
-  const adjustmentRef = db.doc(`${collectionPath}/movements/sandwichies-manual-${adjustmentId}-pepperoni-adjustment`);
+  const purchaseRef = db.doc(`${collectionPath}/movements/sandwichies-manual-${purchaseId}`);
+  const adjustmentRef = db.doc(`${collectionPath}/movements/sandwichies-manual-${adjustmentId}`);
 
   try {
     await inventoryRef.set({ portions: 10, unit: "unidad", updatedAt: FieldValue.serverTimestamp() });
