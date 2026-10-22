@@ -235,6 +235,7 @@ export async function applyCupboardInventoryMovement({
 
       transaction.update(item.inventoryRef, {
         portions: item.quantity,
+        unit: item.line.unit,
         sandwichiesInventoryRevision: item.revision,
         updatedAt: FieldValue.serverTimestamp(),
       });
