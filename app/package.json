@@ -14,8 +14,9 @@
     "emulators:test": "npm run security:test",
     "audit": "npm audit --omit=dev --audit-level=high",
     "smoke": "node scripts/smoke.mjs",
+    "performance:check": "node scripts/check-bundle-budget.mjs",
     "release:verify": "node scripts/release-verify.mjs",
-    "check": "npm run audit && npm run lint && npm test && npm run security:test && npm run integration:test && npm run build && npm run smoke",
+    "check": "npm run audit && npm run lint && npm test && npm run security:test && npm run integration:test && npm run build && npm run performance:check && npm run smoke",
     "provision:admin": "node scripts/provision-admin.mjs",
     "preview": "vite preview",
     "integration:test": "node scripts/integration-test.mjs"
