@@ -89,7 +89,9 @@
 - [x] Mantener separado el consumo físico del criterio contable de venta completada (entregado + pagado).
 - [x] Sincronizar compras y ajustes manuales del panel de Sandwichies con Cupboard; exigir un ID idempotente por operación.
 - [x] Documentar configuración, mapeo y permisos entre proyectos.
+- [x] Añadir `npm run cupboard:preflight` para detectar configuración incompleta antes de ejecutar pruebas; no conecta ni modifica Firebase.
 - [ ] Sustituir el ID de hogar de ejemplo por el hogar real de Cupboard y revisar el mapeo de cada ingrediente.
+- [ ] Ejecutar el preflight con las variables reales y corregir todos los errores reportados.
 - [ ] Conceder `roles/datastore.user` a la identidad real del runtime de Functions sobre el proyecto Cupboard.
 - [ ] Ejecutar `npm run check` y la integración en emuladores; revisar resultados de ambas aplicaciones en local.
 - [ ] Verificar flujos de confirmar, cancelar y falta de stock en entorno de pruebas antes de cualquier release.
