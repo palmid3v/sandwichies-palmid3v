@@ -117,10 +117,10 @@ test("admin cannot mutate financial, customer, recipe or inventory snapshot fiel
   await assertFails(updateDoc(order, { "payment.method": "transferencia" }));
 });
 
-test("admin can update only order status and payment status", async () => {
+test("admin must confirm an order before marking payment as paid", async () => {
   const db = env.authenticatedContext("admin-1", { admin: true }).firestore();
   const order = doc(db, "orders", "order-1");
   await assertFails(updateDoc(order, { status: "confirmado" }));
-  await assertSucceeds(updateDoc(order, { "payment.status": "pagado" }));
+  await assertFails(updateDoc(order, { "payment.status": "pagado" }));
   await assertFails(updateDoc(order, { "payment.status": "pendiente" }));
 });
