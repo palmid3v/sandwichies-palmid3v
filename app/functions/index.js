@@ -210,7 +210,6 @@ export const transitionOrderStatus = onCall(
 
       let cupboardConsumptionStatus =
         order.inventory?.cupboardConsumptionStatus || "pending";
-      let transitionInventoryNote = null;
       const isCupboardOrder = order.inventory?.system === "cupboard";
 
       if (
@@ -291,7 +290,6 @@ export const transitionOrderStatus = onCall(
         cupboardConsumptionStatus,
         updatedAt: FieldValue.serverTimestamp(),
       };
-      if (transitionInventoryNote) inventory.note = transitionInventoryNote;
 
       await orderRef.update({
         status: nextStatus,
