@@ -77,6 +77,25 @@
 **Operational state:** `acceptingOrders = false` in source; customer checkout remains closed pending explicit release approval.  
 **Status:** Fases A–D have implementation baselines on main. The owner confirmed local `npm run check` and browser functionality on 2026-10-22; CI confirmation and production release gates remain pending.
 
+## Fase activa — Fase 3: Conectar Sandwichies con Cupboard
+
+**Estado:** implementación en `main`; validación operativa pendiente. Checkout sigue cerrado (`BUSINESS.acceptingOrders = false`).
+
+- [x] Añadir adaptador seguro entre los dos proyectos de Firebase usando Admin SDK y configuración explícita.
+- [x] Reservar existencias en Cupboard al confirmar un pedido, con una transacción que cubre todos sus ingredientes.
+- [x] Evitar descuentos y reversiones duplicados mediante IDs deterministas.
+- [x] Reponer stock al cancelar después de confirmar; cancelar mientras está pendiente no mueve inventario.
+- [x] Bloquear cambios directos de estado desde el navegador y dirigirlos por una callable protegida.
+- [x] Mantener separado el consumo físico del criterio contable de venta completada (entregado + pagado).
+- [x] Añadir pruebas de integración para descuento, repetición, reversión y stock insuficiente; incorporarlas al comando de integración.
+- [x] Documentar configuración, mapeo y permisos entre proyectos.
+- [ ] Sustituir el ID de hogar de ejemplo por el hogar real de Cupboard y revisar el mapeo de cada ingrediente.
+- [ ] Conceder `roles/datastore.user` a la identidad real del runtime de Functions sobre el proyecto Cupboard.
+- [ ] Ejecutar `npm run check` y la integración en emuladores; revisar resultados de ambas aplicaciones en local.
+- [ ] Verificar flujos de confirmar, cancelar y falta de stock en entorno de pruebas antes de cualquier release.
+
+**Límite operativo:** no desplegar Functions/Rules ni activar pedidos como parte de esta fase. La conexión no se considera terminada hasta completar la configuración real y las pruebas.
+
 ## North star
 
 Build a trustworthy sandwich ordering product that feels distinctive, interactive, mobile-first and intentionally designed.
