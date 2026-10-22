@@ -66,7 +66,7 @@ test("admin can read orders and update payment, but must use the trusted callabl
   await assertFails(updateDoc(doc(db, "orders", "order-1"), { status: "confirmado" }));
   await assertFails(updateDoc(doc(db, "orders", "order-1"), { status: "entregado" }));
   await assertFails(updateDoc(doc(db, "orders", "order-1"), { status: "cancelado", payment: { status: "pagado" } }));
-  await assertSucceeds(updateDoc(doc(db, "orders", "order-1"), {
+  await assertFails(updateDoc(doc(db, "orders", "order-1"), {
   status: "confirmado",
   "payment.status": "pagado"
 }));
