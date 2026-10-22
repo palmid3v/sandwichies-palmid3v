@@ -25,6 +25,7 @@ export default function App() {
   const [inventoryTransactions, setInventoryTransactions] = useState([]);
   const [inventoryError, setInventoryError] = useState("");
   const [inventorySubmitting, setInventorySubmitting] = useState(false);
+  const [inventoryOperationId, setInventoryOperationId] = useState(createInventoryOperationId);
   const [inventoryFeedback, setInventoryFeedback] = useState("");
   const [inventoryForm, setInventoryForm] = useState({
     ingredientId:
@@ -173,6 +174,7 @@ export default function App() {
         type: inventoryForm.type,
         quantityDelta: Number(inventoryForm.quantityDelta),
         reason: inventoryForm.reason.trim(),
+        operationId: inventoryOperationId,
       });
 
       setInventoryForm((current) => ({
@@ -180,7 +182,8 @@ export default function App() {
         quantityDelta: 1,
         reason: "",
       }));
-      setInventoryFeedback("Movimiento registrado correctamente.");
+      setInventoryOperationId(createInventoryOperationId());
+      setInventoryFeedback("Movimiento registrado en Cupboard.");
     } catch (error) {
       console.error("No se pudo registrar el movimiento:", error);
       setInventoryError(
