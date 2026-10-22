@@ -420,3 +420,13 @@ IMPROVE
 - [ ] Validate the latest code-splitting changes with `npm run check` and confirm the produced chunk sizes.
 - [ ] Re-test `/` and `/admin` after the Firebase client split.
 - [ ] Measure the critical customer path before and after; do not claim a performance improvement until build/browser measurements confirm it.
+
+
+## Bundle performance guard — 2026-10-22
+
+- [x] Add `npm run performance:check` to report raw and gzip-estimated JavaScript bundle sizes after build.
+- [x] Enforce a 500 kB maximum for each minified JavaScript chunk; override with `MAX_JS_CHUNK_KB` only for intentional, reviewed exceptions.
+- [x] Add the bundle budget gate to `npm run check` after `vite build` and before smoke tests.
+- [x] Keep the storefront Firebase Auth client separate from the admin Firestore client.
+- [x] Bind the order callable to the storefront Firebase app and defer importing Firebase Functions until submission.
+- [ ] Run the full quality gate after these latest changes, confirm bundle budget output, and repeat the storefront/admin browser check.
