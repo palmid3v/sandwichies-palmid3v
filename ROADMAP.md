@@ -410,3 +410,13 @@ IMPROVE
 - [ ] Confirm the latest GitHub Actions CI result. The available commit-status lookup has not returned published checks.
 - [ ] Align the local emulator runtime with the declared Node.js 22 runtime; the last run fell back to global Node.js 24.
 - [ ] Complete production-release verification separately; no Functions/Rules deployment or real-order activation is part of this performance task.
+
+
+## Performance follow-up — 2026-10-22
+
+- [x] Configure explicit Rolldown chunks for React/router, Firebase SDK and remaining vendor modules.
+- [x] Separate the storefront's anonymous Firebase Auth client from the admin client that imports Firestore.
+- [x] Defer loading the Firebase Functions SDK until the customer order-submit handler runs.
+- [ ] Validate the latest code-splitting changes with `npm run check` and confirm the produced chunk sizes.
+- [ ] Re-test `/` and `/admin` after the Firebase client split.
+- [ ] Measure the critical customer path before and after; do not claim a performance improvement until build/browser measurements confirm it.
