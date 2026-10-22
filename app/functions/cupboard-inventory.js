@@ -286,3 +286,129 @@ export async function applyCupboardInventoryMovement({
     };
   });
 }
+
+/**
+ * Applies a manual purchase or adjustment from the Sandwichies admin panel.
+ * The operation ID is supplied by the client and reused for retries.
+ */
+export async function applyCupboardManualInventoryMovement({
+  operationId,
+  line,
+  operation,
+}) {
+  requireConfigured();
+
+  if (!["purchase", "adjustment"].includes(operation)) {
+    throw new CupboardInventoryError("INVALID_OPERATION", "Operación de inventario manual inválida.");
+  }
+  if (
+    typeof operationId !== "string" ||
+    !/^[A-Za-z0-9_-]{1,100}$/.test(operationId)
+  ) {
+    throw new CupboardInventoryError("INVALID_OPERATION_ID", "Identificador de movimiento inválido.");
+  }
+  if (
+    !line ||
+    !line.ingredientId ||
+    !Number.isInteger(line.quantityDelta) ||
+    line.quantityDelta === 0
+  ) {
+    throw new CupboardInventoryError("INVALID_MOVEMENT", "La cantidad del movimiento debe ser un entero distinto de cero.");
+  }
+  if (operation === "purchase" && line.quantityDelta < 0) {
+    throw new CupboardInventoryError("INVALID_MOVEMENT", "Una compra debe aumentar el inventario.");
+  }
+
+  const productId = ingredientMap[line.ingredientId];
+  if (!productId) {
+    throw new CupboardInventoryError(
+      "CUPBOARD_MAPPING_MISSING",
+      `Falta asociar el ingrediente "${line.ingredientId}" con un producto de Cupboard.`,
+    );
+  }
+
+  const collectionPath = `households/${householdId}/workspaces/sandwichies`;
+  const inventoryRef = cupboardDb.doc(`${collectionPath}/inventory/${productId}`);
+  const movementId = `sandwichies-manual-${safeId(operationId)}-${safeId(line.ingredientId)}-${operation}`;
+  const movementRef = cupboardDb.doc(`${collectionPath}/movements/${movementId}`);
+
+  return cupboardDb.runTransaction(async (transaction) => {
+    const [inventorySnapshot, movementSnapshot] = await Promise.all([
+      transaction.get(inventoryRef),
+      transaction.get(movementRef),
+    ]);
+
+    if (!inventorySnapshot.exists) {
+      throw new CupboardInventoryError(
+        "CUPBOARD_PRODUCT_MISSING",
+        `El ingrediente ${line.ingredientId} no existe en el inventario comercial de Cupboard.`,
+      );
+    }
+
+    const data = inventorySnapshot.data();
+    const currentQuantity = Number(data.portions);
+    if (!Number.isFinite(currentQuantity) || currentQuantity < 0) {
+      throw new CupboardInventoryError(
+        "CUPBOARD_STOCK_INVALID",
+        `La existencia de ${line.ingredientName} en Cupboard no es válida.`,
+      );
+    }
+
+    const revision = Number(data.sandwichiesInventoryRevision) || 0;
+    if (movementSnapshot.exists) {
+      return {
+        applied: false,
+        skipped: true,
+        balances: [{
+          ingredientId: line.ingredientId,
+          productId,
+          quantity: currentQuantity,
+          revision,
+        }],
+      };
+    }
+
+    const nextQuantity = currentQuantity + line.quantityDelta;
+    if (nextQuantity < 0) {
+      throw new CupboardInventoryError(
+        "CUPBOARD_STOCK_INSUFFICIENT",
+        `El ajuste dejaría las existencias de ${line.ingredientName} en negativo.`,
+      );
+    }
+
+    const nextRevision = revision + 1;
+    transaction.update(inventoryRef, {
+      portions: nextQuantity,
+      unit: line.unit,
+      sandwichiesInventoryRevision: nextRevision,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    transaction.create(movementRef, {
+      productId,
+      ingredientId: line.ingredientId,
+      ingredientName: line.ingredientName,
+      unit: line.unit,
+      type: operation,
+      quantity: Math.abs(line.quantityDelta),
+      quantityDelta: line.quantityDelta,
+      reason: line.reason,
+      userId: "sandwichies-backend",
+      sourceApp: "sandwichies",
+      operationId,
+      operationKey: movementId,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    return {
+      applied: true,
+      skipped: false,
+      balances: [{
+        ingredientId: line.ingredientId,
+        productId,
+        quantity: nextQuantity,
+        revision: nextRevision,
+      }],
+    };
+  });
+}
