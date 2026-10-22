@@ -129,7 +129,7 @@ async function mirrorCupboardInventory({
       const balanceSnapshot = snapshots[index * 2 + 1];
       const localRevision = Number(balanceSnapshot.data()?.cupboardInventoryRevision ?? -1);
 
-      if (item.remote.revision > localRevision || !balanceSnapshot.exists) {
+      if (item.remote.revision >= localRevision || !balanceSnapshot.exists) {
         transaction.set(
           item.balanceRef,
           {
@@ -284,9 +284,14 @@ export const transitionOrderStatus = onCall(
         }
       }
 
+      if (isCupboardOrder && nextStatus === "cancelado" && currentStatus === "pendiente") {
+        cupboardConsumptionStatus = "not-consumed";
+      }
+
       const inventory = {
         ...(order.inventory || {}),
         system: isCupboardOrder ? "cupboard" : (order.inventory?.system || "legacy"),
+        consumptionStatus: cupboardConsumptionStatus,
         cupboardConsumptionStatus,
         updatedAt: FieldValue.serverTimestamp(),
       };
