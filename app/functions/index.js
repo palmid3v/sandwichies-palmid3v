@@ -313,14 +313,6 @@ export const transitionOrderStatus = onCall(
         }
       }
 
-      const inventory = {
-        ...(order.inventory || {}),
-        system: isCupboardOrder ? "cupboard" : (order.inventory?.system || "legacy"),
-        consumptionStatus: cupboardConsumptionStatus,
-        cupboardConsumptionStatus,
-        updatedAt: FieldValue.serverTimestamp(),
-      };
-
       await db.runTransaction(async (transaction) => {
         const latestSnapshot = await transaction.get(orderRef);
         if (!latestSnapshot.exists) {
