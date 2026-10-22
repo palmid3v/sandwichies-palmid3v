@@ -359,8 +359,10 @@ export async function applyCupboardManualInventoryMovement({
       const existingMovement = movementSnapshot.data();
       if (
         existingMovement.ingredientId !== line.ingredientId ||
+        existingMovement.productId !== productId ||
         existingMovement.type !== operation ||
         existingMovement.quantityDelta !== line.quantityDelta ||
+        existingMovement.unit !== line.unit ||
         existingMovement.reason !== line.reason
       ) {
         throw new CupboardInventoryError(
