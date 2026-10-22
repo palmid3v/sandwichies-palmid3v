@@ -84,6 +84,7 @@
 - [x] Añadir adaptador seguro entre los dos proyectos de Firebase usando Admin SDK y configuración explícita.
 - [x] Reservar existencias en Cupboard al confirmar un pedido, con una transacción que cubre todos sus ingredientes.
 - [x] Evitar descuentos y reversiones duplicados mediante IDs deterministas.
+- [x] Rechazar una clave de idempotencia reutilizada con cantidades o datos distintos; añadir prueba de regresión para proteger el stock ante conflictos.
 - [x] Reponer stock al cancelar después de confirmar; cancelar mientras está pendiente no mueve inventario.
 - [x] Bloquear cambios directos de estado desde el navegador y dirigirlos por una callable protegida.
 - [x] Mantener separado el consumo físico del criterio contable de venta completada (entregado + pagado).
