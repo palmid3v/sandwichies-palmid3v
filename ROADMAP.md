@@ -11,7 +11,7 @@
 - [ ] Test SMS verification end-to-end in a controlled Firebase project
 - [ ] Decide whether SMS is acceptable or an approved WhatsApp Business verification provider is required
 - [x] Keep SMS verification out of the customer flow; use Firebase Anonymous Auth for customer sessions
-- [x] Enable order submission in source for owner-approved testing; do not deploy Firebase as part of this commit
+- [x] Implement the customer order-submission flow for controlled testing; keep `BUSINESS.acceptingOrders = false` until explicit release approval and do not deploy Firebase as part of this change
 
 **Cost/safety note:** SMS verification is intentionally feature-flagged off by default. Enabling it can incur SMS charges depending on Firebase configuration and usage. A WhatsApp click-to-chat link is not phone verification.
 
@@ -21,7 +21,7 @@
 - [x] Load Fraunces for editorial storefront headings
 - [x] Apply the same font family to native filter/sort selects and their option list
 - [ ] Owner to verify typography visually on desktop/mobile; external Google Fonts availability may affect fallback
-- [ ] Keep ordering disabled; no Firebase deployment
+- [x] Keep ordering disabled in source until explicit release approval; no Firebase deployment
 
 ## Cart presentation polish — implemented
 
@@ -55,7 +55,7 @@
 - [ ] Confirm official delivery zones/radius and the operational address used as the delivery origin
 - [x] Browser-test mobile/desktop form, map link and pickup/delivery totals (owner-confirmed)
 - [x] Automated lint, domain tests, build and smoke pass (owner-confirmed)
-- [x] Enable checkout in source for testing; no functions/rules deployment performed
+- [x] Implement checkout form and callable integration for testing; source remains `BUSINESS.acceptingOrders = false`; no Functions/Rules deployment performed
 
 ## Storefront catalog-only redesign — implementation started
 
