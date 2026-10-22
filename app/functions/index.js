@@ -15,6 +15,7 @@ import { buildTrustedOrder } from "../shared/order-request.js";
 import { OrderValidationError } from "../shared/pricing.js";
 import {
   applyCupboardInventoryMovement,
+  applyCupboardManualInventoryMovement,
   CUPBOARD_INVENTORY_CONFIGURED,
   CupboardInventoryError,
 } from "./cupboard-inventory.js";
@@ -329,6 +330,50 @@ export const transitionOrderStatus = onCall(
   },
 );
 
+async function mirrorCupboardManualInventory({
+  operationId,
+  movement,
+  balance,
+  actorUid,
+}) {
+  const transactionId = `cupboard-manual-${operationId}-${movement.ingredientId}-${movement.type}`;
+  const movementRef = db.doc(`inventoryTransactions/${transactionId}`);
+  const balanceRef = db.doc(`inventoryBalances/${movement.ingredientId}`);
+
+  await db.runTransaction(async (transaction) => {
+    const [movementSnapshot, balanceSnapshot] = await Promise.all([
+      transaction.get(movementRef),
+      transaction.get(balanceRef),
+    ]);
+    const localRevision = Number(balanceSnapshot.data()?.cupboardInventoryRevision ?? -1);
+
+    if (balance.revision >= localRevision || !balanceSnapshot.exists) {
+      transaction.set(balanceRef, {
+        ingredientId: movement.ingredientId,
+        ingredientName: movement.ingredientName,
+        unit: movement.unit,
+        quantity: balance.quantity,
+        cupboardInventoryRevision: balance.revision,
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: actorUid || "system",
+      }, { merge: true });
+    }
+
+    if (movementSnapshot.exists) return;
+
+    transaction.create(movementRef, {
+      ...movement,
+      actorUid: actorUid || "system",
+      source: "cupboard-sync",
+      externalProductId: balance.productId,
+      externalRevision: balance.revision,
+      balanceAfter: balance.quantity,
+      operationId,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  });
+}
+
 export const recordInventoryTransaction = onCall(
   { region: "us-central1" },
   async (request) => {
@@ -338,59 +383,62 @@ export const recordInventoryTransaction = onCall(
       const movement = normalizeInventoryTransaction(request.data);
       if (movement.type === "consumption") {
         throw new InventoryValidationError(
-          "Los consumos se generan automáticamente al completar una venta.",
+          "Los consumos se generan automáticamente al confirmar un pedido.",
+        );
+      }
+      if (!CUPBOARD_INVENTORY_CONFIGURED) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Conecta Cupboard y configura el mapeo de ingredientes antes de registrar compras o ajustes.",
         );
       }
 
-      const balanceRef = db.doc(`inventoryBalances/${movement.ingredientId}`);
-      const transactionRef = db.collection("inventoryTransactions").doc();
+      const operationId = typeof request.data?.operationId === "string"
+        ? request.data.operationId.trim()
+        : "";
+      const result = await applyCupboardManualInventoryMovement({
+        operationId,
+        line: movement,
+        operation: movement.type,
+      });
+      const balance = result.balances[0];
 
-      let balanceAfter;
-      await db.runTransaction(async (transaction) => {
-        const balance = await transaction.get(balanceRef);
-        const openingBalance =
-          balance.data()?.quantity == null
-            ? Number(getIngredient(movement.ingredientId)?.stockQuantity || 0)
-            : Number(balance.data().quantity);
-        const nextBalance = openingBalance + movement.quantityDelta;
-
-        if (nextBalance < 0) {
-          throw new InventoryValidationError(
-            "El ajuste dejaría el inventario en negativo.",
-          );
-        }
-
-        balanceAfter = nextBalance;
-        transaction.set(
-          balanceRef,
-          {
-            ingredientId: movement.ingredientId,
-            ingredientName: movement.ingredientName,
-            unit: movement.unit,
-            quantity: nextBalance,
-            updatedAt: FieldValue.serverTimestamp(),
-            updatedBy: request.auth.uid,
-          },
-          { merge: true },
-        );
-        transaction.set(transactionRef, {
-          ...movement,
-          actorUid: request.auth.uid,
-          source: "admin",
-          balanceAfter: nextBalance,
-          createdAt: FieldValue.serverTimestamp(),
-        });
+      await mirrorCupboardManualInventory({
+        operationId,
+        movement,
+        balance,
+        actorUid: request.auth.uid,
       });
 
-      return { transactionId: transactionRef.id, balance: balanceAfter };
+      return {
+        transactionId: `cupboard-manual-${operationId}-${movement.ingredientId}-${movement.type}`,
+        balance: balance.quantity,
+        source: "cupboard",
+      };
     } catch (error) {
+      if (error instanceof HttpsError) throw error;
       if (error instanceof InventoryValidationError) {
         throw new HttpsError("invalid-argument", error.message);
       }
+      if (error instanceof CupboardInventoryError) {
+        const code = [
+          "CUPBOARD_INVENTORY_NOT_CONFIGURED",
+          "CUPBOARD_PROJECT_MUST_DIFFER",
+          "CUPBOARD_MAPPING_MISSING",
+          "CUPBOARD_MAPPING_DUPLICATE",
+          "CUPBOARD_PRODUCT_MISSING",
+          "CUPBOARD_STOCK_INSUFFICIENT",
+          "CUPBOARD_STOCK_INVALID",
+        ].includes(error.code)
+          ? "failed-precondition"
+          : "invalid-argument";
+        throw new HttpsError(code, error.message);
+      }
+
       console.error("Inventory transaction failed", error);
       throw new HttpsError(
         "internal",
-        "No fue posible registrar el movimiento de inventario.",
+        "Cupboard puede haber registrado el movimiento, pero no se pudo sincronizar la vista de Sandwichies. Reintenta la misma operación.",
       );
     }
   },
