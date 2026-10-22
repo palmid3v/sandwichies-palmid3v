@@ -28,7 +28,7 @@ Consulta los documentos del proyecto antes de configurar servicios, credenciales
 
 ## 📍 Estado del proyecto
 
-En desarrollo. El código fuente tiene `acceptingOrders = true` para pruebas locales aprobadas por el propietario. Esto no autoriza el despliegue ni confirma el estado del backend en producción: la verificación de release debe demostrar que el endpoint desplegado mantiene el checkout cerrado hasta completar las validaciones y recibir aprobación explícita. Las cantidades y costos del Excel de referencia son la fuente de verdad del negocio.
+En desarrollo. El código fuente mantiene `acceptingOrders = false`; el checkout permanece cerrado. La validación local de calidad y la revisión manual del navegador fueron confirmadas por el propietario el 22 de octubre de 2026. Esto no autoriza el despliegue ni confirma el estado del backend en producción: la verificación de release debe comprobar reglas y funciones desplegadas, permisos, smoke tests y aprobación explícita antes de aceptar pedidos reales. Las cantidades y costos del Excel de referencia son la fuente de verdad del negocio.
 
 ## 📚 Documentación
 
