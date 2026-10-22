@@ -18,7 +18,7 @@
     "check": "npm run audit && npm run lint && npm test && npm run security:test && npm run integration:test && npm run build && npm run smoke",
     "provision:admin": "node scripts/provision-admin.mjs",
     "preview": "vite preview",
-    "integration:test": "firebase emulators:exec --only firestore,functions --project demo-sandwichies \"node --test test/inventory.integration.test.js\""
+    "integration:test": "node scripts/integration-test.mjs"
   },
   "dependencies": {
     "@google-cloud/storage": "8.4.0",
