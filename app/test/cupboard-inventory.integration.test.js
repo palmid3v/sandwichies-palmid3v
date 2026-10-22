@@ -162,6 +162,56 @@ test("Cupboard purchases and adjustments are idempotent and keep the real balanc
   }
 });
 
+test("Cupboard rejects an idempotency key reused with different order movement data", async () => {
+  const orderId = `conflict-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const householdId = process.env.CUPBOARD_HOUSEHOLD_ID;
+  const ingredientMap = JSON.parse(process.env.CUPBOARD_INGREDIENT_MAP_JSON || "{}");
+  const productId = ingredientMap.pepperoni || "pepperoni";
+  const collectionPath = `households/${householdId}/workspaces/sandwichies`;
+  const inventoryRef = db.doc(`${collectionPath}/inventory/${productId}`);
+  const movementRef = db.doc(`${collectionPath}/movements/sandwichies-${encodeURIComponent(orderId)}-pepperoni-consume`);
+  const lines = [{
+    ingredientId: "pepperoni",
+    ingredientName: "Pepperoni",
+    unit: "unidad",
+    quantityDelta: -2,
+    reason: `Consumo por pedido ${orderId}`,
+    orderId,
+  }];
+
+  try {
+    await inventoryRef.set({ portions: 20, unit: "unidad" });
+    await movementRef.set({
+      productId,
+      ingredientId: "pepperoni",
+      ingredientName: "Pepperoni",
+      unit: "unidad",
+      type: "consumption",
+      quantity: 3,
+      quantityDelta: -3,
+      orderId,
+      sourceApp: "sandwichies",
+    });
+
+    await assert.rejects(
+      applyCupboardInventoryMovement({
+        orderId,
+        orderNumber: 125,
+        lines,
+        operation: "consume",
+      }),
+      (error) => error.code === "CUPBOARD_IDEMPOTENCY_CONFLICT",
+    );
+    assert.equal((await inventoryRef.get()).data().portions, 20);
+    assert.equal((await movementRef.get()).data().quantityDelta, -3);
+  } finally {
+    await Promise.all([
+      inventoryRef.delete().catch(() => undefined),
+      movementRef.delete().catch(() => undefined),
+    ]);
+  }
+});
+
 test("Cupboard rejects insufficient stock without recording a movement", async () => {
   const orderId = `shortage-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const householdId = process.env.CUPBOARD_HOUSEHOLD_ID;
