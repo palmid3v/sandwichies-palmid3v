@@ -311,6 +311,7 @@ export const transitionOrderStatus = onCall(
           "CUPBOARD_PRODUCT_MISSING",
           "CUPBOARD_STOCK_INSUFFICIENT",
           "CUPBOARD_STOCK_INVALID",
+          "CUPBOARD_IDEMPOTENCY_CONFLICT",
           "CUPBOARD_CONSUMPTION_NOT_FOUND",
           "CUPBOARD_MOVEMENT_INCOMPLETE",
           "INVALID_MOVEMENT",
@@ -336,7 +337,7 @@ async function mirrorCupboardManualInventory({
   balance,
   actorUid,
 }) {
-  const transactionId = `cupboard-manual-${operationId}-${movement.ingredientId}-${movement.type}`;
+  const transactionId = `cupboard-manual-${operationId}`;
   const movementRef = db.doc(`inventoryTransactions/${transactionId}`);
   const balanceRef = db.doc(`inventoryBalances/${movement.ingredientId}`);
 
@@ -411,7 +412,7 @@ export const recordInventoryTransaction = onCall(
       });
 
       return {
-        transactionId: `cupboard-manual-${operationId}-${movement.ingredientId}-${movement.type}`,
+        transactionId: `cupboard-manual-${operationId}`,
         balance: balance.quantity,
         source: "cupboard",
       };
