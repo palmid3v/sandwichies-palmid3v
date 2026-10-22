@@ -42,7 +42,16 @@ service cloud.firestore {
       let current = paymentStatus(resource.data);
       let next = paymentStatus(request.resource.data);
 
-      return ((current == next) || (current == "pendiente" && next == "pagado"))
+      return ((current == next) || (
+        current == "pendiente"
+        && next == "pagado"
+        && (
+          currentOrder == "confirmado"
+          || currentOrder == "preparando"
+          || currentOrder == "listo"
+          || currentOrder == "entregado"
+        )
+      ))
         && !(currentOrder == "cancelado" && current != next);
     }
 
