@@ -1,5 +1,6 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { CATALOG } from "../shared/catalog.js";
 
 const projectId = String(process.env.CUPBOARD_PROJECT_ID || "").trim();
 const householdId = String(process.env.CUPBOARD_HOUSEHOLD_ID || "").trim();
@@ -38,11 +39,16 @@ try {
 
 const runtimeProjectId =
   process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || "";
+const requiredIngredientIds = CATALOG.ingredients
+  .filter((ingredient) => ingredient.active !== false)
+  .map((ingredient) => ingredient.id);
+const missingMappingIds = requiredIngredientIds.filter((id) => !ingredientMap[id]);
 
 export const CUPBOARD_INVENTORY_CONFIGURED = Boolean(
   projectId &&
   householdId &&
   Object.keys(ingredientMap).length > 0 &&
+  missingMappingIds.length === 0 &&
   !mappingError &&
   (!runtimeProjectId || runtimeProjectId !== projectId),
 );
@@ -51,7 +57,9 @@ export const CUPBOARD_INVENTORY_CONFIG_ERROR = mappingError
   ? "CUPBOARD_INGREDIENT_MAP_INVALID"
   : !projectId || !householdId || !Object.keys(ingredientMap).length
     ? "CUPBOARD_INVENTORY_NOT_CONFIGURED"
-    : runtimeProjectId === projectId
+    : missingMappingIds.length > 0
+      ? "CUPBOARD_MAPPING_MISSING"
+      : runtimeProjectId === projectId
       ? "CUPBOARD_PROJECT_MUST_DIFFER"
       : null;
 
