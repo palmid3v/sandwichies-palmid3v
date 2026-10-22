@@ -252,8 +252,8 @@ export const transitionOrderStatus = onCall(
       if (
         isCupboardOrder &&
         nextStatus === "cancelado" &&
-        currentStatus !== "pendiente" &&
-        cupboardConsumptionStatus !== "reversed"
+        cupboardConsumptionStatus !== "reversed" &&
+        cupboardConsumptionStatus !== "not-consumed"
       ) {
         const consumption = buildOrderConsumption(order);
         if (!consumption.complete) {
