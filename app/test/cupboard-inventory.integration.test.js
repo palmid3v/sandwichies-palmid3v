@@ -130,6 +130,15 @@ test("Cupboard purchases and adjustments are idempotent and keep the real balanc
     });
     assert.equal((await inventoryRef.get()).data().portions, 15);
     assert.equal((await purchaseRef.get()).exists, true);
+    await assert.rejects(
+      applyCupboardManualInventoryMovement({
+        operationId: purchaseId,
+        line: { ...purchase, quantityDelta: 6 },
+        operation: "purchase",
+      }),
+      (error) => error.code === "CUPBOARD_IDEMPOTENCY_CONFLICT",
+    );
+    assert.equal((await inventoryRef.get()).data().portions, 15);
 
     const adjustment = { ...purchase, quantityDelta: -3, reason: "Ajuste de prueba" };
     await applyCupboardManualInventoryMovement({
