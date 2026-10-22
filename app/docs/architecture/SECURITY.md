@@ -29,4 +29,4 @@ Después de asignar/revocar, el usuario debe cerrar sesión y volver a entrar o 
 
 ## Inventory authorization
 
-The collections `inventoryBalances` and `inventoryTransactions` are readable only by admins. Browser writes remain denied. The trusted Functions runtime creates transaction records and updates balances. Completed-sale consumption is generated server-side after an order reaches the approved completed-sale state.
+The collections `inventoryBalances` and `inventoryTransactions` are readable only by admins. Browser writes remain denied. Admin browser status changes must go through the trusted `transitionOrderStatus` callable; Firestore Rules block direct status writes. The callable deducts stock from Cupboard before confirming the order, restores it once on cancellation after confirmation, then mirrors the external result to Sandwichies. Completed-sale accounting remains separate and counts only delivered, paid orders.
