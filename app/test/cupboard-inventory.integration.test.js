@@ -24,7 +24,8 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 test("Cupboard movements are atomic, retry-safe, and reversible once per order", async () => {
   const orderId = `bridge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const householdId = process.env.CUPBOARD_HOUSEHOLD_ID;
-  const productId = "pepperoni";
+  const ingredientMap = JSON.parse(process.env.CUPBOARD_INGREDIENT_MAP_JSON || "{}");
+  const productId = ingredientMap.pepperoni || "pepperoni";
   const collectionPath = `households/${householdId}/workspaces/sandwichies`;
   const inventoryRef = db.doc(`${collectionPath}/inventory/${productId}`);
   const consumeRef = db.doc(`${collectionPath}/movements/sandwichies-${encodeURIComponent(orderId)}-pepperoni-consume`);
@@ -98,7 +99,9 @@ test("Cupboard rejects insufficient stock without recording a movement", async (
   const orderId = `shortage-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const householdId = process.env.CUPBOARD_HOUSEHOLD_ID;
   const collectionPath = `households/${householdId}/workspaces/sandwichies`;
-  const inventoryRef = db.doc(`${collectionPath}/inventory/pepperoni`);
+  const ingredientMap = JSON.parse(process.env.CUPBOARD_INGREDIENT_MAP_JSON || "{}");
+  const productId = ingredientMap.pepperoni || "pepperoni";
+  const inventoryRef = db.doc(`${collectionPath}/inventory/${productId}`);
   const movementRef = db.doc(`${collectionPath}/movements/sandwichies-${encodeURIComponent(orderId)}-pepperoni-consume`);
   const lines = [{
     ingredientId: "pepperoni",
