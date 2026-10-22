@@ -207,6 +207,26 @@ export async function applyCupboardInventoryMovement({
       }
 
       if (item.movementSnapshot.exists) {
+        const existingMovement = item.movementSnapshot.data();
+        const expectedDelta = operation === "consume"
+          ? item.line.quantityDelta
+          : -item.line.quantityDelta;
+        const expectedType = operation === "consume" ? "consumption" : "reversal";
+
+        if (
+          existingMovement.orderId !== orderId ||
+          existingMovement.productId !== item.productId ||
+          existingMovement.ingredientId !== item.line.ingredientId ||
+          existingMovement.type !== expectedType ||
+          existingMovement.quantityDelta !== expectedDelta ||
+          existingMovement.unit !== item.line.unit
+        ) {
+          throw new CupboardInventoryError(
+            "CUPBOARD_IDEMPOTENCY_CONFLICT",
+            "El identificador de movimiento del pedido ya existe con datos distintos; requiere revisión.",
+          );
+        }
+
         writes.push({
           ...item,
           quantity: currentQuantity,
