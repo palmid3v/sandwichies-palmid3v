@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signInAnonymously, updateProfile } from "firebase/auth";
-import { customerAuth } from "../firebase";
-import { getFunctions, httpsCallable } from "firebase/functions";
+import { customerAuth } from "../customerFirebase";
 import Category from "../components/Category";
 import { generateName } from "../utils/generateName";
 import { INGREDIENTS } from "../data/ingredients";
@@ -342,6 +341,7 @@ export default function OrderPage() {
       const nameSaved = await persistCustomerName();
       if (!nameSaved) throw new Error("No se pudo guardar el nombre del cliente.");
 
+      const { getFunctions, httpsCallable } = await import("firebase/functions");
       const createOrder = httpsCallable(getFunctions(), "createOrder");
       const result = await createOrder({
         customer: { name: clientName.trim(), phone: normalizeColombianPhone(phone) },
