@@ -87,7 +87,7 @@
 - [x] Reponer stock al cancelar después de confirmar; cancelar mientras está pendiente no mueve inventario.
 - [x] Bloquear cambios directos de estado desde el navegador y dirigirlos por una callable protegida.
 - [x] Mantener separado el consumo físico del criterio contable de venta completada (entregado + pagado).
-- [x] Añadir pruebas de integración para descuento, repetición, reversión y stock insuficiente; incorporarlas al comando de integración.
+- [x] Sincronizar compras y ajustes manuales del panel de Sandwichies con Cupboard; exigir un ID idempotente por operación.
 - [x] Documentar configuración, mapeo y permisos entre proyectos.
 - [ ] Sustituir el ID de hogar de ejemplo por el hogar real de Cupboard y revisar el mapeo de cada ingrediente.
 - [ ] Conceder `roles/datastore.user` a la identidad real del runtime de Functions sobre el proyecto Cupboard.
