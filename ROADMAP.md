@@ -430,3 +430,9 @@ IMPROVE
 - [x] Keep the storefront Firebase Auth client separate from the admin Firestore client.
 - [x] Bind the order callable to the storefront Firebase app and defer importing Firebase Functions until submission.
 - [ ] Run the full quality gate after these latest changes, confirm bundle budget output, and repeat the storefront/admin browser check.
+
+
+## CI execution status — 2026-10-22
+
+- [ ] Restore/verify GitHub Actions execution: recent `main` workflow runs ended within a few seconds with no runner assigned, no steps reported and no downloadable job logs. This is currently inconclusive about code correctness; do not mark CI green or infer a code-level cause from these runs.
+- [ ] Check repository Actions settings, quota/billing availability and rerun the workflow once a runner can start.
