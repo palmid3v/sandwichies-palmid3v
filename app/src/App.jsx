@@ -13,6 +13,9 @@ import { BUSINESS } from "./config/business";
 import { getOrderDate, normalizeOrder } from "./utils/orders";
 import "./styles/admin.css";
 
+const createInventoryOperationId = () =>
+  globalThis.crypto?.randomUUID?.() || `manual-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
 export default function App() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
