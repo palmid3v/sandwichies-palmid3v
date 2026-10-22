@@ -284,10 +284,6 @@ export const transitionOrderStatus = onCall(
         }
       }
 
-      if (isCupboardOrder && nextStatus === "cancelado" && currentStatus === "pendiente") {
-        cupboardConsumptionStatus = "not-consumed";
-      }
-
       const inventory = {
         ...(order.inventory || {}),
         system: isCupboardOrder ? "cupboard" : (order.inventory?.system || "legacy"),
