@@ -60,9 +60,11 @@ service cloud.firestore {
       // Browser admins can change operational state only. Trusted order, financial,
       // customer, recipe and inventory snapshot fields remain immutable from clients.
       allow read: if isAdmin();
+      // Browser clients may update payment metadata only. Order-state transitions
+      // must pass through the trusted callable, which synchronizes Cupboard first.
       allow update: if isAdmin()
         && validOrderUpdateFields()
-        && validOrderStatusTransition()
+        && orderStatus(resource.data) == orderStatus(request.resource.data)
         && validPaymentStatusTransition();
       allow create, delete: if false;
     }
