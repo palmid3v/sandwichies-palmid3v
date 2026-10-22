@@ -416,7 +416,9 @@ export default function App() {
                           ? "Compra"
                           : movement.type === "consumption"
                             ? "Consumo"
-                            : "Ajuste"}
+                            : movement.type === "reversal"
+                              ? "Reversión"
+                              : "Ajuste"}
                         {movement.orderId
                           ? ` · Pedido #${movement.orderId}`
                           : ""}
