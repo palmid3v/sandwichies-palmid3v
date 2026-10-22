@@ -1,7 +1,8 @@
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { initializeApp } from "firebase-admin/app";
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
+import { randomUUID } from "node:crypto";
 import { BUSINESS, canTransitionOrderStatus, isCompletedSale } from "../shared/business.js";
 import { getIngredient } from "../shared/catalog.js";
 import {
@@ -185,14 +186,41 @@ export const transitionOrderStatus = onCall(
     }
 
     const orderRef = db.doc(`orders/${orderId}`);
+    const transitionLockId = randomUUID();
+    let lockAcquired = false;
 
     try {
-      const snapshot = await orderRef.get();
-      if (!snapshot.exists) {
-        throw new HttpsError("not-found", "El pedido no existe.");
-      }
+      const order = await db.runTransaction(async (transaction) => {
+        const snapshot = await transaction.get(orderRef);
+        if (!snapshot.exists) {
+          throw new HttpsError("not-found", "El pedido no existe.");
+        }
 
-      const order = { id: snapshot.id, ...snapshot.data() };
+        const data = snapshot.data();
+        const activeLock = data.inventory?.transitionLock;
+        const lockExpiresAt = activeLock?.expiresAt?.toMillis?.() || 0;
+        if (activeLock?.id && lockExpiresAt > Date.now()) {
+          throw new HttpsError(
+            "aborted",
+            "Otro cambio de estado está en curso para este pedido. Vuelve a intentarlo.",
+          );
+        }
+
+        transaction.update(orderRef, {
+          inventory: {
+            ...(data.inventory || {}),
+            transitionLock: {
+              id: transitionLockId,
+              expiresAt: Timestamp.fromMillis(Date.now() + 120000),
+            },
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        return { id: snapshot.id, ...data };
+      });
+      lockAcquired = true;
       const currentStatus = order.status || "pendiente";
       const alreadyAtTarget = currentStatus === nextStatus;
 
@@ -293,14 +321,65 @@ export const transitionOrderStatus = onCall(
         updatedAt: FieldValue.serverTimestamp(),
       };
 
-      await orderRef.update({
-        status: nextStatus,
-        inventory,
-        updatedAt: FieldValue.serverTimestamp(),
+      await db.runTransaction(async (transaction) => {
+        const latestSnapshot = await transaction.get(orderRef);
+        if (!latestSnapshot.exists) {
+          throw new HttpsError("not-found", "El pedido ya no existe.");
+        }
+
+        const latest = latestSnapshot.data();
+        if (latest.inventory?.transitionLock?.id !== transitionLockId) {
+          throw new HttpsError(
+            "aborted",
+            "La reserva de cambio de estado expiró. Reintenta el cambio para reconciliar el inventario.",
+          );
+        }
+        if ((latest.status || "pendiente") !== currentStatus) {
+          throw new HttpsError(
+            "aborted",
+            "El pedido cambió mientras se procesaba. Revisa su estado antes de reintentar.",
+          );
+        }
+
+        const nextInventory = {
+          ...(latest.inventory || {}),
+          system: isCupboardOrder ? "cupboard" : (latest.inventory?.system || "legacy"),
+          consumptionStatus: cupboardConsumptionStatus,
+          cupboardConsumptionStatus,
+          updatedAt: FieldValue.serverTimestamp(),
+        };
+        delete nextInventory.transitionLock;
+
+        transaction.update(orderRef, {
+          status: nextStatus,
+          inventory: nextInventory,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
       });
+      lockAcquired = false;
 
       return { orderId, status: nextStatus, cupboardConsumptionStatus };
     } catch (error) {
+      if (lockAcquired) {
+        try {
+          await db.runTransaction(async (transaction) => {
+            const snapshot = await transaction.get(orderRef);
+            if (!snapshot.exists) return;
+            const current = snapshot.data();
+            if (current.inventory?.transitionLock?.id !== transitionLockId) return;
+
+            const nextInventory = { ...(current.inventory || {}) };
+            delete nextInventory.transitionLock;
+            transaction.update(orderRef, {
+              inventory: nextInventory,
+              updatedAt: FieldValue.serverTimestamp(),
+            });
+          });
+        } catch (releaseError) {
+          console.error("Could not release order transition lock:", releaseError);
+        }
+      }
+
       if (error instanceof HttpsError) throw error;
       if (error instanceof CupboardInventoryError) {
         const code = [
