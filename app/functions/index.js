@@ -148,7 +148,7 @@ async function mirrorCupboardInventory({
       if (movementSnapshot.exists) continue;
       transaction.create(item.movementRef, {
         ...item.line,
-        type: operation === "consume" ? "consumption" : "adjustment",
+        type: operation === "consume" ? "consumption" : "reversal",
         quantityDelta: item.delta,
         reason: operation === "consume"
           ? `Consumo de Cupboard por pedido #${orderNumber}`
