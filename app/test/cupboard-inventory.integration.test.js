@@ -4,6 +4,7 @@ import { initializeApp, deleteApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import {
   applyCupboardInventoryMovement,
+  applyCupboardManualInventoryMovement,
   CUPBOARD_INVENTORY_CONFIGURED,
 } from "../functions/cupboard-inventory.js";
 
@@ -91,6 +92,63 @@ test("Cupboard movements are atomic, retry-safe, and reversible once per order",
       inventoryRef.delete().catch(() => undefined),
       consumeRef.delete().catch(() => undefined),
       reverseRef.delete().catch(() => undefined),
+    ]);
+  }
+});
+
+test("Cupboard purchases and adjustments are idempotent and keep the real balance", async () => {
+  const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const householdId = process.env.CUPBOARD_HOUSEHOLD_ID;
+  const ingredientMap = JSON.parse(process.env.CUPBOARD_INGREDIENT_MAP_JSON || "{}");
+  const productId = ingredientMap.pepperoni || "pepperoni";
+  const collectionPath = `households/${householdId}/workspaces/sandwichies`;
+  const inventoryRef = db.doc(`${collectionPath}/inventory/${productId}`);
+  const purchaseId = `purchase-${suffix}`;
+  const adjustmentId = `adjustment-${suffix}`;
+  const purchaseRef = db.doc(`${collectionPath}/movements/sandwichies-manual-${purchaseId}-pepperoni-purchase`);
+  const adjustmentRef = db.doc(`${collectionPath}/movements/sandwichies-manual-${adjustmentId}-pepperoni-adjustment`);
+
+  try {
+    await inventoryRef.set({ portions: 10, unit: "unidad", updatedAt: FieldValue.serverTimestamp() });
+    const purchase = {
+      ingredientId: "pepperoni",
+      ingredientName: "Pepperoni",
+      unit: "unidad",
+      quantityDelta: 5,
+      reason: "Compra de prueba",
+    };
+
+    await applyCupboardManualInventoryMovement({
+      operationId: purchaseId,
+      line: purchase,
+      operation: "purchase",
+    });
+    await applyCupboardManualInventoryMovement({
+      operationId: purchaseId,
+      line: purchase,
+      operation: "purchase",
+    });
+    assert.equal((await inventoryRef.get()).data().portions, 15);
+    assert.equal((await purchaseRef.get()).exists, true);
+
+    const adjustment = { ...purchase, quantityDelta: -3, reason: "Ajuste de prueba" };
+    await applyCupboardManualInventoryMovement({
+      operationId: adjustmentId,
+      line: adjustment,
+      operation: "adjustment",
+    });
+    await applyCupboardManualInventoryMovement({
+      operationId: adjustmentId,
+      line: adjustment,
+      operation: "adjustment",
+    });
+    assert.equal((await inventoryRef.get()).data().portions, 12);
+    assert.equal((await adjustmentRef.get()).exists, true);
+  } finally {
+    await Promise.all([
+      inventoryRef.delete().catch(() => undefined),
+      purchaseRef.delete().catch(() => undefined),
+      adjustmentRef.delete().catch(() => undefined),
     ]);
   }
 });
