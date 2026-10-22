@@ -244,10 +244,10 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
           <p>
             <span>Estado del pago</span>
             <button
-              disabled={isUpdating || currentPaymentStatus === "pagado"}
+              disabled={isUpdating || currentPaymentStatus === "pagado" || selectedOrder.status === "pendiente" || selectedOrder.status === "cancelado"}
               onClick={() => updateOrder({ "payment.status": "pagado" })}
             >
-              {currentPaymentStatus === "pagado" ? "Pagado" : "Marcar pagado"}
+              {currentPaymentStatus === "pagado" ? "Pagado" : selectedOrder.status === "pendiente" ? "Confirma primero" : "Marcar pagado"}
             </button>
           </p>
           <p>
