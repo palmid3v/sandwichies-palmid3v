@@ -1,6 +1,9 @@
+import { existsSync } from "node:fs";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { CATALOG } from "../shared/catalog.js";
+
+if (existsSync(".env")) process.loadEnvFile(".env");
 
 const projectId = String(process.env.CUPBOARD_PROJECT_ID || "").trim();
 const householdId = String(process.env.CUPBOARD_HOUSEHOLD_ID || "").trim();
