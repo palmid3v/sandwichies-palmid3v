@@ -21,7 +21,25 @@ Ejemplo solo de formato; confirmar cada ID con datos reales antes de usarlo:
 
 Cada ingrediente activo debe tener un producto único. No se crean productos automáticamente: si falta un producto, la confirmación debe fallar sin cambiar el estado del pedido.
 
-## 2. Preflight local sin conexión a Firebase
+## 2. Catálogo único de productos
+
+Cupboard es el catálogo canónico compartido. El script `scripts/sync-cupboard-catalog.mjs` registra las fichas de ingredientes activos de Sandwichies en `productCatalog/{productId}` usando el mapeo configurado. Primero verifica que todas las asociaciones sean uno-a-uno y que cada producto ya exista en el inventario comercial; no crea existencias ni altera cantidades o movimientos. Las fichas existentes se conservan sin sobrescribirlas.
+
+Ejecuta primero la simulación:
+
+```powershell
+npm run cupboard:catalog-sync
+```
+
+Revisa la lista de fichas faltantes y luego aplica explícitamente:
+
+```powershell
+npm run cupboard:catalog-sync -- --apply
+```
+
+El script usa Application Default Credentials para el proyecto Cupboard. No imprime credenciales ni modifica el inventario. Los usuarios invitados solo pueden leer la identidad compartida de los productos; el inventario de Sandwichies permanece privado del propietario.
+
+## 3. Preflight local sin conexión a Firebase
 
 Desde D:\PALMI-D3V\projects\sandwichies-palmid3v\app, con las variables de entorno definidas para la sesión:
 
