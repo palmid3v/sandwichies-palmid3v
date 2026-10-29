@@ -6,6 +6,9 @@ export default defineConfig({
   build: {
     rolldownOptions: {
       output: {
+        // Manual vendor chunks can alter module side-effect execution order.
+        // Preserve source order while diagnosing the production startup crash.
+        strictExecutionOrder: true,
         codeSplitting: {
           groups: [
             {
