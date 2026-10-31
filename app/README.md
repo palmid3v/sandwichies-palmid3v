@@ -1,6 +1,6 @@
 # Sandwichies — Contexto técnico de la aplicación
 
-**Actualizado:** 30 de octubre de 2026  
+**Actualizado:** 31 de octubre de 2026  
 **Rama principal:** `main`  
 **Estado:** desarrollo activo; release no aprobado. `main` tiene `BUSINESS.acceptingOrders = true` en `270303d`, en conflicto con los documentos de release.
 **Fase de integración prioritaria:** Sandwichies ↔ Cupboard (Fase 3).
@@ -63,14 +63,91 @@ Adaptadores de interfaz
         ↓
 Dominio compartido (shared/)
         ↓
-Cloud Functions autorizadas
+Backend confiable (Functions en código; alternativa $0 pendiente de decisión)
         ↓
 Firestore / integración Cupboard
 ```
 
 El navegador es un entorno no confiable. No aceptar desde el cliente precios, totales, costos, utilidad, consecutivos ni estados privilegiados como fuente de verdad.
 
-## 4. Estado de avance
+**Estado de despliegue verificado (31-oct-2026):** el código de `functions/` existe, pero `firebase functions:list --project sandwich-pro` y `gcloud functions list` devolvieron cero funciones; las URLs `createOrder` y `validateMeetingPoint` responden 404. Por tanto, el flujo backend definido en el código no está disponible en el proyecto Firebase de producción. Los emuladores permiten desarrollo y pruebas locales, pero no sustituyen el backend desplegado.
+
+## 4. Stack tecnológico y herramientas
+
+Esta sección distingue dependencias que aparecen en el repositorio, servicios configurados y alternativas todavía evaluadas. Las versiones indicadas corresponden a los rangos declarados en `package.json`, no necesariamente a la versión exacta instalada en cada equipo.
+
+### Lenguajes y plataforma
+- **JavaScript (ES modules):** lenguaje principal de frontend, dominio compartido y funciones backend.
+- **HTML y CSS:** estructura, estilos y diseño responsive de la interfaz.
+- **Node.js 22:** runtime declarado para Firebase Functions.
+- **npm:** instalación de dependencias y ejecución de scripts.
+
+### Frontend
+- **React 19:** interfaz basada en componentes.
+- **React DOM 19:** renderizado web.
+- **React Router 7:** navegación y rutas.
+- **Vite 8 + plugin React:** servidor de desarrollo y build.
+- **Rolldown (configuración de build de Vite):** división de bundles y optimización de salida.
+- **CSS propio:** estilos de storefront, administración y experiencia mobile-first.
+
+### Backend y datos — implementación en el código
+- **Firebase Authentication:** autenticación administrativa y sesiones anónimas de clientes.
+- **Cloud Firestore:** pedidos, catálogo operativo, zonas, mesas virtuales, seguimiento e inventario sincronizado.
+- **Firebase Cloud Functions v2:** código callable, trigger de Firestore y tarea programada para operaciones confiables.
+- **Firebase Admin SDK:** acceso privilegiado a Firestore desde funciones.
+- **Firestore Security Rules:** límites de lectura y escritura por identidad y rol.
+- **Firebase Emulator Suite:** ejecución local de Firestore y Functions para pruebas.
+- **Firebase CLI:** selección de proyecto, emuladores, diagnóstico y despliegue.
+
+**Limitación de producción:** el proyecto Firebase `sandwich-pro` está en el plan Spark y no tiene Cloud Functions desplegadas. Las funciones están implementadas en el repositorio y se prueban con emuladores, pero no se deben considerar endpoints productivos disponibles. Cloud Functions requiere asociar facturación y plan Blaze para desplegar; eso contradice el presupuesto $0 vigente. No activar Blaze ni vincular una cuenta de facturación como parte de esta etapa.
+
+### Mapas y geolocalización
+- **Leaflet 1.9 + React-Leaflet 5:** renderizado de mapas en la interfaz.
+- **OpenStreetMap:** cartografía base prevista; el uso de tiles debe respetar la política y capacidad del proveedor.
+- **geofire-common:** utilidades geoespaciales para consultas por proximidad.
+- **Lógica compartida propia:** validación de polígonos, cobertura y agrupación de puntos de encuentro.
+
+### Integraciones del producto
+- **Cupboard:** integración entre proyectos Firebase para catálogo, balances y movimientos de inventario; adaptadores y sincronización idempotente están en el código. La configuración real, permisos cruzados y pruebas operativas siguen siendo gates pendientes.
+- **Vercel:** plataforma de hosting/despliegue web observada en el proyecto. El estado de un deployment no demuestra por sí solo que los endpoints backend estén disponibles.
+- **WhatsApp / enlaces de mapas:** generación de mensajes de pedido y enlaces externos desde el cliente; no equivalen a una API transaccional de WhatsApp ni a un proveedor de mapas contratado.
+
+### Calidad, pruebas y herramientas de desarrollo
+- **ESLint 9:** análisis estático y lint.
+- **Node.js Test Runner (`node:test`):** pruebas unitarias y de integración.
+- **@firebase/rules-unit-testing:** pruebas de reglas Firestore.
+- **Firebase Emulator Suite:** pruebas aisladas sin escribir en los proyectos reales.
+- **Scripts propios:** auditoría npm, pruebas de dominio, reglas, integración, preflight de Cupboard, smoke test, build y control de tamaño de bundle.
+- **Git + GitHub:** control de versiones, revisión y trazabilidad de cambios.
+- **PowerShell:** comandos y operación local en el entorno Windows utilizado para el desarrollo.
+
+Comandos principales desde `app/`:
+```bash
+npm install
+npm run dev
+npm run lint
+npm test
+npm run security:test
+npm run integration:test
+npm run build
+npm run performance:check
+npm run smoke
+npm run check
+```
+
+### Presupuesto $0 y tecnologías evaluadas
+
+- **Firebase Spark:** plan vigente objetivo para Authentication y Firestore dentro de sus cuotas y límites gratuitos.
+- **Cloudflare Workers Free:** alternativa candidata para alojar endpoints backend sin Blaze. A 31-oct-2026, la documentación oficial indica 100.000 solicitudes/día y 10 ms de CPU por invocación en Free. Antes de adoptarlo hay que validar autenticación Firebase, acceso seguro a Firestore, transacciones, integración Cupboard, límites, cron y comportamiento al agotar cuota. No está añadido al repositorio ni desplegado.
+- **Vercel Free:** mantener el frontend dentro de las condiciones y cuotas del plan gratuito.
+- No se autoriza facturación automática, upgrade a planes pagos, ni servicios que puedan generar cargos sin una decisión explícita del propietario.
+
+Referencias oficiales:
+- [Firebase pricing plans](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans)
+- [Cloudflare Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/)
+- [Cloudflare Workers limits](https://developers.cloudflare.com/workers/platform/limits/)
+
+## 5. Estado de avance
 
 Los porcentajes son estimaciones de avance documental/funcional por área, no métricas de líneas de código ni de release.
 
@@ -88,7 +165,7 @@ Los porcentajes son estimaciones de avance documental/funcional por área, no m�
 
 No se calcula un promedio general porque las áreas tienen pesos y criterios de finalización distintos.
 
-## 5. Fase activa: cerrar la integración con Cupboard
+## 6. Fase activa: cerrar la integración con Cupboard
 
 ### Implementado/documentado
 - Adaptador entre proyectos Firebase con Admin SDK.
@@ -109,7 +186,7 @@ No se calcula un promedio general porque las áreas tienen pesos y criterios de 
 
 No ejecutar importaciones ni sincronizaciones contra datos reales sin revisar primero el modo dry-run, las variables y el destino.
 
-## 6. Mesas virtuales — implementación base
+## 7. Mesas virtuales — implementación base
 
 La referencia vigente está en `docs/product/virtual-tables/`.
 
@@ -128,7 +205,7 @@ El backend, las reglas Firestore y la consola admin están implementados. Pedido
 
 Los enlaces de Canva son referencias de diseño. Los archivos binarios exportados de los mockups aún no están archivados dentro del repositorio.
 
-## 7. Crecimiento hacia iOS y Android
+## 8. Crecimiento hacia iOS y Android
 
 La ruta propuesta es incremental:
 
@@ -141,7 +218,7 @@ La ruta propuesta es incremental:
 
 No migrar el frontend actual ni duplicar reglas de negocio antes de una decisión arquitectónica documentada. Las aplicaciones móviles deben consumir el backend confiable; nunca deben convertirse en autoridad de precios, pagos o inventario.
 
-## 8. Firebase, seguridad y release
+## 9. Firebase, seguridad y release
 
 - `app/shared/business.js` tiene `BUSINESS.acceptingOrders = true` en `main` desde `270303d`, tras instrucción previa del propietario de conservar ese cambio.
 - `MASTERPROMPT.md`, los requisitos de storefront y la checklist de release requieren `false` hasta completar el release. La configuración local y la política documentada están en conflicto. No sobreescribir el commit del propietario sin instrucción directa; no hacer push/despliegue ni aceptar pedidos hasta resolverlo.
@@ -154,7 +231,7 @@ No migrar el frontend actual ni duplicar reglas de negocio antes de una decisió
 
 La configuración local del proyecto Firebase se define en `.firebaserc`. Verificar el proyecto destino antes de ejecutar cualquier comando Firebase. Priorizar emuladores y proyectos demo para pruebas.
 
-## 9. Calidad y verificación
+## 10. Calidad y verificación
 
 Scripts definidos en `package.json`:
 
@@ -191,7 +268,7 @@ Para pruebas de reglas, se requiere Java disponible en `PATH`. Usa exclusivament
 - Los workflows recientes de GitHub Actions reportan fallo sin pasos ejecutados; la causa no queda demostrada por esa evidencia. No marcar CI como aprobado.
 - El estado Vercel del commit documental más reciente consultado fue exitoso; no demuestra el funcionamiento de checkout ni la disponibilidad de Functions.
 
-## 10. Orden recomendado de trabajo
+## 11. Orden recomendado de trabajo
 
 1. Cerrar la configuración y las pruebas cruzadas de Cupboard.
 2. Ejecutar `npm run check` en el estado actual y recuperar CI verificable.
