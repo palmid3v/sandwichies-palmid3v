@@ -1,115 +1,206 @@
-# Sandwichies — App Context
+# Sandwichies — Contexto técnico de la aplicación
 
-**Estado:** desarrollo y pruebas locales; no listo para recibir pedidos reales.  
-**Rama de trabajo:** `main`  
-**Proyecto Firebase configurado:** `sandwich-pro` (`app/.firebaserc`).
+**Actualizado:** 30 de octubre de 2026  
+**Rama principal:** `main`  
+**Estado:** desarrollo activo y pruebas controladas; no listo para recibir pedidos reales.  
+**Fase de integración prioritaria:** Sandwichies ↔ Cupboard (Fase 3).
 
-## Propósito
+> Fuente de verdad: código y configuración actuales del repositorio. Las especificaciones, mockups y roadmaps describen objetivos; no prueban que una función esté implementada.
 
-Aplicación React para catálogo y configuración de sándwiches, cálculo de precios y costos confiables, checkout, administración de pedidos y seguimiento estimado de inventario.
+## 1. Propósito y superficies del producto
 
-## Funcionalidades actuales
+Sandwichies es una aplicación para descubrir y configurar sándwiches, gestionar el carrito y preparar pedidos, junto con herramientas administrativas para operar pedidos, pagos e inventario.
+
+La prioridad de UX es:
+1. Cliente mobile-first.
+2. Operación administrativa mobile.
+3. Administración desktop para gestión integral del negocio.
+4. Preparación progresiva para aplicaciones iOS y Android.
+
+La web actual usa React y Vite. No existe todavía una aplicación nativa iOS/Android implementada en este repositorio.
+
+## 2. Capacidades presentes en el código
 
 ### Cliente
-- Catálogo y configurador de productos existentes, con tamaños de 15 cm y 30 cm.
-- Carrito, selección de recogida o domicilio, datos del cliente y método de pago.
-- Sesión anónima de Firebase separada de la sesión de administración.
-- El nombre se solicita en checkout y se guarda en el perfil de la sesión anónima para prefijar futuras visitas mientras esa identidad siga disponible.
-- Validación de teléfono móvil colombiano como dato de contacto; el checkout no depende de verificación por SMS.
-- La confirmación final del pedido depende de que la Cloud Function esté desplegada y disponible.
+- Catálogo y descubrimiento de recetas existentes.
+- Búsqueda y filtros del catálogo.
+- Carrito con cantidades, eliminación y cálculo de totales.
+- Selección de recogida o domicilio y captura de datos de contacto.
+- Sesión de cliente mediante Firebase Anonymous Auth, separada del cliente Firebase administrativo.
+- Validación de solicitudes y reconstrucción confiable de pedidos en backend.
+- El flujo de envío existe para pruebas controladas, pero los pedidos reales permanecen deshabilitados.
 
 ### Administración
-- Firebase Authentication con correo/contraseña y custom claim `admin: true`.
-- Lectura de pedidos e inventario para administradores.
-- Actualizaciones de estado y estado de pago limitadas por reglas.
-- No se permite crear/eliminar pedidos directamente desde el navegador ni editar desde cliente los totales, costos, utilidad, datos del cliente, receta o snapshots de inventario.
+- Firebase Authentication y custom claim `admin: true`.
+- Lectura y operación administrativa de pedidos.
+- Estados de pedido y de pago diferenciados.
+- Consulta y gestión de inventario, compras y ajustes.
+- Acciones privilegiadas protegidas por backend y reglas de Firestore.
 
-### Pedidos e inventario
-- `createOrder`: reconstruye el pedido con datos confiables del servidor, calcula el consecutivo y guarda el pedido mediante transacción.
-- `recordInventoryTransaction`: registra movimientos manuales y exige custom claim de administrador.
-- `syncCompletedSaleInventory`: intenta registrar consumo físico cuando una venta queda entregada y pagada; usa IDs deterministas de movimientos para evitar duplicarlos en reintentos.
-- La cobertura de domicilio usa un radio configurado de 10 km y revisión manual; no rechaza automáticamente por coordenadas ausentes o fuera del radio.
+### Backend e inventario
+- `createOrder`: callable para validar y reconstruir la solicitud con valores confiables del servidor.
+- `transitionOrderStatus`: transición de estados a través del backend autorizado.
+- Funciones de inventario con operaciones idempotentes.
+- Integración con Cupboard para reservas, movimientos y reversiones de inventario.
+- La sincronización de consumo físico y el criterio contable de venta completada permanecen separados.
 
-## Arquitectura
+## 3. Arquitectura
 
-- `src/`: interfaz React/Vite, páginas y componentes.
-- `shared/catalog.js`: catálogo e ingredientes.
-- `shared/pricing.js`: precios, costos, extras y cálculo de totales.
-- `shared/business.js`: datos del negocio, aceptación de pedidos, estados y transiciones.
-- `shared/order-request.js`: validación y reconstrucción confiable del pedido.
-- `shared/inventory.js`: validación de movimientos y consumo de ingredientes.
-- `functions/index.js`: Cloud Functions callable y trigger de inventario.
-- `firestore.rules`: permisos del navegador y protección de datos operativos.
-- `test/`: pruebas unitarias y pruebas de reglas.
-- `scripts/`: utilidades de validación y administración.
-- `docs/`: documentación de arquitectura, seguridad, costos/precios, operaciones y evolución del proyecto.
+- `src/`: interfaz React/Vite, rutas, páginas y componentes.
+- `shared/`: catálogo, precios, negocio, recetas, pedidos e inventario compartidos.
+- `functions/index.js`: Cloud Functions y operaciones confiables.
+- `firestore.rules`: permisos de lectura y escritura.
+- `test/`: pruebas unitarias y de seguridad.
+- `scripts/`: validaciones, smoke, integración y utilidades de operación.
+- `docs/`: decisiones, auditorías, producto y documentación técnica.
 
-## Estado de Firebase y límites de despliegue
+Flujo arquitectónico esperado:
 
-- La configuración local apunta a `sandwich-pro`; el alias predeterminado está en `app/.firebaserc`.
-- La autenticación anónima está habilitada en Firebase Authentication.
-- El usuario administrador existente tiene el custom claim `admin: true`.
-- `BUSINESS.acceptingOrders` está actualmente en `true`, pero **esto por sí solo no habilita pedidos en la nube**.
-- A fecha de la última revisión, `firebase functions:list --project sandwich-pro` respondió `No functions found`. Por tanto, las funciones de `functions/index.js` están en el repositorio, pero no desplegadas en ese proyecto.
-- La consulta de Cloud Functions devolvió previamente `SERVICE_DISABLED` para `cloudfunctions.googleapis.com`. Hay que revisar cualquier requisito de facturación antes de activar servicios.
-- No desplegar funciones ni reglas, no habilitar facturación y no enviar pedidos reales sin revisión y autorización explícitas. Priorizar pruebas con Firebase Emulator Suite y el proyecto demo `demo-sandwichies`.
+```
+Cliente / Administración
+        ↓
+Adaptadores de interfaz
+        ↓
+Dominio compartido (shared/)
+        ↓
+Cloud Functions autorizadas
+        ↓
+Firestore / integración Cupboard
+```
 
-## Seguridad
+El navegador es un entorno no confiable. No aceptar desde el cliente precios, totales, costos, utilidad, consecutivos ni estados privilegiados como fuente de verdad.
 
-Las reglas actuales:
-- niegan acceso a clientes no autenticados y a usuarios sin claim de administrador;
-- permiten a administradores leer pedidos e inventario;
-- limitan cambios de pedidos a estado, estado de pago y `updatedAt`;
-- bloquean escritura desde navegador en contadores y colecciones de inventario;
-- niegan cualquier acceso no declarado explícitamente.
+## 4. Estado de avance
 
-No reemplazar estas reglas por reglas abiertas como `allow read, write: if true`. Las Cloud Functions usan Admin SDK y deben validar autorización y datos en el servidor.
+Los porcentajes son estimaciones de avance documental/funcional por área, no métricas de líneas de código ni de release.
 
-## Precios y costos
+| Área | Avance estimado | Observación |
+|---|---:|---|
+| Dominio, catálogo, precios y contratos de pedido | 100% | Base centralizada y pruebas existentes |
+| Seguridad y reglas de acceso | 100% | Base implementada; mantener regresiones |
+| Calidad automatizada local | 80% | Scripts disponibles; falta repetir el gate sobre el estado actual |
+| UX cliente web | 70% | Flujos base; validación completa pendiente |
+| UX administración | 85% | Herramientas principales; validación operativa pendiente |
+| Integración con Cupboard | 65% | Falta configuración real y pruebas cruzadas |
+| Release de pedidos reales | 10% | No autorizado ni listo |
+| Mesas virtuales | 100% diseño / 0% código | Solo especificación y mockups |
+| iOS y Android nativos | 0% código | Plan de crecimiento, sin app nativa |
 
-Los precios de venta, costos de ingredientes, extras, domicilios y cálculos de utilidad deben mantenerse centralizados en los módulos `shared/`, no confiarse al navegador. `createOrder` reconstruye los importes a partir de la configuración enviada y no debe aceptar totales, costos, utilidad ni consecutivos enviados por el cliente como fuente de verdad.
+No se calcula un promedio general porque las áreas tienen pesos y criterios de finalización distintos.
 
-## Comandos de desarrollo y verificación
+## 5. Fase activa: cerrar la integración con Cupboard
 
-Desde `app/`:
+### Implementado/documentado
+- Adaptador entre proyectos Firebase con Admin SDK.
+- Reserva de existencias al confirmar un pedido.
+- IDs deterministas para idempotencia.
+- Protección ante reutilización conflictiva de claves idempotentes.
+- Reversión de existencias al cancelar después de confirmar.
+- Sincronización de compras y ajustes manuales desde Sandwichies.
+- Preflight de configuración y mapeo.
 
-```powershell
+### Pendiente
+1. Configurar el ID real del hogar de Cupboard.
+2. Completar y validar el mapeo de ingredientes.
+3. Ejecutar `npm run cupboard:preflight` con variables reales.
+4. Conceder a la identidad real de Functions los permisos mínimos necesarios en Cupboard.
+5. Probar confirmar, cancelar, falta de stock, reintentos y duplicados en emuladores/entorno controlado.
+6. Ejecutar la suite de ambos proyectos y revisar los movimientos resultantes.
+
+No ejecutar importaciones ni sincronizaciones contra datos reales sin revisar primero el modo dry-run, las variables y el destino.
+
+## 6. Mesas virtuales — especificación, no implementación
+
+La referencia vigente está en `docs/product/virtual-tables/`.
+
+Reglas definidas:
+- Asignación automática por backend; el cliente no elige mesa.
+- Agrupación dentro de 50 m desde el punto ancla de la mesa.
+- Máximo 9 pedidos activos por mesa.
+- Cada pedido conserva su identidad, cliente, artículos, pago y estados.
+- Zonas de servicio mediante polígonos administrables.
+- Inactividad inicial de 60 minutos, configurable.
+- El cliente solo puede consultar su propio pedido.
+- El administrador puede operar desde móvil y desktop.
+- No alterar pagos ni duplicar movimientos de inventario por agrupar pedidos.
+
+Decisiones pendientes antes de implementar el backend:
+- Qué eventos reinician el temporizador de inactividad.
+- Cómo se atienden las órdenes pendientes cuando una mesa vence.
+
+Los enlaces de Canva son referencias de diseño. Los archivos binarios exportados de los mockups aún no están archivados dentro del repositorio.
+
+## 7. Crecimiento hacia iOS y Android
+
+La ruta propuesta es incremental:
+
+1. **Preparación mobile-first:** terminar y validar UX web móvil, estados, accesibilidad y navegación.
+2. **Separación de dominio y backend:** asegurar contratos estables para catálogo, precios, autenticación, pedidos, seguimiento y operaciones.
+3. **ADR tecnológico:** comparar React Native/Expo, PWA y alternativas según capacidades nativas, costos, mantenimiento y experiencia.
+4. **Android MVP:** catálogo, carrito, identidad/sesión, pedido y seguimiento; distribución interna y pruebas en dispositivos.
+5. **iOS MVP:** paridad funcional adaptada a iPhone, pruebas en dispositivos y distribución interna.
+6. **Publicación y evolución:** notificaciones, enlaces profundos, analítica, privacidad, observabilidad, soporte y releases.
+
+No migrar el frontend actual ni duplicar reglas de negocio antes de una decisión arquitectónica documentada. Las aplicaciones móviles deben consumir el backend confiable; nunca deben convertirse en autoridad de precios, pagos o inventario.
+
+## 8. Firebase, seguridad y release
+
+- `app/shared/business.js` establece `BUSINESS.acceptingOrders = false`.
+- Esta bandera debe permanecer en `false` hasta una aprobación de release independiente.
+- La autenticación administrativa usa Firebase Auth y custom claim `admin: true`.
+- El cliente usa una instancia Firebase separada para sesiones anónimas.
+- Firestore Rules deben continuar restrictivas y negar cualquier operación no declarada.
+- Las escrituras privilegiadas deben pasar por Cloud Functions con validación y autorización.
+- No desplegar Functions/Rules, activar facturación ni procesar pedidos reales sin autorización explícita.
+- No cambiar proveedores, métodos, comisiones o políticas de pago; Tap to Pay está fuera de alcance.
+
+La configuración local del proyecto Firebase se define en `.firebaserc`. Verificar el proyecto destino antes de ejecutar cualquier comando Firebase. Priorizar emuladores y proyectos demo para pruebas.
+
+## 9. Calidad y verificación
+
+Scripts definidos en `package.json`:
+
+| Comando | Propósito |
+|---|---|
+| `npm run lint` | ESLint |
+| `npm test` | Pruebas unitarias de dominio |
+| `npm run security:test` | Reglas Firestore en Emulator Suite |
+| `npm run integration:test` | Integración Functions/Firestore e inventario |
+| `npm run build` | Build de Vite |
+| `npm run performance:check` | Presupuesto de bundle |
+| `npm run smoke` | Smoke de entrada |
+| `npm run check` | Gate combinado |
+| `npm run release:verify` | Verificaciones previas de release |
+| `npm run cupboard:preflight` | Revisión de configuración de integración |
+| `npm run cupboard:catalog-sync` | Sincronización del catálogo compartido |
+
+Desde esta carpeta:
+
+```bash
 npm install
 npm run dev
-npm run lint
-npm test
-npm run security:test
-npm run build
-npm run smoke
 npm run check
 ```
 
-- `npm test`: pruebas unitarias de dominio.
-- `npm run security:test`: inicia Firestore Emulator en el puerto 8080 y ejecuta las pruebas de reglas con el proyecto demo.
-- `npm run check`: auditoría de dependencias, lint, pruebas unitarias, seguridad, build y smoke test.
-- Para `security:test`, Java debe estar instalado y disponible en `PATH`.
+Para pruebas de reglas, se requiere Java disponible en `PATH`. Usa exclusivamente el proyecto demo/emuladores durante pruebas automatizadas.
 
-## Última validación reportada
+### Evidencia de calidad conocida
+- El propietario confirmó una ejecución local completa del gate el **22 de octubre de 2026**.
+- La corrección de orden de ejecución de dependencias vendor se integró en `main` el **29 de octubre de 2026**.
+- La suite completa no se ha vuelto a confirmar después de todos los cambios posteriores.
+- Los workflows recientes de GitHub Actions reportan fallo sin pasos ejecutados; la causa no queda demostrada por esa evidencia. No marcar CI como aprobado.
+- El estado Vercel del commit documental más reciente consultado fue exitoso; no demuestra el funcionamiento de checkout ni la disponibilidad de Functions.
 
-El 19 de octubre de 2026:
-- Pruebas unitarias: **26 aprobadas, 0 fallidas**.
-- Pruebas de reglas en Firestore Emulator: **8 aprobadas, 0 fallidas**.
-- La prueba de seguridad se corrigió para actualizar `payment.status` mediante notación de campo (`"payment.status"`) en vez de reemplazar el mapa `payment` completo.
-- No se ha confirmado todavía una ejecución posterior de lint, auditoría, build y smoke test después de esos cambios.
-- No se ha confirmado una prueba integral de checkout contra el emulador de Functions ni hay funciones desplegadas en `sandwich-pro`.
+## 10. Orden recomendado de trabajo
 
-## Siguiente trabajo recomendado
-
-1. Ejecutar `npm run check` en el entorno local actualizado y resolver cualquier fallo.
-2. Preparar pruebas de Cloud Functions en emuladores locales para `createOrder`, validación de datos falsificados, asignación del consecutivo y movimientos de inventario.
-3. Verificar el flujo completo del checkout sin tocar datos de producción.
-4. Revisar los requisitos y posibles costos de Cloud Functions antes de cualquier activación o despliegue.
-5. Solo después de aprobar seguridad, costos y configuración, decidir si se autoriza un despliegue de pruebas.
-
-## Trazabilidad
-
-El historial completo de cambios se conserva en Git. Los commits recientes incluyen la separación de sesiones anónimas de cliente y administrador, el checkout sin verificación SMS, la activación del flujo de pedidos para pruebas y la corrección de una prueba de reglas. Consultar el historial de `main` para ver cada cambio y su diff.
+1. Cerrar la configuración y las pruebas cruzadas de Cupboard.
+2. Ejecutar `npm run check` en el estado actual y recuperar CI verificable.
+3. Auditar el flujo cliente completo en mobile y desktop manteniendo checkout cerrado.
+4. Validar la operación administrativa, permisos, inventario y recuperación de errores.
+5. Resolver las decisiones pendientes de mesas virtuales y luego implementar backend seguro.
+6. Preparar contratos de dominio/API y un ADR para la estrategia iOS/Android.
+7. Ejecutar release verification y solicitar autorización separada antes de cualquier lanzamiento.
 
 ---
 
-**Fuente de verdad:** código y configuración actuales del repositorio. Este README resume el estado observado y no sustituye la validación de los emuladores ni una revisión de Firebase Console.
+**Regla permanente:** implementación, pruebas, despliegue y lanzamiento son etapas distintas. Ninguna documentación o mockup habilita por sí sola pedidos reales.
