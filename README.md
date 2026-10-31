@@ -4,7 +4,7 @@
 
 Sandwichies evoluciona desde su experiencia web hacia un producto **mobile-first** para clientes y una consola operativa completa para administración. La web ofrece una primera implementación local de puntos de encuentro y mesas virtuales; su validación operativa y eventual release siguen pendientes.
 
-> **Estado actual (30 de octubre de 2026):** cambios de UX en curso sobre `main` · mesas virtuales en implementación base · integración Cupboard y release pendientes. El commit `270303d` de `main` deja `BUSINESS.acceptingOrders = true`, en conflicto con el gate de release documentado; no se ha verificado ni autorizado producción.
+> **Estado actual (31 de octubre de 2026):** desarrollo activo · mesas virtuales con implementación base en el código · integración Cupboard y release pendientes · backend Functions sin despliegue en Firebase. El commit `270303d` de `main` deja `BUSINESS.acceptingOrders = true`, en conflicto con el gate de release documentado; no se ha verificado ni autorizado producción.
 
 ---
 
@@ -41,13 +41,17 @@ La experiencia de cliente debe diseñarse primero para pantallas móviles. La ex
 - Reglas de acceso restrictivas; el navegador no puede crear pedidos ni modificar datos financieros confiables.
 
 ### Backend e integración
-- React 19, JavaScript, Vite 8 y Firebase.
-- Cloud Functions para operaciones privilegiadas y reconstrucción confiable de pedidos.
-- Firestore como almacenamiento operativo.
-- Integración Sandwichies ↔ Cupboard con movimientos idempotentes, reservas y reversión según el flujo.
-- Suite de pruebas de dominio, reglas de Firestore, integración, build, smoke y presupuesto de bundle.
+- React 19, JavaScript ES modules y Vite 8 (con configuración de build/Rolldown).
+- Firebase Authentication y Cloud Firestore; sesiones de cliente anónimas aisladas de la autenticación administrativa.
+- Código backend en Firebase Cloud Functions v2 + Firebase Admin SDK para operaciones privilegiadas, pedidos, mesas virtuales y sincronización con Cupboard. **La implementación existe en el repositorio, pero no está desplegada en `sandwich-pro`**: la consulta del proyecto devolvió cero funciones y los endpoints actuales responden 404.
+- Leaflet + React-Leaflet para mapas; OpenStreetMap como fuente de mapas prevista.
+- Vercel para despliegue web observado; Firebase CLI y Emulator Suite para configuración y pruebas locales.
+- Node.js, npm, ESLint, Node Test Runner, Firebase Rules Unit Testing y scripts propios para pruebas, seguridad, integración, build, smoke y presupuesto de bundle.
+- Cloudflare Workers Free está en evaluación como posible backend alternativo compatible con el presupuesto $0; **no está integrado ni desplegado**.
 
 Consulta [app/README.md](app/README.md) para el contexto técnico y los comandos de trabajo.
+
+**Restricción económica vigente:** presupuesto objetivo $0. El proyecto Firebase permanece en Spark; no vincular facturación ni activar Blaze. La arquitectura de backend de producción debe resolverse antes de habilitar pedidos reales. Ver [stack y herramientas](app/README.md#4-stack-tecnológico-y-herramientas).
 
 ---
 
