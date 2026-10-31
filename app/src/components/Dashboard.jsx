@@ -32,7 +32,7 @@ const isInPeriod = (date, period, now) => {
   return date >= start && date <= now;
 };
 
-export default function Dashboard({ orders }) {
+export default function Dashboard({ orders, onOpenOrders }) {
   const [period, setPeriod] = useState("today");
   const now = new Date();
 
@@ -51,7 +51,7 @@ export default function Dashboard({ orders }) {
   const pendingPaymentOrders = scopedOrders.filter(
     (order) =>
       order.payment?.status !== "pagado" &&
-      !["cancelado", "entregado"].includes(order.status),
+      order.status !== "cancelado",
   );
 
   const totalSales = completedSales.reduce(
@@ -101,18 +101,18 @@ export default function Dashboard({ orders }) {
       </div>
 
       <div className="ops-summary dashboard-ops-summary">
-        <div className="ops-summary-card readonly">
+        <button type="button" className="ops-summary-card" onClick={() => onOpenOrders?.({ status: "activos", payment: "todos" })}>
           <span>Pedidos activos</span>
           <strong>{operationalOrders.filter((order) => !["entregado"].includes(order.status)).length}</strong>
-        </div>
-        <div className={pendingPaymentOrders.length ? "ops-summary-card warning" : "ops-summary-card readonly"}>
+        </button>
+        <button type="button" className={pendingPaymentOrders.length ? "ops-summary-card warning" : "ops-summary-card"} onClick={() => onOpenOrders?.({ status: "todos", payment: "pendiente" })}>
           <span>Pagos pendientes</span>
           <strong>{pendingPaymentOrders.length}</strong>
-        </div>
-        <div className="ops-summary-card readonly">
+        </button>
+        <button type="button" className="ops-summary-card" onClick={() => onOpenOrders?.({ status: "listo", payment: "todos" })}>
           <span>Listos</span>
           <strong>{scopedOrders.filter((order) => order.status === "listo").length}</strong>
-        </div>
+        </button>
         <div className="ops-summary-card readonly">
           <span>Ventas completadas</span>
           <strong>{completedSales.length}</strong>

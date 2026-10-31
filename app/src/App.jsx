@@ -21,9 +21,11 @@ export default function App() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [activeTab, setActiveTab] = useState("pedidos");
+  const [ordersFocus, setOrdersFocus] = useState(null);
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState("");
   const [inventoryBalances, setInventoryBalances] = useState([]);
   const [inventoryTransactions, setInventoryTransactions] = useState([]);
@@ -55,6 +57,7 @@ export default function App() {
 
   useEffect(() => {
     if (!user || !isAdmin) return undefined;
+    setOrdersLoading(true);
 
     const unsubscribe = onSnapshot(
       collection(db, "orders"),
@@ -82,12 +85,14 @@ export default function App() {
         firstSnapshot.current = false;
         setOrders(nextOrders);
         setOrdersError("");
+        setOrdersLoading(false);
       },
       (error) => {
         console.error("No se pudieron cargar los pedidos:", error);
         setOrdersError(
           "No se pudieron sincronizar los pedidos. Revisa la conexión y los permisos.",
         );
+        setOrdersLoading(false);
       },
     );
 
@@ -200,6 +205,11 @@ export default function App() {
     }
   };
 
+  const openOrders = (focus) => {
+    setOrdersFocus({ ...focus, requestId: globalThis.crypto?.randomUUID?.() || String(Date.now()) });
+    setActiveTab("pedidos");
+  };
+
   if (loading) {
     return <div className="admin-loading">Cargando {BUSINESS.name}…</div>;
   }
@@ -251,17 +261,20 @@ export default function App() {
         ))}
       </nav>
 
-      {ordersError && <div className="admin-alert">{ordersError}</div>}
-      {inventoryError && <div className="admin-alert">{inventoryError}</div>}
+      {ordersError && <div className="admin-alert" role="alert">{ordersError}</div>}
+      {inventoryError && <div className="admin-alert" role="alert">{inventoryError}</div>}
 
       {activeTab === "pedidos" && (
         <OrdersHistory
+          key={ordersFocus?.requestId || "default"}
           orders={orders}
           setSelectedOrder={setSelectedOrder}
+          initialFilters={ordersFocus}
+          loading={ordersLoading}
         />
       )}
 
-      {activeTab === "dashboard" && <Dashboard orders={orders} />}
+      {activeTab === "dashboard" && <Dashboard orders={orders} onOpenOrders={openOrders} />}
 
       {activeTab === "entregas" && <VirtualTables orders={orders} />}
 

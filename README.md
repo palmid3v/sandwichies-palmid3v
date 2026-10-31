@@ -4,7 +4,7 @@
 
 Sandwichies evoluciona desde su experiencia web hacia un producto **mobile-first** para clientes y una consola operativa completa para administración. La web ofrece una primera implementación local de puntos de encuentro y mesas virtuales; su validación operativa y eventual release siguen pendientes.
 
-> **Estado actual:** desarrollo activo · integración con Cupboard en fase de cierre · mesas virtuales implementadas para validación controlada · release no aprobado.
+> **Estado actual (30 de octubre de 2026):** cambios de UX en curso sobre `main` · mesas virtuales en implementación base · integración Cupboard y release pendientes. El commit `270303d` de `main` deja `BUSINESS.acceptingOrders = true`, en conflicto con el gate de release documentado; no se ha verificado ni autorizado producción.
 
 ---
 
@@ -51,23 +51,17 @@ Consulta [app/README.md](app/README.md) para el contexto técnico y los comandos
 
 ---
 
-## 📊 Estado y avance del proyecto
+## 📊 Estado del proyecto
 
-<sub>Actualizado: 30 de octubre de 2026 · Porcentajes orientativos calculados sobre tareas y entregables documentados. No equivalen a porcentaje de código, disponibilidad en producción ni aprobación de release.</sub>
-
-| Área | Avance estimado | Estado |
-|---|---:|---|
-| Dominio, catálogo, precios y contratos de pedido | **100%** | Base implementada |
-| Seguridad y reglas de acceso | **100%** | Base implementada; requiere validación continua |
-| Calidad automatizada local | **80%** | Gate disponible; ejecución CI reciente inconclusa |
-| Experiencia de cliente web | **70%** | Base funcional; validación integral pendiente |
-| Administración web | **85%** | Flujos principales construidos; revisión operativa pendiente |
-| Integración con Cupboard (Fase 3) | **65%** | Implementación base; configuración real y pruebas cruzadas pendientes |
-| Release de pedidos reales | **10%** | Bloqueado deliberadamente |
-| Mesas virtuales | **Implementación base** | Cliente, funciones, consola y reglas listas para validación; release pendiente |
-| Aplicaciones nativas iOS y Android | **0% implementación** | Ruta de crecimiento documentada |
-
-**No se publica un porcentaje global único:** mezclar funcionalidades implementadas, pruebas pendientes, preparación de release y trabajo futuro produciría una métrica engañosa.
+| Área | Estado verificado |
+|---|---|
+| Catálogo, recetas, precios y pedido confiable | Implementados; reglas canónicas en `app/shared/` |
+| Cliente web | Descubrimiento, filtros, carrito y checkout implementados; mejoras mobile recientes en validación local |
+| Administración web | Pedidos, resumen, inventario y operaciones de mesas; acceso requiere custom claim `admin: true` |
+| Mesas virtuales | Implementación base en cliente, Cloud Functions, Firestore Rules y consola admin; falta validación operativa externa |
+| Sandwichies ↔ Cupboard | Integración implementada; configuración real y pruebas cruzadas pendientes |
+| Aplicaciones iOS/Android | No implementadas; plan documentado |
+| Release | No aprobado. No hay evidencia de despliegue de esta versión |
 
 ### Fase activa — Integración con Cupboard
 
@@ -91,12 +85,13 @@ Pendiente para cerrar la fase:
 ### Calidad y CI
 
 - El proyecto dispone de `npm run check` para auditar dependencias, ejecutar lint, pruebas, reglas, integración, build, presupuesto de bundle y smoke.
-- La última validación local completa registrada y confirmada por el propietario corresponde al checkpoint del **22 de octubre de 2026**.
+- **Validación local (30 de octubre de 2026):** `npm run check` pasó lint, 40 pruebas unitarias, 9 pruebas de reglas, 7 pruebas de integración, build, presupuesto de bundle y smoke (`/` y `/admin`). La auditoría no encontró vulnerabilidades altas/críticas, pero reportó 6 moderadas transitivas (`glob`, `minimatch`). El emulador informó que `expireVirtualTables` no se ejecutó porque Pub/Sub Emulator no estaba iniciado.
+- **Revisión visual local:** storefront revisado en móvil y escritorio; se verificaron búsqueda, filtros, composición de recetas, dock del carrito y navegación al resumen. No se envió ningún pedido. `/admin` mostró el acceso; no se inició sesión, por lo que el dashboard autenticado requiere revisión posterior.
 - La corrección de arranque de dependencias vendor se integró en `main` el 29 de octubre.
 - Los workflows recientes de GitHub Actions aparecen como fallidos sin pasos ejecutados ni logs de trabajo útiles. Esto no demuestra un fallo del código, pero tampoco permite declarar CI aprobado.
 - El estado Vercel consultado para el commit documental más reciente fue exitoso; esto no sustituye pruebas funcionales ni aprobación de release.
 
-Antes de considerar la calidad actual validada, hay que ejecutar de nuevo `npm run check` desde el entorno actualizado y recuperar una ejecución CI con runner y pasos verificables.
+La ejecución local no sustituye CI ni validación visual del propietario. CI no se verificó para estos cambios locales.
 
 ---
 
@@ -105,7 +100,7 @@ Antes de considerar la calidad actual validada, hay que ejecutar de nuevo `npm r
 ### Web actual y experiencia mobile-first
 1. Cerrar la integración con Cupboard.
 2. Completar pruebas del recorrido de cliente en móvil y escritorio.
-3. Validar checkout cerrado, errores, estados vacíos, accesibilidad y navegación.
+3. Validar errores, estados vacíos, accesibilidad y navegación. Resolver el conflicto actual del gate `acceptingOrders` antes de push o despliegue.
 4. Consolidar la experiencia administrativa para operación diaria, cuentas e inventario.
 5. Medir rendimiento y corregir los puntos críticos del recorrido móvil.
 
@@ -153,8 +148,9 @@ La estrategia es evolucionar por etapas, reutilizando el dominio y los servicios
 
 ## 🔒 Seguridad y límite de release
 
-- El propietario indicó conservar su cambio local `BUSINESS.acceptingOrders = true`; el archivo queda fuera del commit. Esto no autoriza despliegue ni release y no sustituye los controles de Cupboard.
+- El commit `270303d` de `main` establece `BUSINESS.acceptingOrders = true`, a petición previa del propietario. Esto contradice el gate de release; no es autorización de despliegue ni prueba del estado de producción. Resolverlo antes de publicar una versión que habilite pedidos.
 - No se deben recibir pedidos reales ni habilitar checkout en producción.
+- El estado en `main` de `acceptingOrders` contradice esta regla: `true` en `270303d`. No se ha verificado la producción; detener una publicación que habilite pedidos hasta resolver el gate.
 - No desplegar Functions o Firestore Rules, activar facturación ni modificar credenciales sin autorización explícita.
 - No cambiar proveedores, métodos, comisiones o políticas de pago como parte de tareas de UX.
 - No introducir Tap to Pay.

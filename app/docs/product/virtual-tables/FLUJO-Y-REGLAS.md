@@ -1,6 +1,6 @@
 # Flujos y reglas de producto — Mesas virtuales
 
-**Estado:** reglas funcionales implementadas en la rama de trabajo; validar en entorno no productivo antes de release.
+**Estado:** reglas funcionales implementadas en local `main`; validar en entorno no productivo antes de release. El flag actual está en conflicto con el gate documentado.
 
 ## Roles
 

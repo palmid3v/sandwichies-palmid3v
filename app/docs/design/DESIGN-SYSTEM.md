@@ -110,3 +110,5 @@ Customer UX is mobile-first:
 - the active builder total becomes a sticky bottom action surface;
 - text remains readable without horizontal scrolling;
 - interaction feedback remains visible without hover.
+- discovery keeps category and search controls visible, while advanced price/sort filters collapse into a disclosure;
+- an in-cart mobile summary stays above the safe-area inset and reserves page space, with a single link to the cart.

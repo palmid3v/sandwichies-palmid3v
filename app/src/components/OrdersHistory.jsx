@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ORDER_STATUSES, formatMoney } from "../config/business";
+import { canTransitionOrderStatus, ORDER_STATUSES, formatMoney } from "../config/business";
 import {
   getCustomerName,
   getOrderDate,
@@ -10,10 +10,10 @@ import {
 
 const ACTIVE_STATUSES = ["pendiente", "confirmado", "preparando", "listo"];
 
-export default function OrdersHistory({ orders, setSelectedOrder }) {
-  const [statusFilter, setStatusFilter] = useState("activos");
+export default function OrdersHistory({ orders, setSelectedOrder, initialFilters, loading = false }) {
+  const [statusFilter, setStatusFilter] = useState(initialFilters?.status || "activos");
   const [search, setSearch] = useState("");
-  const [paymentFilter, setPaymentFilter] = useState("todos");
+  const [paymentFilter, setPaymentFilter] = useState(initialFilters?.payment || "todos");
 
   const summary = useMemo(() => {
     const counts = Object.fromEntries(
@@ -32,7 +32,7 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
       orders.filter(
         (order) =>
           order.payment?.status !== "pagado" &&
-          !["cancelado", "entregado"].includes(order.status),
+          order.status !== "cancelado",
       ).length,
     [orders],
   );
@@ -49,7 +49,7 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
             : order.status === statusFilter;
 
       const matchesPayment = paymentFilter === "todos"
-        || (paymentFilter === "pendiente" && order.payment?.status !== "pagado" && !["cancelado", "entregado"].includes(order.status))
+        || (paymentFilter === "pendiente" && order.payment?.status !== "pagado" && order.status !== "cancelado")
         || (paymentFilter === "pagado" && order.payment?.status === "pagado");
 
       const matchesSearch =
@@ -153,6 +153,8 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
         )}
       </div>
 
+      {loading && <p className="orders-loading" role="status" aria-live="polite">Sincronizando pedidos…</p>}
+
       <div className="orders-grid">
         {filteredOrders.map((order) => {
           const status = getStatusMeta(order.status);
@@ -160,7 +162,16 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
           const date = getOrderDate(order);
           const paymentPending =
             order.payment?.status !== "pagado" &&
-            !["cancelado"].includes(order.status);
+            order.status !== "cancelado";
+          const paymentPaid = order.payment?.status === "pagado";
+          const nextAction = ORDER_STATUSES.find((candidate) =>
+            canTransitionOrderStatus(order.status, candidate.value),
+          );
+          const fulfillmentLabel = order.fulfillment?.type === "domicilio"
+            ? "Domicilio"
+            : order.fulfillment?.type === "punto_encuentro"
+              ? "Punto de encuentro"
+              : "Recoger";
 
           return (
             <button
@@ -182,11 +193,11 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
                 </span>
               </div>
               <h3>{getCustomerName(order)}</h3>
+              {order.customer?.phone && <p className="order-card-contact">{order.customer.phone}</p>}
               <p>
                 {items.length} producto{items.length === 1 ? "" : "s"} ·{" "}
-                {order.fulfillment?.type === "domicilio"
-                  ? "Domicilio"
-                  : "Recoger"}
+                {fulfillmentLabel}
+                {order.delivery?.tableReference ? ` · ${order.delivery.tableReference}` : ""}
               </p>
               <div className="order-card-bottom">
                 <small>
@@ -200,7 +211,10 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
                 <strong>{formatMoney(getOrderTotal(order))}</strong>
               </div>
               <div className="order-card-meta">
-                <span>{paymentPending ? "Pago pendiente" : "Pago confirmado"}</span>
+                <span className={paymentPaid ? "paid" : paymentPending ? "pending" : "neutral"}>
+                  {paymentPaid ? "Pago confirmado" : paymentPending ? "Pago pendiente" : "Pago no aplicable"}
+                </span>
+                <span>{nextAction ? `Siguiente: ${nextAction.label}` : "Sin acciones de pedido"}</span>
                 <span>Ver detalle →</span>
               </div>
             </button>
@@ -208,7 +222,7 @@ export default function OrdersHistory({ orders, setSelectedOrder }) {
         })}
       </div>
 
-      {!filteredOrders.length && (
+      {!loading && !filteredOrders.length && (
         <div className="empty-state" role="status">
           <strong>No hay pedidos que coincidan.</strong>
           <span>Prueba otro estado, otro estado de pago o limpia la búsqueda.</span>

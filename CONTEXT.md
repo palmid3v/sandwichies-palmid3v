@@ -19,40 +19,28 @@ The experience should evolve around discovery, favorites, new creations, meaning
 
 ## Current operational state
 
-`acceptingOrders = false` in source; checkout remains closed. This is not proof of the deployed backend's state. The owner confirmed local quality checks and browser functionality on 2026-10-22. Production release still requires independent verification of deployed Functions/Rules, permissions, smoke tests and explicit approval.
+The current `main` contains commit `270303d` with `BUSINESS.acceptingOrders = true`. This conflicts with `MASTERPROMPT.md`, the storefront requirements and release checklist, which require `false` until release approval. The user previously asked to preserve the change; do not silently overwrite it. No production deployment or release approval is evidenced. Resolve this gate before publishing a build that could serve ordering, deploying, or accepting real orders.
 
 ## Customer flow
 
-15 cm / 30 cm
-→ protein
-→ toppings
-→ extras/base
-→ cart
-→ pickup/delivery
-→ customer/payment data
-→ trusted order submission
-→ WhatsApp summary
-→ confirmation
+discover curated products
+→ add an existing canonical recipe to cart
+→ review quantities and total
+→ customer, fulfillment, payment and notes
+→ trusted callable order submission (release-gated)
+→ confirmation / WhatsApp summary
+→ private virtual-table tracking where applicable
 
-Future experience evolution:
-
-discovery
-→ favorites / featured
-→ new creations
-→ configuration
-→ cart
-→ checkout
-→ confirmation
+Search and advanced price/sort filters are available; mobile shows the price/sort controls in a disclosure and a floating cart summary when the cart has items.
 
 ## Admin flow
 
 Firebase Auth
 → admin custom claim
-→ orders
-→ dashboard
-→ order details
-→ payment status
-→ inventory estimation
+→ orders and operational summaries
+→ order details, fulfillment and next allowed status
+→ dashboard quick filters
+→ inventory transactions / estimates, with their distinct semantics
 
 Future admin UX improvements must preserve the existing trust boundary.
 
@@ -153,9 +141,13 @@ A task is not DONE until implementation, validation, security review, UX/UI revi
 
 FASE 11 Admin/Product Operations UX is implemented on main.
 
-The admin experience now prioritizes active orders, confirmation/payment attention, ready orders, explicit payment state, safe next-status progression, inventory low-stock visibility and operational feedback. The existing Firebase Auth/custom-claim and Firestore Rules authorization model remains unchanged.
+The admin experience prioritizes active orders, confirmation/payment attention, ready orders, explicit payment state, safe next-status progression, inventory low-stock visibility and operational feedback. Current UX work adds order-queue shortcuts, contact/fulfillment details, virtual meeting-point navigation and visible synchronization feedback. The existing Firebase Auth/custom-claim and Firestore Rules authorization model remains unchanged.
 
-Source configuration currently has `BUSINESS.acceptingOrders = false`. Local automated checks and browser functionality were owner-confirmed on 2026-10-22, but this does not establish production readiness. Do not deploy or treat production ordering as approved based on this source setting. Production endpoint state and release evidence must be verified independently.
+Current customer improvements keep category/search controls prominent, collapse advanced price/sort controls on mobile and add a fixed cart summary when items are present. The cart still uses canonical recipe/pricing/order modules.
+
+The source currently has `BUSINESS.acceptingOrders = true` in `main` commit `270303d`, conflicting with the strict release requirements in `MASTERPROMPT.md` and the release checklist. The user previously asked to preserve this change; do not silently overwrite it. No production deployment/release approval is evidenced. Resolve before publishing an ordering-enabled build or accepting orders. Never perform production orders as a test.
+
+The previous 2026-10-18 documentation checkpoint below is historical. It is not a statement of today's source configuration.
 
 
 ## Documentation checkpoint — 2026-10-18

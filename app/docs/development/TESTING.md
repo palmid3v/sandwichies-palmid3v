@@ -40,6 +40,8 @@ no `SMOKE_BASE_URL` is supplied, it starts and stops a local Vite preview
 server itself. It does not execute browser JavaScript or submit production
 orders; browser validation remains a separate recorded check.
 
+For customer/admin UX changes, inspect the customer at 320, 390 and 430 CSS px and at desktop width. Verify category/search, advanced filters, recipe ingredient disclosure/search, empty and populated cart, fixed cart navigation and checkout-disabled state. In admin, verify access restriction, synchronized/empty/error states, order contact/fulfillment, pending-payment attention and next transition with emulator/test data only. Do not submit an order to the configured production Firebase project.
+
 ```bash
 npm run smoke
 ```
@@ -54,6 +56,11 @@ npm run audit
 ```
 
 CI treats high and critical dependency vulnerabilities as failures.
+
+Local gate evidence (2026-10-30): 6 moderate transitive findings were reported
+(`glob`, `minimatch`); no high or critical findings blocked the audit. The
+`expireVirtualTables` scheduled function was skipped because Pub/Sub Emulator
+was not running. This does not validate scheduled expiration behavior.
 
 ## Evidence rule
 

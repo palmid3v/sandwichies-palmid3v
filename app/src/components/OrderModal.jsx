@@ -25,11 +25,11 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
     if (!selectedOrder) return undefined;
 
     const closeOnEscape = (event) => {
-      if (event.key === "Escape") setSelectedOrder(null);
+      if (event.key === "Escape" && !isUpdating) setSelectedOrder(null);
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [selectedOrder, setSelectedOrder]);
+  }, [selectedOrder, setSelectedOrder, isUpdating]);
 
   useEffect(() => {
     setFeedback(null);
@@ -49,6 +49,12 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
       status.value !== selectedOrder.status &&
       canTransitionOrderStatus(selectedOrder.status, status.value),
   );
+  const meetingPoint = selectedOrder.fulfillment?.meetingPoint;
+  const fulfillmentLabel = selectedOrder.fulfillment?.type === "domicilio"
+    ? "Domicilio"
+    : selectedOrder.fulfillment?.type === "punto_encuentro"
+      ? "Punto de encuentro"
+      : "Recoger en el local";
 
   const updateOrder = async (updates) => {
     if (updates.status && !canTransitionOrderStatus(selectedOrder.status, updates.status)) {
@@ -119,7 +125,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={() => setSelectedOrder(null)}>
+    <div className="modal-backdrop" onClick={() => { if (!isUpdating) setSelectedOrder(null); }}>
       <section
         className="order-modal"
         role="dialog"
@@ -156,6 +162,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
           <button
             className="close-button motion-feedback"
             onClick={() => setSelectedOrder(null)}
+            disabled={isUpdating}
             aria-label="Cerrar"
           >
             ×
@@ -170,12 +177,10 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
             </a>
           </div>
           <div>
-            <strong>
-              {selectedOrder.fulfillment?.type === "domicilio"
-                ? "Domicilio"
-                : "Recoger"}
-            </strong>
-            <span>{selectedOrder.fulfillment?.address || "En el local"}</span>
+            <strong>{fulfillmentLabel}</strong>
+            <span>{selectedOrder.fulfillment?.address || meetingPoint?.label || (meetingPoint ? "Ubicación seleccionada" : "En el local")}</span>
+            {selectedOrder.delivery?.tableReference && <small>Mesa {selectedOrder.delivery.tableReference}</small>}
+            {meetingPoint && <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${meetingPoint.latitude},${meetingPoint.longitude}`}>Abrir punto en Maps ↗</a>}
           </div>
         </div>
 

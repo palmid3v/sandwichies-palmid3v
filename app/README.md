@@ -2,7 +2,7 @@
 
 **Actualizado:** 30 de octubre de 2026  
 **Rama principal:** `main`  
-**Estado:** desarrollo activo y pruebas controladas; no listo para recibir pedidos reales.  
+**Estado:** desarrollo activo; release no aprobado. `main` tiene `BUSINESS.acceptingOrders = true` en `270303d`, en conflicto con los documentos de release.
 **Fase de integración prioritaria:** Sandwichies ↔ Cupboard (Fase 3).
 
 > Fuente de verdad: código y configuración actuales del repositorio. Las especificaciones, mockups y roadmaps describen objetivos; no prueban que una función esté implementada.
@@ -28,7 +28,7 @@ La web actual usa React y Vite. No existe todavía una aplicación nativa iOS/An
 - Selección de recogida o domicilio y captura de datos de contacto.
 - Sesión de cliente mediante Firebase Anonymous Auth, separada del cliente Firebase administrativo.
 - Validación de solicitudes y reconstrucción confiable de pedidos en backend.
-- El flujo de envío existe para pruebas controladas, pero los pedidos reales permanecen deshabilitados.
+- El flujo usa la callable confiable y está sujeto a `BUSINESS.acceptingOrders`; `main` quedó habilitada en `270303d`, pero release/producción no están aprobados. No ejecutar pedidos reales.
 
 ### Administración
 - Firebase Authentication y custom claim `admin: true`.
@@ -82,7 +82,7 @@ Los porcentajes son estimaciones de avance documental/funcional por área, no m�
 | UX cliente web | 70% | Flujos base; validación completa pendiente |
 | UX administración | 85% | Herramientas principales; validación operativa pendiente |
 | Integración con Cupboard | 65% | Falta configuración real y pruebas cruzadas |
-| Release de pedidos reales | 10% | No autorizado ni listo |
+| Release de pedidos reales | Bloqueado | La bandera source contradice la checklist; no desplegar ni probar con órdenes reales |
 | Mesas virtuales | Implementación base | Cliente, funciones, consola admin y reglas; validación/release pendientes |
 | iOS y Android nativos | 0% código | Plan de crecimiento, sin app nativa |
 
@@ -143,8 +143,8 @@ No migrar el frontend actual ni duplicar reglas de negocio antes de una decisió
 
 ## 8. Firebase, seguridad y release
 
-- El propietario confirmó que debe conservarse su cambio local `BUSINESS.acceptingOrders = true`; ese archivo es un cambio suyo y se excluye de este commit.
-- La bandera local no es aprobación de release ni despliegue. La configuración de Cupboard y los gates de release permanecen independientes.
+- `app/shared/business.js` tiene `BUSINESS.acceptingOrders = true` en `main` desde `270303d`, tras instrucción previa del propietario de conservar ese cambio.
+- `MASTERPROMPT.md`, los requisitos de storefront y la checklist de release requieren `false` hasta completar el release. La configuración local y la política documentada están en conflicto. No sobreescribir el commit del propietario sin instrucción directa; no hacer push/despliegue ni aceptar pedidos hasta resolverlo.
 - La autenticación administrativa usa Firebase Auth y custom claim `admin: true`.
 - El cliente usa una instancia Firebase separada para sesiones anónimas.
 - Firestore Rules deben continuar restrictivas y negar cualquier operación no declarada.
@@ -183,9 +183,11 @@ npm run check
 Para pruebas de reglas, se requiere Java disponible en `PATH`. Usa exclusivamente el proyecto demo/emuladores durante pruebas automatizadas.
 
 ### Evidencia de calidad conocida
-- El propietario confirmó una ejecución local completa del gate el **22 de octubre de 2026**.
-- La corrección de orden de ejecución de dependencias vendor se integró en `main` el **29 de octubre de 2026**.
-- La suite completa no se ha vuelto a confirmar después de todos los cambios posteriores.
+- El **30 de octubre de 2026**, `npm run check` pasó lint, 40 pruebas unitarias, 9 pruebas de reglas, 7 pruebas de integración, build, presupuesto de bundle y smoke para `/` y `/admin`.
+- La auditoría no encontró vulnerabilidades altas/críticas; reportó 6 moderadas transitivas en `glob` y `minimatch`.
+- `expireVirtualTables` no se ejecutó durante el gate porque Pub/Sub Emulator no estaba iniciado; su programación requiere validación separada.
+- Se revisó visualmente el storefront local en móvil y escritorio, incluido búsqueda, filtros, detalle de ingredientes y navegación del carrito. No se envió pedido. `/admin` llegó al login, sin revisión autenticada del dashboard.
+- Esta validación es local; los cambios no se han verificado en CI.
 - Los workflows recientes de GitHub Actions reportan fallo sin pasos ejecutados; la causa no queda demostrada por esa evidencia. No marcar CI como aprobado.
 - El estado Vercel del commit documental más reciente consultado fue exitoso; no demuestra el funcionamiento de checkout ni la disponibilidad de Functions.
 

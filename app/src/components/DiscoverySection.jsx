@@ -1,7 +1,18 @@
 import { useMemo, useState } from "react";
 import { formatMoney } from "../config/business";
 import { MENU, MENU_SEGMENTS } from "../data/menu";
-import { INGREDIENTS } from "../data/ingredients";
+import { getIngredient, getTopping } from "../../shared/catalog.js";
+
+const getComposition = (item) => [
+  ...(item.proteins || []),
+  ...(item.includedIngredients || []),
+  ...(item.toppings || []).map((id) => ({ id, quantity: 1 })),
+].map((ingredient) => ({
+  ...ingredient,
+  label: getIngredient(ingredient.id)?.name || getTopping(ingredient.id)?.name || ingredient.id,
+}));
+
+const formatIngredient = ({ quantity, label }) => quantity > 1 ? `${quantity} × ${label}` : label;
 
 const MENU_ART = {
   "turkey-finas-hierbas": "/assets/illustrations/sandwich-pavo-hierbas.jpg",
@@ -14,7 +25,7 @@ const MENU_ART = {
   "fuego-tropical": "/assets/illustrations/sandwich-mediterraneo.jpg",
 };
 
-export default function DiscoverySection({ onSelect, selectedId }) {
+export default function DiscoverySection({ onSelect, cart = [] }) {
   const [segment, setSegment] = useState("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("featured");
@@ -24,7 +35,8 @@ export default function DiscoverySection({ onSelect, selectedId }) {
     const query = search.trim().toLocaleLowerCase("es-CO");
     const filtered = MENU.filter((item) => {
       const matchesSegment = segment === "all" || item[segment] === true;
-      const matchesSearch = !query || `${item.name} ${item.description}`
+      const searchText = `${item.name} ${item.description} ${getComposition(item).map(({ label }) => label).join(" ")}`;
+      const matchesSearch = !query || searchText
         .toLocaleLowerCase("es-CO").includes(query);
       const matchesPrice = priceFilter === "all"
         || (priceFilter === "under20" && item.startingPrice < 20000)
@@ -51,15 +63,14 @@ export default function DiscoverySection({ onSelect, selectedId }) {
         </div>
         </div>
 
-      <div className="discovery-tabs" role="tablist" aria-label="Categorías del menú">
+      <div className="discovery-tabs" aria-label="Filtrar por categoría">
         {MENU_SEGMENTS.map((item) => {
           const isActive = segment === item.id;
           return (
             <button
               key={item.id}
               type="button"
-              role="tab"
-              aria-selected={isActive}
+              aria-pressed={isActive}
               className={isActive ? "discovery-tab active motion-feedback" : "discovery-tab motion-feedback"}
               onClick={() => setSegment(item.id)}
             >
@@ -69,22 +80,25 @@ export default function DiscoverySection({ onSelect, selectedId }) {
         })}
       </div>
 
-      <div className="discovery-toolbar">
-        <div className="discovery-search">
-          <label htmlFor="menu-search">Buscar productos</label>
-          <div className="discovery-search-control">
-            <span aria-hidden="true">⌕</span>
-            <input
-              id="menu-search"
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Nombre o ingredientes…"
-              autoComplete="off"
-            />
-            {search && <button type="button" onClick={() => setSearch("")} aria-label="Limpiar búsqueda">Limpiar</button>}
-          </div>
+      <label className="discovery-search">
+        <span>Buscar en el menú</span>
+        <div className="discovery-search-control">
+          <span aria-hidden="true">⌕</span>
+          <input
+            id="menu-search"
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Sabor o ingrediente…"
+            autoComplete="off"
+          />
+          {search && <button type="button" onClick={() => setSearch("")} aria-label="Limpiar búsqueda">Limpiar</button>}
         </div>
+      </label>
+
+      <details className="discovery-filter-details">
+        <summary>Precio y orden <span aria-hidden="true">＋</span></summary>
+        <div className="discovery-toolbar">
         <label className="discovery-select">
           Filtrar por precio
           <select value={priceFilter} onChange={(event) => setPriceFilter(event.target.value)}>
@@ -103,7 +117,8 @@ export default function DiscoverySection({ onSelect, selectedId }) {
             <option value="name">Nombre: A–Z</option>
           </select>
         </label>
-      </div>
+        </div>
+      </details>
 
       <p className="discovery-result-count" aria-live="polite">
         {visibleItems.length} {visibleItems.length === 1 ? "producto" : "productos"}
@@ -113,11 +128,14 @@ export default function DiscoverySection({ onSelect, selectedId }) {
       {visibleItems.length ? (
         <div className="discovery-grid stagger-children">
           {visibleItems.map((item) => {
-            const isSelected = selectedId === item.id;
+            const composition = getComposition(item);
+            const addedQuantity = cart.reduce((total, line) => (
+              line.configuration?.favoriteId === item.id ? total + (line.quantity || 1) : total
+            ), 0);
             const badge = item.new ? "Nuevo" : item.seasonal ? "Temporada" : item.signature ? "Signature" : item.popular ? "Popular" : "Favorito";
             return (
-              <article className={isSelected ? "discovery-card discovery-card--selected" : "discovery-card"} key={item.id}>
-                <div className="discovery-card-art"><img src={MENU_ART[item.id] || "/assets/illustrations/sandwich-hero.jpg"} alt={item.name} loading="lazy" /></div>
+              <article className="discovery-card" key={item.id}>
+                <div className="discovery-card-art"><img src={MENU_ART[item.id] || "/assets/illustrations/sandwich-hero.jpg"} alt="" aria-hidden="true" loading="lazy" /></div>
                 <div className="discovery-card-content">
                   <div className="discovery-card-top">
                     <span className="discovery-badge">{badge}</span>
@@ -127,17 +145,18 @@ export default function DiscoverySection({ onSelect, selectedId }) {
                     <h3>{item.name}</h3>
                     <p>{item.description}</p>
                     <p className="discovery-card-ingredients">
-                      {item.proteins.map((protein) => {
-                        const ingredient = INGREDIENTS.proteins.find((candidate) => candidate.id === protein.id);
-                        const name = ingredient?.name || protein.id;
-                        return protein.quantity > 1 ? `${protein.quantity} × ${name}` : name;
-                      }).join(" · ")}
+                      {composition.slice(0, 2).map(formatIngredient).join(" · ")}
+                      {composition.length > 2 ? ` · +${composition.length - 2} componentes` : ""}
                     </p>
+                    <details className="discovery-ingredients-details">
+                      <summary>Ver ingredientes</summary>
+                      <ul>{composition.map((ingredient) => <li key={ingredient.id}>{formatIngredient(ingredient)}</li>)}</ul>
+                    </details>
                   </div>
                   <div className="discovery-card-footer">
                     <strong>Desde {formatMoney(item.startingPrice)}</strong>
-                    <button type="button" className="primary-button motion-feedback" onClick={() => onSelect(item)} aria-pressed={isSelected}>
-                      Agregar
+                    <button type="button" className="primary-button motion-feedback" onClick={() => onSelect(item)} aria-label={`Agregar ${item.name} al pedido`}>
+                      {addedQuantity ? `Agregar otro · ${addedQuantity}` : "Agregar"}
                     </button>
                   </div>
                 </div>

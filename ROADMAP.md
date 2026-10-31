@@ -85,8 +85,21 @@
 
 No desplegar ni habilitar recepción de pedidos reales como parte de esta entrega.
 
+## UX cliente y operaciones — actualizaciones actuales
+
+- [x] Mantener búsqueda y categorías visibles y plegar filtros secundarios de precio/orden en móvil.
+- [x] Mostrar acceso fijo al carrito con cantidad y total cuando tiene productos.
+- [x] Hacer visible el conteo agregado al volver a agregar una receta canónica.
+- [x] Mostrar contacto, modalidad logística y siguiente transición en tarjetas de pedidos.
+- [x] Dar navegación del dashboard hacia pedidos activos, pagos pendientes y listos.
+- [x] Mostrar estados de sincronización y de error de la cola con semántica accesible.
+- [x] Mostrar punto de encuentro y enlace a Maps en el detalle admin; impedir cerrar el modal mientras se guarda.
+- [ ] Validar pantallas admin autenticadas con datos de prueba en navegador y revisar 320–430 px, tablet y desktop.
+
+No se ejecutaron pedidos reales ni se hizo despliegue. Resolver antes de push el estado `acceptingOrders = true` de `270303d`, incompatible con el release gate de este roadmap.
+
 **Current release line:** MVP hardening → Product Experience Evolution  
-**Operational state:** owner has a local, uncommitted `acceptingOrders = true` change that must be preserved and excluded from this commit. This is not release approval; no deployment is part of this task.
+**Operational state:** `main` includes commit `270303d` with `acceptingOrders = true`. This is not release approval and conflicts with the release gate below. No production deployment is evidenced.
 **Status:** Fases A–D have implementation baselines on main. The owner confirmed local `npm run check` and browser functionality on 2026-10-22; CI confirmation and production release gates remain pending.
 
 ## Fase activa — Fase 3: Conectar Sandwichies con Cupboard

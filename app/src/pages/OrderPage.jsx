@@ -502,7 +502,7 @@ export default function OrderPage() {
   }
 
   return (
-    <main className="storefront">
+    <main className={cartUnits ? "storefront storefront--has-cart" : "storefront"}>
       {toast && (
         <div
           className={`toast toast--${toast.type} state-toast`}
@@ -536,7 +536,7 @@ export default function OrderPage() {
       <div id="nuestro-menu" className="catalog-anchor">
       <DiscoverySection
         onSelect={addMenuItemToCart}
-        selectedId={favoriteId}
+        cart={cart}
       />
       </div>
 
@@ -722,7 +722,7 @@ export default function OrderPage() {
           </div>
         </section>
 
-        <aside className="cart-card motion-enter" aria-label="Resumen del pedido">
+        <aside className="cart-card motion-enter" id="cart-summary" aria-label="Resumen del pedido">
           <div className="cart-header">
             <div>
               <p className="eyebrow">Tu pedido</p>
@@ -774,11 +774,11 @@ export default function OrderPage() {
               <strong>{formatMoney(totals.subtotal)}</strong>
             </p>
             <p>
-              <span>Domicilio</span>
+              <span>{fulfillmentType === "domicilio" ? "Domicilio" : fulfillmentType === "punto_encuentro" ? "Punto de encuentro" : "Recoger"}</span>
               <strong>
                 {totals.deliveryFee
                   ? formatMoney(totals.deliveryFee)
-                  : "Sin costo"}
+                  : fulfillmentType === "punto_encuentro" ? "Sin tarifa adicional" : "Sin costo"}
               </strong>
             </p>
             <p className="grand-total">
@@ -887,6 +887,10 @@ export default function OrderPage() {
           </div>
         )}
       </section>
+      {cartUnits > 0 && <a className="mobile-cart-dock" href="#cart-summary" aria-label={`Ver carrito con ${cartUnits} productos, total ${formatMoney(totals.total)}`}>
+        <span><strong>{cartUnits} {cartUnits === 1 ? "producto" : "productos"}</strong><small>Ver pedido</small></span>
+        <strong>{formatMoney(totals.total)} <span aria-hidden="true">→</span></strong>
+      </a>}
     </main>
   );
 }

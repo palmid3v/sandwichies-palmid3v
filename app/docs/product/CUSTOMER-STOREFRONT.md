@@ -17,11 +17,13 @@ Build a responsive Sandwichies customer storefront inspired by familiar food-ord
 - Desktop: multi-column product cards and visible catalog controls.
 - Tablet/mobile: responsive grid, horizontally scrollable categories, readable card content, large touch targets, and stacked filters at narrow widths.
 - Respect reduced-motion preferences and existing accessibility patterns.
+- Keep search and category choices prominent on mobile; keep price/sort filters in a native disclosure so they do not push the catalog below the first screen.
+- When the cart has items, show a fixed, safe-area-aware summary with quantity and total that links to the cart. Reserve bottom space so it does not cover content.
 
 ## Address and delivery
 
 - Provide address search/selection and explicit confirmation for delivery.
-- Confirm service coverage before checkout can be enabled.
+- Point-of-meeting service coverage is validated against active admin polygons by the trusted backend. Domiciliary address coverage is not automatically validated; the existing radius assessment is manual-only.
 - Do not invent a delivery zone or imply an address was validated when it was only typed.
 - Select a geocoding/address provider only after checking terms, attribution, rate limits, privacy, and $0 budget constraints. Avoid a production dependency on an unapproved public endpoint.
 
@@ -35,7 +37,7 @@ Build a responsive Sandwichies customer storefront inspired by familiar food-ord
 ## Cart and order safety
 
 - Reuse existing cart and trusted `createOrder` callable; do not trust browser-supplied totals.
-- Keep `BUSINESS.acceptingOrders = false` until the release gate has been explicitly approved.
+- Release rule: keep `BUSINESS.acceptingOrders = false` until the release gate has been explicitly approved. `main` commit `270303d` has it set to `true`, which is a documented conflict; no production approval/deployment is evidenced and no real order should be created.
 - Do not deploy Firebase Rules or Functions as part of storefront UI changes.
 - Preserve the current server-side order/inventory idempotency behavior. Cupboard integration must be designed separately after Firebase project/configuration boundaries are verified.
 
@@ -45,3 +47,4 @@ Build a responsive Sandwichies customer storefront inspired by familiar food-ord
 - Price filtering and sorting were added to the functional storefront.
 - Existing recipes, shared price calculation, local image assets, customizer, cart, and server-validated order callable remain the source of truth.
 - Address autocomplete/coverage validation and phone verification are not yet implemented; do not describe them as available.
+- Point-of-meeting polygon validation, GPS/manual pin selection and owner-only tracking are implemented. This does not imply address-geocoding coverage or release readiness.

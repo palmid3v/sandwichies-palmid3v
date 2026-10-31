@@ -4,6 +4,8 @@
 
 acceptingOrders = false se mantiene hasta que todos los bloqueos de release tengan evidencia real.
 
+**Discrepancia vigente (2026-10-30):** `main` en `270303d` tiene `BUSINESS.acceptingOrders = true`, aunque no hay evidencia de aprobación ni despliegue que complete esta checklist. El release queda bloqueado. No publicar una versión habilitante ni crear pedidos reales para probarla; resolver la discrepancia antes del release.
+
 ## Pre-release técnico
 
 - [ ] Ejecutar npm ci
