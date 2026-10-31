@@ -2,9 +2,9 @@
 
 **Producto digital de PALMI-D3V** · Plataforma de pedidos, experiencia gastronómica y operación del negocio.
 
-Sandwichies evoluciona desde su experiencia web hacia un producto **mobile-first** para clientes y una consola operativa completa para administración. La web actual es la base funcional; las mesas virtuales y las aplicaciones nativas iOS/Android forman parte de la evolución planificada, no de las capacidades ya entregadas.
+Sandwichies evoluciona desde su experiencia web hacia un producto **mobile-first** para clientes y una consola operativa completa para administración. La web ofrece una primera implementación local de puntos de encuentro y mesas virtuales; su validación operativa y eventual release siguen pendientes.
 
-> **Estado actual:** desarrollo activo · integración con Cupboard en fase de cierre · pedidos reales deshabilitados.
+> **Estado actual:** desarrollo activo · integración con Cupboard en fase de cierre · mesas virtuales implementadas para validación controlada · release no aprobado.
 
 ---
 
@@ -29,13 +29,15 @@ La experiencia de cliente debe diseñarse primero para pantallas móviles. La ex
 - Captura de datos de contacto y selección de recogida o domicilio.
 - Sesión de cliente con Firebase Anonymous Auth, separada de la autenticación administrativa.
 - Validaciones compartidas para precios, productos y solicitudes de pedido.
-- Flujo de envío de pedido preparado para pruebas controladas; no habilitado para pedidos reales.
+- Captura GPS o manual de puntos de encuentro, validación de polígonos y asignación automática a mesa virtual.
+- Seguimiento privado del pedido y acción “Ya estoy aquí”. El checkout sigue sujeto a los controles de release y Cupboard.
 
 ### Administración
 - Autenticación Firebase y autorización mediante custom claim de administrador.
 - Consulta y gestión operativa de pedidos.
 - Estados de pedido y de pago diferenciados.
 - Visibilidad de inventario, compras, ajustes y señales operativas.
+- Consola de mesas virtuales con mapa, zonas, cola de pedidos y cambios logísticos individuales.
 - Reglas de acceso restrictivas; el navegador no puede crear pedidos ni modificar datos financieros confiables.
 
 ### Backend e integración
@@ -62,7 +64,7 @@ Consulta [app/README.md](app/README.md) para el contexto técnico y los comandos
 | Administración web | **85%** | Flujos principales construidos; revisión operativa pendiente |
 | Integración con Cupboard (Fase 3) | **65%** | Implementación base; configuración real y pruebas cruzadas pendientes |
 | Release de pedidos reales | **10%** | Bloqueado deliberadamente |
-| Mesas virtuales | **100% diseño / 0% implementación** | Especificación y mockups preparados |
+| Mesas virtuales | **Implementación base** | Cliente, funciones, consola y reglas listas para validación; release pendiente |
 | Aplicaciones nativas iOS y Android | **0% implementación** | Ruta de crecimiento documentada |
 
 **No se publica un porcentaje global único:** mezclar funcionalidades implementadas, pruebas pendientes, preparación de release y trabajo futuro produciría una métrica engañosa.
@@ -122,7 +124,9 @@ Reglas de producto definidas:
 - El administrador opera desde móvil y desktop.
 - Pagos y movimientos de inventario de Cupboard no se alteran por agrupar pedidos.
 
-**Pendiente antes del backend:** decidir qué eventos reinician el temporizador y cómo se gestionan operativamente las mesas vencidas con pedidos pendientes. Los mockups son referencia visual, no evidencia de implementación.
+**Implementación base:** las zonas son polígonos administrados; el backend compara cada pedido con el ancla a 50 m y limita cada mesa a 9 pedidos activos. Pedido nuevo, llegada del cliente y cambio logístico del admin reinician los 60 minutos. Al vencer, la mesa deja de aceptar pedidos y los pendientes e historial permanecen visibles para coordinación individual. No se cancelan pedidos al expirar.
+
+**Pendiente:** validación visual/operativa por el propietario, configuración real de zonas, pruebas en proyecto no productivo y gate completo. No desplegar ni abrir pedidos reales con este cambio.
 
 ### Crecimiento hacia aplicaciones iOS y Android
 
@@ -149,7 +153,7 @@ La estrategia es evolucionar por etapas, reutilizando el dominio y los servicios
 
 ## 🔒 Seguridad y límite de release
 
-- `BUSINESS.acceptingOrders = false` permanece como barrera de seguridad.
+- El propietario indicó conservar su cambio local `BUSINESS.acceptingOrders = true`; el archivo queda fuera del commit. Esto no autoriza despliegue ni release y no sustituye los controles de Cupboard.
 - No se deben recibir pedidos reales ni habilitar checkout en producción.
 - No desplegar Functions o Firestore Rules, activar facturación ni modificar credenciales sin autorización explícita.
 - No cambiar proveedores, métodos, comisiones o políticas de pago como parte de tareas de UX.

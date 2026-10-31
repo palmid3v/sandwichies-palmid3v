@@ -83,7 +83,7 @@ Los porcentajes son estimaciones de avance documental/funcional por área, no m�
 | UX administración | 85% | Herramientas principales; validación operativa pendiente |
 | Integración con Cupboard | 65% | Falta configuración real y pruebas cruzadas |
 | Release de pedidos reales | 10% | No autorizado ni listo |
-| Mesas virtuales | 100% diseño / 0% código | Solo especificación y mockups |
+| Mesas virtuales | Implementación base | Cliente, funciones, consola admin y reglas; validación/release pendientes |
 | iOS y Android nativos | 0% código | Plan de crecimiento, sin app nativa |
 
 No se calcula un promedio general porque las áreas tienen pesos y criterios de finalización distintos.
@@ -109,7 +109,7 @@ No se calcula un promedio general porque las áreas tienen pesos y criterios de 
 
 No ejecutar importaciones ni sincronizaciones contra datos reales sin revisar primero el modo dry-run, las variables y el destino.
 
-## 6. Mesas virtuales — especificación, no implementación
+## 6. Mesas virtuales — implementación base
 
 La referencia vigente está en `docs/product/virtual-tables/`.
 
@@ -124,9 +124,7 @@ Reglas definidas:
 - El administrador puede operar desde móvil y desktop.
 - No alterar pagos ni duplicar movimientos de inventario por agrupar pedidos.
 
-Decisiones pendientes antes de implementar el backend:
-- Qué eventos reinician el temporizador de inactividad.
-- Cómo se atienden las órdenes pendientes cuando una mesa vence.
+El backend, las reglas Firestore y la consola admin están implementados. Pedido nuevo, llegada del cliente y cambios logísticos admin reinician los 60 minutos. Al vencer, una mesa deja de aceptar pedidos y conserva pedidos activos e historial para coordinación individual. Validar configuración, operación y diseño en proyecto no productivo antes de release.
 
 Los enlaces de Canva son referencias de diseño. Los archivos binarios exportados de los mockups aún no están archivados dentro del repositorio.
 
@@ -145,8 +143,8 @@ No migrar el frontend actual ni duplicar reglas de negocio antes de una decisió
 
 ## 8. Firebase, seguridad y release
 
-- `app/shared/business.js` establece `BUSINESS.acceptingOrders = false`.
-- Esta bandera debe permanecer en `false` hasta una aprobación de release independiente.
+- El propietario confirmó que debe conservarse su cambio local `BUSINESS.acceptingOrders = true`; ese archivo es un cambio suyo y se excluye de este commit.
+- La bandera local no es aprobación de release ni despliegue. La configuración de Cupboard y los gates de release permanecen independientes.
 - La autenticación administrativa usa Firebase Auth y custom claim `admin: true`.
 - El cliente usa una instancia Firebase separada para sesiones anónimas.
 - Firestore Rules deben continuar restrictivas y negar cualquier operación no declarada.
@@ -195,9 +193,9 @@ Para pruebas de reglas, se requiere Java disponible en `PATH`. Usa exclusivament
 
 1. Cerrar la configuración y las pruebas cruzadas de Cupboard.
 2. Ejecutar `npm run check` en el estado actual y recuperar CI verificable.
-3. Auditar el flujo cliente completo en mobile y desktop manteniendo checkout cerrado.
+3. Auditar el flujo cliente completo en mobile y desktop; no desplegar ni procesar pedidos reales.
 4. Validar la operación administrativa, permisos, inventario y recuperación de errores.
-5. Resolver las decisiones pendientes de mesas virtuales y luego implementar backend seguro.
+5. Validar visual y operativamente las mesas virtuales implementadas en entorno no productivo.
 6. Preparar contratos de dominio/API y un ADR para la estrategia iOS/Android.
 7. Ejecutar release verification y solicitar autorización separada antes de cualquier lanzamiento.
 

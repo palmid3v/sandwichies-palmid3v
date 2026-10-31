@@ -5,6 +5,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "./firebase";
 import Dashboard from "./components/Dashboard";
 import OrdersHistory from "./components/OrdersHistory";
+import VirtualTables from "./components/VirtualTables";
 import OrderModal from "./components/OrderModal";
 import Login from "./pages/Login";
 import { CATALOG } from "../shared/catalog.js";
@@ -236,6 +237,7 @@ export default function App() {
           ["pedidos", "Pedidos"],
           ["dashboard", "Resumen"],
           ["inventario", "Inventario"],
+          ["entregas", "Entregas"],
         ].map(([value, label]) => (
           <button
             role="tab"
@@ -260,6 +262,8 @@ export default function App() {
       )}
 
       {activeTab === "dashboard" && <Dashboard orders={orders} />}
+
+      {activeTab === "entregas" && <VirtualTables orders={orders} />}
 
       {activeTab === "inventario" && (
         <section className="admin-section">

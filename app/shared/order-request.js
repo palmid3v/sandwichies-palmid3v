@@ -21,10 +21,31 @@ export const normalizeOrderRequest = (payload) => {
   const phone = String(customer.phone || "").replace(/\D/g, "");
   if (phone.length < 10 || phone.length > 15) throw new OrderValidationError("WhatsApp inválido.");
   const fulfillment = payload.fulfillment || {};
-  if (!["recoger", "domicilio"].includes(fulfillment.type)) throw new OrderValidationError("Tipo de entrega inválido.");
+  if (!["recoger", "domicilio", "punto_encuentro"].includes(fulfillment.type)) throw new OrderValidationError("Tipo de entrega inválido.");
   const address = fulfillment.type === "domicilio"
     ? asString(fulfillment.address, "Dirección", 8, 180)
     : "";
+  let meetingPoint;
+  if (fulfillment.type === "punto_encuentro") {
+    const point = fulfillment.meetingPoint || {};
+    if (!Number.isFinite(point.latitude) || point.latitude < -90 || point.latitude > 90
+      || !Number.isFinite(point.longitude) || point.longitude < -180 || point.longitude > 180) {
+      throw new OrderValidationError("Ubicación inválida para el punto de encuentro.");
+    }
+    meetingPoint = {
+      latitude: point.latitude,
+      longitude: point.longitude,
+      ...(Number.isFinite(point.accuracy) && point.accuracy >= 0 && point.accuracy <= 10000
+        ? { accuracy: point.accuracy }
+        : {}),
+      ...(typeof point.capturedAt === "number" && Number.isFinite(point.capturedAt)
+        ? { capturedAt: point.capturedAt }
+        : {}),
+      ...(typeof point.label === "string"
+        ? { label: asString(point.label, "Referencia del punto", 0, 100, false) }
+        : {}),
+    };
+  }
   if (!Array.isArray(payload.items) || payload.items.length < 1 || payload.items.length > MAX_ITEMS) {
     throw new OrderValidationError("Cantidad de productos inválida.");
   }
@@ -33,7 +54,7 @@ export const normalizeOrderRequest = (payload) => {
   }
   return {
     customer: { name: asString(customer.name, "Nombre", 2, 80), phone },
-    fulfillment: { type: fulfillment.type, address },
+    fulfillment: { type: fulfillment.type, address, ...(meetingPoint ? { meetingPoint } : {}) },
     paymentMethod: payload.paymentMethod,
     notes: asString(payload.notes ?? "", "Notas", 0, 250, false),
     items: payload.items.map(calculateLineItem),
@@ -45,7 +66,10 @@ export const buildTrustedOrder = (payload, orderNumber) => {
   if (!Number.isInteger(orderNumber) || orderNumber < 1) {
     throw new OrderValidationError("Consecutivo inválido.");
   }
-  const totals = calculateOrderTotals(request.items, request.fulfillment.type);
+  const totals = calculateOrderTotals(
+    request.items,
+    request.fulfillment.type === "domicilio" ? "domicilio" : "recoger",
+  );
   const { paymentMethod, ...orderRequest } = request;
   return {
     orderNumber,

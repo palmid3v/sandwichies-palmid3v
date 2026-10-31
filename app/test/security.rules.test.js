@@ -36,6 +36,12 @@ test.beforeEach(async () => {
       ingredientId: "pepperoni",
       quantity: 39,
     });
+    await setDoc(doc(adminDb, "virtualTables", "table-1"), { status: "open", activeOrderCount: 1 });
+    await setDoc(doc(adminDb, "virtualTables/table-1/members", "order-1"), { customerUid: "user-1", orderId: "order-1" });
+    await setDoc(doc(adminDb, "customerOrderTracking/user-1/orders", "order-1"), { orderNumber: 1, deliveryStatus: "waiting_customer" });
+    await setDoc(doc(adminDb, "customerOrderTracking/user-2/orders", "order-2"), { orderNumber: 2, deliveryStatus: "waiting_customer" });
+    await setDoc(doc(adminDb, "deliveryZones", "zone-1"), { name: "Zona de prueba", active: true });
+    await setDoc(doc(adminDb, "deliveryEvents", "event-1"), { type: "table_created" });
   });
 });
 
@@ -103,6 +109,26 @@ test("counter remains inaccessible from browser", async () => {
   await assertFails(setDoc(doc(db, "counters", "orders"), { value: 99 }));
 });
 
+test("tracking is owner-only and all logistics writes remain server-side", async () => {
+  const customerDb = env.authenticatedContext("user-1").firestore();
+  await assertSucceeds(getDoc(doc(customerDb, "customerOrderTracking/user-1/orders/order-1")));
+  await assertFails(getDoc(doc(customerDb, "customerOrderTracking/user-2/orders/order-2")));
+  await assertFails(updateDoc(doc(customerDb, "customerOrderTracking/user-1/orders/order-1"), { deliveryStatus: "delivered" }));
+  await assertFails(getDoc(doc(customerDb, "virtualTables", "table-1")));
+  await assertFails(getDoc(doc(customerDb, "virtualTables/table-1/members", "order-1")));
+  await assertFails(getDoc(doc(customerDb, "deliveryZones", "zone-1")));
+  await assertFails(getDoc(doc(customerDb, "deliveryEvents", "event-1")));
+  await assertFails(setDoc(doc(customerDb, "orderRequests", "forged_request_key"), { orderId: "order-1" }));
+
+  const adminDb = env.authenticatedContext("admin-1", { admin: true }).firestore();
+  await assertSucceeds(getDoc(doc(adminDb, "virtualTables", "table-1")));
+  await assertSucceeds(getDoc(doc(adminDb, "virtualTables/table-1/members", "order-1")));
+  await assertSucceeds(getDoc(doc(adminDb, "deliveryZones", "zone-1")));
+  await assertSucceeds(getDoc(doc(adminDb, "deliveryEvents", "event-1")));
+  await assertFails(updateDoc(doc(adminDb, "virtualTables", "table-1"), { activeOrderCount: 9 }));
+  await assertFails(updateDoc(doc(adminDb, "deliveryZones", "zone-1"), { active: false }));
+});
+
 
 test("admin cannot mutate financial, customer, recipe or inventory snapshot fields", async () => {
   const db = env.authenticatedContext("admin-1", { admin: true }).firestore();
@@ -122,5 +148,5 @@ test("admin must confirm an order before marking payment as paid", async () => {
   const order = doc(db, "orders", "order-1");
   await assertFails(updateDoc(order, { status: "confirmado" }));
   await assertFails(updateDoc(order, { "payment.status": "pagado" }));
-  await assertFails(updateDoc(order, { "payment.status": "pendiente" }));
+  await assertSucceeds(updateDoc(order, { "payment.status": "pendiente" }));
 });

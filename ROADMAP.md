@@ -73,13 +73,25 @@
 
 # ROADMAP — Sandwichies
 
+## Mesas virtuales — implementación base en validación
+
+- [x] Cliente captura punto GPS o manual, valida cobertura y consulta su propio tracking.
+- [x] Backend valida polígonos, asigna desde el ancla a 50 m, limita a 9 activos e implementa idempotencia.
+- [x] Admin consulta mapa/cola, configura zonas y opera pedidos individualmente.
+- [x] Pedido nuevo, llegada del cliente y cambio logístico admin reinician el umbral de 60 minutos.
+- [x] Al expirar, cerrar nuevas asignaciones y conservar historial/pedidos pendientes para coordinación individual.
+- [ ] Revisar UX visualmente en móvil y escritorio; verificar polígonos reales en proyecto de pruebas.
+- [ ] Ejecutar gate completo y cerrar validación de seguridad/operación antes de considerar release.
+
+No desplegar ni habilitar recepción de pedidos reales como parte de esta entrega.
+
 **Current release line:** MVP hardening → Product Experience Evolution  
-**Operational state:** `acceptingOrders = false` in source; customer checkout remains closed pending explicit release approval.  
+**Operational state:** owner has a local, uncommitted `acceptingOrders = true` change that must be preserved and excluded from this commit. This is not release approval; no deployment is part of this task.
 **Status:** Fases A–D have implementation baselines on main. The owner confirmed local `npm run check` and browser functionality on 2026-10-22; CI confirmation and production release gates remain pending.
 
 ## Fase activa — Fase 3: Conectar Sandwichies con Cupboard
 
-**Estado:** implementación en `main`; validación operativa pendiente. Checkout sigue cerrado (`BUSINESS.acceptingOrders = false`).
+**Estado:** implementación Cupboard en validación; checkout y release dependen de configuración e instrucciones del propietario.
 
 - [x] Añadir adaptador seguro entre los dos proyectos de Firebase usando Admin SDK y configuración explícita.
 - [x] Reservar existencias en Cupboard al confirmar un pedido, con una transacción que cubre todos sus ingredientes.

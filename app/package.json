@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "test": "node --test test/pricing.test.js test/business.test.js test/inventory.test.js test/delivery-coverage.test.js test/phone.test.js test/promotions.test.js",
+    "test": "node --test test/pricing.test.js test/business.test.js test/inventory.test.js test/delivery-coverage.test.js test/phone.test.js test/promotions.test.js test/virtual-tables.test.js",
     "security:rules": "node --test test/security.rules.test.js",
     "security:test": "firebase emulators:exec --only firestore --project demo-sandwichies \"npm run security:rules\"",
     "emulators:test": "npm run security:test",
@@ -28,9 +28,12 @@
     "firebase": "^12.19.0",
     "firebase-admin": "^14.5.0",
     "firebase-functions": "^7.4.0",
+    "geofire-common": "^6.0.0",
     "html2canvas": "^1.4.1",
+    "leaflet": "^1.9.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.18.4"
   },
   "devDependencies": {

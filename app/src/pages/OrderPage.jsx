@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { onAuthStateChanged, signInAnonymously, updateProfile } from "firebase/auth";
-import { customerApp, customerAuth } from "../customerFirebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { customerApp, customerAuth, customerDb } from "../customerFirebase";
 import Category from "../components/Category";
 import { generateName } from "../utils/generateName";
 import { INGREDIENTS } from "../data/ingredients";
@@ -26,6 +27,17 @@ const DEFAULT_BASE = [
   "Cebolla",
 ];
 
+const MeetingPointPicker = lazy(() => import("../components/MeetingPointPicker"));
+const newRequestId = () => globalThis.crypto.randomUUID();
+const DELIVERY_STATUS_LABELS = {
+  waiting_customer: "Esperando al cliente",
+  customer_ready: "Ya llegaste al punto",
+  en_route: "En camino",
+  arrived: "En el punto de encuentro",
+  delivered: "Entregado",
+  cancelled: "Cancelado",
+};
+
 export default function OrderPage() {
   const [size, setSize] = useState("15");
   const [proteins, setProteins] = useState([]);
@@ -41,6 +53,9 @@ export default function OrderPage() {
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState("");
   const [fulfillmentType, setFulfillmentType] = useState("recoger");
+  const [meetingPoint, setMeetingPoint] = useState({ latitude: "", longitude: "", label: "", accuracy: null, capturedAt: null });
+  const [coverage, setCoverage] = useState(null);
+  const [coverageBusy, setCoverageBusy] = useState(false);
   const [address, setAddress] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [addressReference, setAddressReference] = useState("");
@@ -50,6 +65,21 @@ export default function OrderPage() {
   const [toast, setToast] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedOrder, setCompletedOrder] = useState(null);
+  const [readyBusy, setReadyBusy] = useState(false);
+  const requestIdRef = useRef(newRequestId());
+
+  useEffect(() => {
+    const uid = customerAuth.currentUser?.uid;
+    if (!completedOrder?.id || !uid || completedOrder.fulfillment?.type !== "punto_encuentro") return undefined;
+    return onSnapshot(doc(customerDb, "customerOrderTracking", uid, "orders", completedOrder.id), (snapshot) => {
+      if (!snapshot.exists()) return;
+      const tracking = snapshot.data();
+      setCompletedOrder((current) => current ? {
+        ...current,
+        delivery: { ...current.delivery, status: tracking.deliveryStatus, tableStatus: tracking.tableStatus },
+      } : current);
+    });
+  }, [completedOrder?.id, completedOrder?.fulfillment?.type]);
 
   useEffect(() => {
     let mounted = true;
@@ -123,7 +153,7 @@ export default function OrderPage() {
     [cart],
   );
   const totals = useMemo(
-    () => calculateOrderTotals(expandedCart, fulfillmentType),
+    () => calculateOrderTotals(expandedCart, fulfillmentType === "domicilio" ? "domicilio" : "recoger"),
     [expandedCart, fulfillmentType],
   );
 
@@ -272,6 +302,10 @@ export default function OrderPage() {
       if (neighborhood.trim().length < 2) return "Escribe el barrio de entrega.";
       if (buildDeliveryAddress().length > 180) return "La dirección es demasiado larga; resume las referencias.";
     }
+    if (fulfillmentType === "punto_encuentro"
+      && (!Number.isFinite(Number(meetingPoint.latitude)) || !Number.isFinite(Number(meetingPoint.longitude)) || coverage?.covered !== true)) {
+      return "Selecciona el punto en el mapa y valida que esté dentro de la zona operativa.";
+    }
     if (!cart.length) return "Agrega al menos un sandwich.";
     return null;
   };
@@ -304,16 +338,55 @@ export default function OrderPage() {
       lines.push(formatMoney(item.price), "");
     });
 
-    lines.push(
-      order.fulfillment.type === "domicilio"
-        ? `Domicilio: ${order.fulfillment.address}`
-        : "Recoge en el local",
-      `Pago: ${order.payment.method}`,
-    );
+    if (order.fulfillment.type === "domicilio") lines.push(`Domicilio: ${order.fulfillment.address}`);
+    else if (order.fulfillment.type === "punto_encuentro") {
+      lines.push(`Punto de encuentro: mesa ${order.delivery?.tableReference || "asignada automáticamente"}`);
+      lines.push(`Ubicación: https://maps.google.com/?q=${order.fulfillment.meetingPoint.latitude},${order.fulfillment.meetingPoint.longitude}`);
+    } else lines.push("Recoge en el local");
+    lines.push(`Pago: ${order.payment.method}`);
     if (order.notes) lines.push(`Notas: ${order.notes}`);
     lines.push("", `*TOTAL: ${formatMoney(order.total)}*`);
 
     return lines.join("\n");
+  };
+
+  const validateMeetingPoint = async () => {
+    if (!authReady || !customerAuth.currentUser) {
+      showToast("Estamos preparando tu sesión de cliente.", "error");
+      return;
+    }
+    const point = { latitude: Number(meetingPoint.latitude), longitude: Number(meetingPoint.longitude) };
+    if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) {
+      showToast("Selecciona una ubicación válida en el mapa.", "error");
+      return;
+    }
+    setCoverageBusy(true);
+    setCoverage(null);
+    try {
+      const { getFunctions, httpsCallable } = await import("firebase/functions");
+      const validate = httpsCallable(getFunctions(customerApp), "validateMeetingPoint");
+      const response = await validate({ meetingPoint: point });
+      setCoverage(response.data);
+      showToast(response.data.covered ? `Punto dentro de la zona ${response.data.zoneName}.` : "Este punto está fuera de la zona operativa.", response.data.covered ? "success" : "error");
+    } catch (error) {
+      setCoverage({ covered: false });
+      showToast(error.message || "No pudimos validar la cobertura.", "error");
+    } finally {
+      setCoverageBusy(false);
+    }
+  };
+
+  const markArrival = async () => {
+    if (!completedOrder?.id || readyBusy) return;
+    setReadyBusy(true);
+    try {
+      const { getFunctions, httpsCallable } = await import("firebase/functions");
+      await httpsCallable(getFunctions(customerApp), "markCustomerReady")({ orderId: completedOrder.id });
+    } catch (error) {
+      showToast(error.message || "No pudimos registrar tu llegada.", "error");
+    } finally {
+      setReadyBusy(false);
+    }
   };
 
   const confirmOrder = async () => {
@@ -344,16 +417,28 @@ export default function OrderPage() {
       const { getFunctions, httpsCallable } = await import("firebase/functions");
       const createOrder = httpsCallable(getFunctions(customerApp), "createOrder");
       const result = await createOrder({
+        requestId: requestIdRef.current,
         customer: { name: clientName.trim(), phone: normalizeColombianPhone(phone) },
         items: cart.flatMap((item) => Array.from(
           { length: item.quantity || 1 },
           () => item.configuration,
         )),
-        fulfillment: { type: fulfillmentType, address: fulfillmentType === "domicilio" ? buildDeliveryAddress() : "" },
+        fulfillment: {
+          type: fulfillmentType,
+          address: fulfillmentType === "domicilio" ? buildDeliveryAddress() : "",
+          ...(fulfillmentType === "punto_encuentro" ? { meetingPoint: {
+            latitude: Number(meetingPoint.latitude),
+            longitude: Number(meetingPoint.longitude),
+            label: meetingPoint.label.trim(),
+            ...(meetingPoint.accuracy !== null ? { accuracy: meetingPoint.accuracy } : {}),
+            ...(meetingPoint.capturedAt !== null ? { capturedAt: meetingPoint.capturedAt } : {}),
+          } } : {}),
+        },
         paymentMethod,
         notes: notes.trim(),
       });
       savedOrder = result.data.order;
+      requestIdRef.current = newRequestId();
 
       setCompletedOrder(savedOrder);
       setCart([]);
@@ -371,10 +456,7 @@ export default function OrderPage() {
     } catch (error) {
       whatsappWindow?.close();
       console.error("No se pudo enviar el pedido:", error);
-      showToast(
-        "No pudimos enviar el pedido. Revisa tu conexión e intenta otra vez.",
-        "error",
-      );
+      showToast(error?.message || "No pudimos enviar el pedido. Revisa tu conexión e intenta otra vez.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -390,6 +472,13 @@ export default function OrderPage() {
           <p className="confirmation-number">
             Tu orden es la <strong>#{completedOrder.orderNumber}</strong>
           </p>
+          {completedOrder.delivery?.tableReference && <section className="customer-delivery-tracking" aria-live="polite">
+            <p className="eyebrow">Tu mesa virtual</p>
+            <h2>{completedOrder.delivery.tableReference}</h2>
+            <p>Tu entrega: <strong>{DELIVERY_STATUS_LABELS[completedOrder.delivery.status] || "Esperando al cliente"}</strong></p>
+            {completedOrder.delivery.status === "waiting_customer" && <button type="button" className="primary-button motion-feedback" disabled={readyBusy} onClick={markArrival}>{readyBusy ? "Registrando…" : "Ya estoy aquí"}</button>}
+            <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${completedOrder.fulfillment.meetingPoint.latitude},${completedOrder.fulfillment.meetingPoint.longitude}`}>Abrir punto en Maps ↗</a>
+          </section>}
           <p>
             Tiempo estimado:{" "}
             {completedOrder.fulfillment.type === "domicilio"
@@ -741,9 +830,30 @@ export default function OrderPage() {
           </label>
         </div>
         <div className="segmented-control">
-          <button type="button" className={fulfillmentType === "recoger" ? "active motion-feedback" : "motion-feedback"} onClick={() => setFulfillmentType("recoger")} aria-pressed={fulfillmentType === "recoger"}>Recoger</button>
-          <button type="button" className={fulfillmentType === "domicilio" ? "active motion-feedback" : "motion-feedback"} onClick={() => setFulfillmentType("domicilio")} aria-pressed={fulfillmentType === "domicilio"}>Domicilio +{formatMoney(BUSINESS.deliveryFee)}</button>
+          <button type="button" className={fulfillmentType === "recoger" ? "active motion-feedback" : "motion-feedback"} onClick={() => { setFulfillmentType("recoger"); setCoverage(null); }} aria-pressed={fulfillmentType === "recoger"}>Recoger</button>
+          <button type="button" className={fulfillmentType === "punto_encuentro" ? "active motion-feedback" : "motion-feedback"} onClick={() => { setFulfillmentType("punto_encuentro"); setCoverage(null); }} aria-pressed={fulfillmentType === "punto_encuentro"}>Punto de encuentro</button>
+          <button type="button" className={fulfillmentType === "domicilio" ? "active motion-feedback" : "motion-feedback"} onClick={() => { setFulfillmentType("domicilio"); setCoverage(null); }} aria-pressed={fulfillmentType === "domicilio"}>Domicilio +{formatMoney(BUSINESS.deliveryFee)}</button>
         </div>
+        {fulfillmentType === "punto_encuentro" && <div className="meeting-point-fields">
+          <div className="meeting-point-heading"><div><strong>Elige dónde nos encontraremos</strong><small>No compartimos tu ubicación con otros clientes ni hacemos seguimiento continuo.</small></div><button type="button" className="motion-feedback" onClick={() => {
+            if (!navigator.geolocation) { showToast("GPS no disponible. Coloca el pin manualmente.", "error"); return; }
+            navigator.geolocation.getCurrentPosition(({ coords }) => {
+              setMeetingPoint((current) => ({ ...current, latitude: String(coords.latitude), longitude: String(coords.longitude), accuracy: Math.round(coords.accuracy), capturedAt: Date.now() }));
+              setCoverage(null);
+            }, () => showToast("No pudimos obtener permiso o señal GPS. Coloca el pin manualmente.", "error"), { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
+          }}>Usar mi ubicación</button></div>
+          <Suspense fallback={<div className="meeting-point-map-loading" role="status">Cargando mapa…</div>}>
+            <MeetingPointPicker point={Number.isFinite(Number(meetingPoint.latitude)) && meetingPoint.latitude !== "" ? { latitude: Number(meetingPoint.latitude), longitude: Number(meetingPoint.longitude) } : null} onSelect={(point) => { setMeetingPoint((current) => ({ ...current, latitude: String(point.latitude), longitude: String(point.longitude), accuracy: null, capturedAt: null })); setCoverage(null); }} />
+          </Suspense>
+          <div className="form-grid">
+            <label>Latitud<input inputMode="decimal" value={meetingPoint.latitude} onChange={(event) => { setMeetingPoint((current) => ({ ...current, latitude: event.target.value, accuracy: null, capturedAt: null })); setCoverage(null); }} placeholder="4.65" /></label>
+            <label>Longitud<input inputMode="decimal" value={meetingPoint.longitude} onChange={(event) => { setMeetingPoint((current) => ({ ...current, longitude: event.target.value, accuracy: null, capturedAt: null })); setCoverage(null); }} placeholder="-74.08" /></label>
+          </div>
+          <label>Referencia opcional<input maxLength={100} value={meetingPoint.label} onChange={(event) => setMeetingPoint((current) => ({ ...current, label: event.target.value }))} placeholder="Parque, esquina o lugar público" /></label>
+          <button type="button" className="meeting-point-validate" disabled={coverageBusy || !authReady} onClick={validateMeetingPoint}>{coverageBusy ? "Validando punto…" : "Validar punto de encuentro"}</button>
+          {coverage && <p className={coverage.covered ? "meeting-point-status covered" : "meeting-point-status uncovered"} role="status">{coverage.covered ? `Punto dentro de ${coverage.zoneName}.` : "Fuera de la zona habilitada. Mueve el pin y vuelve a validar."}</p>}
+          {meetingPoint.accuracy !== null && <small>Precisión GPS aproximada: {meetingPoint.accuracy} m.</small>}
+        </div>}
         {fulfillmentType === "domicilio" && (
           <div className="delivery-address-fields">
             <label>

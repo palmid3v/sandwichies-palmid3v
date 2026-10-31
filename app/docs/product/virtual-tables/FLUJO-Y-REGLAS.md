@@ -1,6 +1,6 @@
 # Flujos y reglas de producto — Mesas virtuales
 
-**Estado:** especificación UX/funcional de referencia; no implica implementación.
+**Estado:** reglas funcionales implementadas en la rama de trabajo; validar en entorno no productivo antes de release.
 
 ## Roles
 
@@ -53,10 +53,11 @@ La confirmación de entrega de un pedido no debe modificar el resto de la mesa.
 - Mesa abierta: admite pedidos mientras esté vigente y tenga cupo.
 - Mesa llena: 9/9 pedidos activos; no admite más.
 - Entrega/cancelación: libera un único cupo.
-- Inactividad: 60 minutos iniciales, configurable.
+- Inactividad: 60 minutos, configurable. Reinician el reloj un pedido nuevo, llegada del cliente y transición logística de un pedido por admin.
+- Al expirar, la mesa no acepta pedidos nuevos. Conserva historial y pedidos activos visibles en cola admin para coordinación individual; no hay cancelación automática.
 - Mesa vencida: deja de aceptar pedidos; no cancela pedidos pendientes ni borra el historial. Admin conserva visibilidad operativa y debe poder resolver pendientes.
 
-**Decisión pendiente antes de backend:** definir exactamente qué eventos reinician el temporizador de inactividad y cómo se representa una mesa vencida con pedidos pendientes.
+La expiración se registra en la mesa y en el tracking de sus miembros. Los pedidos existentes conservan su estado y vínculo; el admin los resuelve uno a uno.
 
 ## Privacidad y permisos
 
@@ -65,11 +66,11 @@ La confirmación de entrega de un pedido no debe modificar el resto de la mesa.
 - Ningún cliente ve coordenadas, identidad, teléfono ni pedido de otros clientes.
 - Las escrituras privilegiadas ocurren en backend; el cliente no escribe mesas ni eventos administrativos.
 
-## Fuera de alcance de esta especificación
+## Fuera de alcance de esta implementación
 
 - Cambiar proveedores o métodos de pago.
 - Tap to Pay.
 - Cambios de política de cobro o reembolsos.
 - Cambios al modelo de inventario Cupboard.
-- Habilitar pedidos reales o desplegar a producción.
+- Desplegar a producción o aprobar la recepción de pedidos reales.
 - Migrar el frontend a React Native/Expo sin ADR y aprobación específica.
