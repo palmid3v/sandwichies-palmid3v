@@ -582,3 +582,19 @@ After each approved implementation group, report:
 - browser validation status
 - remaining release blockers
 - exact next approved phase
+
+
+---
+
+## 25. UX direction — virtual tables and mobile-first product
+
+For all work involving customer journeys, virtual tables, delivery operations, or responsive UX, the detailed current specification is mandatory:
+
+`app/docs/product/virtual-tables/README.md`  
+`app/docs/product/virtual-tables/PROMPT-MAESTRO.md`  
+`app/docs/product/virtual-tables/FLUJO-Y-REGLAS.md`  
+`app/docs/product/virtual-tables/mockups/README.md`
+
+The v2 Canva mockups linked there are the visual reference. Prioritize customer mobile, then admin mobile operations, while preserving a complete desktop admin experience. Prepare shared domain and platform boundaries for future iOS/Android apps; do not migrate frameworks without an architecture decision and explicit approval.
+
+The detailed prompt governs the work sequence, UX acceptance criteria, virtual-table rules, privacy, security, test matrix and reporting. If it conflicts with this repository-wide masterprompt, preserve the stricter security/release constraints and document the discrepancy.
