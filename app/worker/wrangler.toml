@@ -1,0 +1,9 @@
+name = "sandwichies-palmid3v"
+main = "src/index.js"
+compatibility_date = "2026-10-31"
+
+[ observability ]
+enabled = true
+
+[ vars ]
+FIREBASE_PROJECT_ID = "sandwich-pro"
