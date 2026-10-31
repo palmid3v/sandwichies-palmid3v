@@ -72,6 +72,26 @@ El navegador es un entorno no confiable. No aceptar desde el cliente precios, to
 
 **Estado de despliegue verificado (31-oct-2026):** el código de `functions/` existe, pero `firebase functions:list --project sandwich-pro` y `gcloud functions list` devolvieron cero funciones; las URLs `createOrder` y `validateMeetingPoint` responden 404. Por tanto, el flujo backend definido en el código no está disponible en el proyecto Firebase de producción. Los emuladores permiten desarrollo y pruebas locales, pero no sustituyen el backend desplegado.
 
+### Migración backend a Cloudflare Workers — fundación creada
+
+Se creó `app/worker/` como una unidad aislada para evaluar la migración del backend bajo el presupuesto $0. El primer corte incluye:
+
+- `GET /health`: comprobación pública de disponibilidad del Worker.
+- `GET /v1/session`: verificación de Firebase ID token y lectura de UID/claim administrativo.
+- `GET /v1/admin/session`: exige custom claim `admin: true`.
+- Verificación RS256 mediante JWK oficial de Firebase Secure Token; valida firma, issuer, audience, subject, `iat`, `auth_time` y `exp`.
+- Pruebas Node para token válido, audiencia incorrecta, expiración y firma manipulada.
+
+**Límite deliberado de esta primera entrega:** todavía no hay acceso a Firestore, creación/transición de pedidos, integración Cupboard, pagos ni tareas programadas. Ninguna operación de producción se ha ejecutado. El siguiente gate es diseñar y probar credenciales de servicio y transacciones Firestore REST antes de migrar cualquier endpoint de negocio.
+
+La configuración está en `app/worker/wrangler.toml`. Desde la raíz del repositorio, el comando previsto para una futura publicación manual es:
+
+```bash
+npx wrangler deploy --config app/worker/wrangler.toml
+```
+
+Cloudflare Builds debe permanecer deshabilitado hasta configurar explícitamente ese comando y validar el Root directory. La creación de estos archivos no implica despliegue.
+
 ## 4. Stack tecnológico y herramientas
 
 Esta sección distingue dependencias que aparecen en el repositorio, servicios configurados y alternativas todavía evaluadas. Las versiones indicadas corresponden a los rangos declarados en `package.json`, no necesariamente a la versión exacta instalada en cada equipo.
