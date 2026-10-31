@@ -79,7 +79,7 @@ export async function verifyFirebaseIdToken(token, {
   if (!Number.isFinite(claims.exp) || claims.exp <= nowSeconds - skew) {
     throw new Error("Firebase token is expired");
   }
-  if (!Number.isFinite(claims.iat) || claims.iat > nowSeconds + skew) {
+  if (!Number.isFinite(claims.iat) || claims.iat > nowSeconds + skew || claims.iat >= claims.exp) {
     throw new Error("Firebase token issue time is invalid");
   }
   if (!Number.isFinite(claims.auth_time) || claims.auth_time > nowSeconds + skew) {
