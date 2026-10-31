@@ -2,7 +2,7 @@ name = "sandwichies-palmid3v"
 main = "src/index.js"
 compatibility_date = "2026-10-31"
 
-[ observability ]
+[observability]
 enabled = true
 
 [ vars ]
