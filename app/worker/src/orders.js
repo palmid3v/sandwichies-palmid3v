@@ -218,10 +218,12 @@ async function assignVirtualTable({ tx, orderId, uid, orderNumber, point, zone, 
   return { tableId, tableReference, zoneId: zone.id, status: "waiting_customer" };
 }
 
-export async function createOrder({ request, claims, env, db: injectedDb }) {
+// policy is injectable only at the domain boundary so tests can exercise order
+// validation/idempotency while the production BUSINESS.acceptingOrders gate stays closed.
+export async function createOrder({ request, claims, env, db: injectedDb, policy = BUSINESS }) {
   if (!claims?.sub) throw new ApiError(401, "unauthenticated", "Inicia sesión para realizar tu pedido.");
   if (env.ORDERS_ENABLED !== "true") throw new ApiError(503, "ORDERS_DISABLED", "Los pedidos están deshabilitados mientras se completa la validación.");
-  if (!BUSINESS.acceptingOrders) throw new ApiError(503, "ORDERS_DISABLED", "El negocio no está aceptando pedidos.");
+  if (policy.acceptingOrders !== true) throw new ApiError(503, "ORDERS_DISABLED", "El negocio no está aceptando pedidos.");
   requireCupboard(env);
   const db = injectedDb || createSandwichiesDb(env);
   const requestId = typeof request.requestId === "string" ? request.requestId.trim() : "";
