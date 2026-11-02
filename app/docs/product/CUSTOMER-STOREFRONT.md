@@ -29,17 +29,19 @@ Build a responsive Sandwichies customer storefront inspired by familiar food-ord
 
 ## Customer identity
 
-- Customer login should be phone-based, with proof of control of the number.
-- SMS OTP or WhatsApp verification must use a real verification flow, not merely a phone-number field.
-- Evaluate Firebase Phone Auth and WhatsApp-compatible providers against current project configuration, anti-abuse requirements, privacy, and the required $0 budget before implementation. Do not silently introduce paid services.
-- Keep customer identity and authorization separate from the existing admin custom-claim flow.
+- Customers authenticate with email and password using the same Firebase Authentication instance as administrators.
+- Registration sends an email-verification link. Unverified accounts cannot browse the authenticated checkout, submit orders, or read tracking data.
+- Login supports verification-link resend and password reset.
+- Anonymous authentication is disabled. New accounts start with new UIDs; anonymous customer histories are not linked or migrated.
+- Administrative authorization remains separate and additionally requires the custom claim `admin: true`.
+- Do not introduce SMS, WhatsApp OTP, or paid identity providers in this flow.
 
 ## Cart and order safety
 
 - Reuse existing cart and trusted `createOrder` callable; do not trust browser-supplied totals.
 - Release rule: keep `BUSINESS.acceptingOrders = false` until the release gate has been explicitly approved. `main` commit `270303d` has it set to `true`, which is a documented conflict; no production approval/deployment is evidenced and no real order should be created.
 - Do not deploy Firebase Rules or Functions as part of storefront UI changes.
-- Preserve the current server-side order/inventory idempotency behavior. Cupboard integration must be designed separately after Firebase project/configuration boundaries are verified.
+- Preserve the current server-side order/inventory idempotency behavior. Cupboard catalog items will be reviewed and synchronized in a later phase; do not auto-import or overwrite Sandwichies catalog data as part of this authentication change.
 
 ## Current implementation baseline
 
