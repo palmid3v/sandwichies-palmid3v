@@ -1,6 +1,6 @@
 export const VIRTUAL_TABLE_DEFAULTS = Object.freeze({
   groupingRadiusMeters: 50,
-  capacity: 8,
+  capacity: 9,
   inactivityMinutes: 60,
 });
 
