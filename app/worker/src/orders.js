@@ -470,6 +470,21 @@ export async function transitionOrder({ orderId, status, claims, env, db: inject
       if ((latest.data.status || "pendiente") !== currentStatus) {
         throw new ApiError(409, "ORDER_CHANGED", "El pedido cambió durante la operación. Revisa su estado.");
       }
+
+      let cancellation = null;
+      const tableId = status === "cancelado" ? latest.data.delivery?.tableId : null;
+      if (tableId) {
+        const tablePath = "virtualTables/" + tableId;
+        const memberPath = tablePath + "/members/" + orderId;
+        const trackingPath = "customerOrderTracking/" + latest.data.customerUid + "/orders/" + orderId;
+        const [table, member, tracking] = await Promise.all([
+          tx.get(tablePath),
+          tx.get(memberPath),
+          tx.get(trackingPath),
+        ]);
+        cancellation = { tablePath, memberPath, trackingPath, table, member, tracking };
+      }
+
       const inventory = {
         ...(latest.data.inventory || {}),
         system: isCupboardOrder ? "cupboard" : (latest.data.inventory?.system || "legacy"),
@@ -478,7 +493,43 @@ export async function transitionOrder({ orderId, status, claims, env, db: inject
         updatedAt: nowDate(),
       };
       delete inventory.transitionLock;
-      tx.update(orderPath, { status, inventory, updatedAt: nowDate() });
+      const now = nowDate();
+      tx.update(orderPath, { status, inventory, updatedAt: now });
+
+      if (cancellation?.member.exists
+        && !["delivered", "cancelled"].includes(cancellation.member.data.deliveryStatus)) {
+        const count = cancellation.table.exists
+          ? Math.max(0, Number(cancellation.table.data.activeOrderCount || 0) - 1)
+          : 0;
+        const tableStatus = !cancellation.table.exists || count === 0
+          ? "released"
+          : cancellation.table.data.status;
+        tx.update(cancellation.memberPath, {
+          deliveryStatus: "cancelled",
+          cancelledAt: now,
+        });
+        if (cancellation.table.exists) {
+          tx.update(cancellation.tablePath, {
+            activeOrderCount: count,
+            lastActivityAt: now,
+            ...(count === 0 ? { status: "released", releasedAt: now } : {}),
+          });
+        }
+        if (cancellation.tracking.exists) {
+          tx.set(cancellation.trackingPath, {
+            deliveryStatus: "cancelled",
+            tableStatus,
+            updatedAt: now,
+          });
+        }
+        tx.create("deliveryEvents/" + randomId(), {
+          tableId,
+          orderId,
+          type: "order_cancelled",
+          actorUid: claims.sub,
+          createdAt: now,
+        });
+      }
     });
     lockAcquired = false;
     return { orderId, status, cupboardConsumptionStatus: consumptionStatus };
