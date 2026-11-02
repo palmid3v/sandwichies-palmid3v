@@ -169,3 +169,49 @@ test("insufficient Cupboard stock prevents confirmation and releases the transit
   assert.equal(saved.data.inventory.transitionLock, undefined);
   assert.equal((await cupboardDb.read(cupboardInventoryPath)).data.portions, 1);
 });
+
+
+test("meeting-point orders are grouped into a virtual table using the fixed anchor", async () => {
+  const polygon = [
+    { latitude: 4.60, longitude: -74.10 },
+    { latitude: 4.70, longitude: -74.10 },
+    { latitude: 4.70, longitude: -74.00 },
+    { latitude: 4.60, longitude: -74.00 },
+  ];
+  const db = new MemoryFirestore({
+    "deliveryZones/zone-centro": {
+      name: "Centro",
+      active: true,
+      polygon,
+      capacity: 9,
+      groupingRadiusMeters: 50,
+      inactivityMinutes: 60,
+    },
+  });
+  const firstRequest = {
+    ...validOrderRequest(),
+    fulfillment: {
+      type: "punto_encuentro",
+      meetingPoint: { latitude: 4.65, longitude: -74.05, label: "Parque de prueba" },
+    },
+  };
+  const first = await createOrder({ request: firstRequest, claims: customerClaims, env, db });
+  const firstTableId = first.order.delivery.tableId;
+  assert.ok(firstTableId);
+  assert.equal(first.order.delivery.status, "waiting_customer");
+
+  const secondRequest = {
+    ...firstRequest,
+    requestId: "b9e31e77-6e23-4f3d-ae90-1b2c3d4e5f61",
+    customer: { name: "Segundo cliente", phone: "3007654321" },
+    fulfillment: {
+      type: "punto_encuentro",
+      meetingPoint: { latitude: 4.6501, longitude: -74.05, label: "A pocos metros" },
+    },
+  };
+  const second = await createOrder({ request: secondRequest, claims: { sub: "customer-two" }, env, db });
+  assert.equal(second.order.delivery.tableId, firstTableId);
+  assert.equal((await db.read(`virtualTables/${firstTableId}`)).data.activeOrderCount, 2);
+  assert.equal((await db.read(`virtualTables/${firstTableId}/members/${first.order.id}`)).exists, true);
+  assert.equal((await db.read(`virtualTables/${firstTableId}/members/${second.order.id}`)).exists, true);
+});
