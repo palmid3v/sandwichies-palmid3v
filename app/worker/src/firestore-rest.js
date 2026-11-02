@@ -125,13 +125,19 @@ export class FirestoreRestError extends Error {
 }
 
 export class FirestoreRest {
-  constructor({ projectId, serviceAccountJson, fetchImpl = fetch }) {
+  constructor({ projectId, serviceAccountJson, emulatorHost, fetchImpl = fetch }) {
     if (!projectId) throw new Error("FIRESTORE_PROJECT_ID_MISSING");
+    const localHost = String(emulatorHost || "").trim();
+    if (localHost && !/^(localhost|127\\.0\\.0\\.1):\\d{2,5}$/.test(localHost)) {
+      throw new Error("FIRESTORE_EMULATOR_MUST_USE_LOOPBACK");
+    }
     this.projectId = projectId;
     this.serviceAccountJson = serviceAccountJson;
+    this.emulatorHost = localHost;
     this.fetchImpl = fetchImpl;
-    this.root = "https://firestore.googleapis.com/v1/projects/"
-      + encodeURIComponent(projectId) + "/databases/(default)/documents";
+    const apiRoot = localHost ? "http://" + localHost : "https://firestore.googleapis.com";
+    this.root = apiRoot + "/v1/projects/" + encodeURIComponent(projectId)
+      + "/databases/(default)/documents";
   }
 
   documentName(path) {
@@ -141,7 +147,9 @@ export class FirestoreRest {
   }
 
   async request(url, { method = "GET", body, transaction, accessToken } = {}) {
-    const token = accessToken || await getGoogleAccessToken(this.serviceAccountJson, { fetchImpl: this.fetchImpl });
+    const token = accessToken || (this.emulatorHost
+      ? "owner"
+      : await getGoogleAccessToken(this.serviceAccountJson, { fetchImpl: this.fetchImpl }));
     const payload = body ? { ...body, ...(transaction ? { transaction } : {}) } : undefined;
     const response = await this.fetchImpl(url, {
       method,

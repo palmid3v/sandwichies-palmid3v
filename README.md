@@ -199,3 +199,15 @@ Consulta [app/README.md](app/README.md) para prerequisitos, emuladores y descrip
 Diseñado y desarrollado bajo **PALMI-D3V**.
 
 *Build · Create · Improve · Validate*
+
+
+## Local Worker development — 2026-11-02
+
+The existing Cloudflare Worker now has a local development path for delivery zones and virtual-table operations using Wrangler and the Firestore Emulator. The admin delivery console reads its operational data through protected Worker endpoints rather than direct browser subscriptions to those collections.
+
+- Worker: `127.0.0.1:8787`
+- Firestore Emulator: `127.0.0.1:8080`
+- Vite frontend: `127.0.0.1:5182`
+- Orders remain disabled; no Cloudflare deployment, billing change, or production Firestore write is part of local setup.
+
+See [Local Worker development](app/docs/development/local-worker.md) for the exact PowerShell workflow and the later Cloudflare completion checklist.

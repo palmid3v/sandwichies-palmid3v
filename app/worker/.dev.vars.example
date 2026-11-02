@@ -1,0 +1,5 @@
+# Local-only settings. Wrangler reads this file only for `wrangler dev`.
+# Firestore Emulator must be running on 127.0.0.1:8080.
+LOCAL_DEV=true
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+FIRESTORE_PROJECT_ID=sandwich-pro

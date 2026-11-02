@@ -109,3 +109,29 @@ test("Firestore REST query encodes IN filters and decodes timestamp values", asy
   assert.equal(docs[0].path, "virtualTables/table-1");
   assert.equal(docs[0].data.expiresAt instanceof Date, true);
 });
+
+
+test("Firestore REST local emulator uses loopback and never requests Google OAuth", async () => {
+  const calls = [];
+  const db = new FirestoreRest({
+    projectId: "sandwich-pro",
+    emulatorHost: "127.0.0.1:8080",
+    fetchImpl: async (url, init = {}) => {
+      calls.push({ url: String(url), init });
+      return new Response(JSON.stringify({
+        name: "projects/sandwich-pro/databases/(default)/documents/deliveryZones/zone-local",
+        fields: { name: { stringValue: "Zona local" } },
+      }));
+    },
+  });
+  const result = await db.read("deliveryZones/zone-local");
+  assert.equal(result.exists, true);
+  assert.equal(result.data.name, "Zona local");
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].url, /^http:\/\/127\\.0\\.0\\.1:8080\/v1\/projects\/sandwich-pro/);
+  assert.equal(calls[0].init.headers.authorization, "Bearer owner");
+  assert.throws(
+    () => new FirestoreRest({ projectId: "sandwich-pro", emulatorHost: "firestore.googleapis.com:443" }),
+    /FIRESTORE_EMULATOR_MUST_USE_LOOPBACK/,
+  );
+});

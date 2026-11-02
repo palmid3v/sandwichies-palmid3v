@@ -25,3 +25,9 @@ dist-ssr
 
 # Firebase local/emulator artifacts
 .firebase/
+
+
+# Local Cloudflare Worker development variables
+worker/.dev.vars
+worker/.dev.vars.*
+!worker/.dev.vars.example

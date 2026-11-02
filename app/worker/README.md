@@ -9,7 +9,8 @@ Cloudflare Worker backend for Sandwichies, built to keep the mandatory service b
 - Firestore REST client: implemented with Google service-account OAuth and Firestore transactions.
 - Orders, delivery zones, virtual tables and Cupboard movement endpoints: implemented in source.
 - Frontend adapter: customer and admin actions now call the Worker API.
-- Automated Worker tests: added; execution is still pending in a local/CI runtime.
+- Automated Worker tests: executed locally; the current local QA run passed all 30 Worker tests.
+- Local development: Wrangler can run the same Worker against the Firestore Emulator without service-account credentials; see `../docs/development/local-worker.md`.
 - Cloudflare deployment: **not performed**.
 - Service-account secrets, real Cupboard household ID and validated ingredient mapping: **not configured in this repository**.
 - `ORDERS_ENABLED`: defaults to `false`; real order creation stays blocked.
@@ -24,6 +25,8 @@ All protected routes require `Authorization: Bearer <Firebase ID token>`. Admin 
 | GET | `/health` | Public | Worker health and order-enabled flag |
 | GET | `/v1/session` | Signed in | Verify customer/admin session |
 | GET | `/v1/admin/session` | Admin | Verify admin claim |
+| GET | `/v1/admin/delivery-operations` | Verified admin | Read zones, active/expired tables and recent events |
+| GET | `/v1/admin/virtual-tables/:id/members` | Verified admin | Read sanitized members for one table |
 | POST | `/v1/orders` | Signed in customer | Create trusted, server-priced order |
 | GET | `/v1/orders/:id` | Order owner | Read a sanitized customer view |
 | POST | `/v1/delivery/coverage` | Signed in | Check a meeting point against active zones |
@@ -103,6 +106,12 @@ After an explicitly approved deployment, set `VITE_SANDWICHIES_WORKER_URL` in th
 11. Obtain explicit approval before deployment, enabling `ORDERS_ENABLED`, changing frontend production configuration or processing real orders.
 
 No production deployment, data mutation, billing change or real-order test has been performed.
+
+## Local development — Firestore Emulator
+
+For the complete three-terminal setup, PowerShell commands, local auth boundary and migration path to Cloudflare, see [Local Worker development](../docs/development/local-worker.md).
+
+The Worker accepts `FIRESTORE_EMULATOR_HOST` only when `LOCAL_DEV=true` and the host is `localhost` or `127.0.0.1`. In that mode it uses the Firestore Emulator owner token and does not request Google OAuth. These settings are supplied through the ignored `worker/.dev.vars` file; they are not part of the deployed Wrangler configuration.
 
 ## Local tests
 

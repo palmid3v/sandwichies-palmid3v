@@ -11,6 +11,8 @@ import {
   closeVirtualTable,
   expireVirtualTables,
   recordManualInventory,
+  listDeliveryOperations,
+  listVirtualTableMembers,
 } from "./orders.js";
 
 const ALLOWED_METHODS = new Set(["GET", "POST", "OPTIONS"]);
@@ -147,6 +149,21 @@ async function route(request, env) {
     if (auth.error) return auth.error;
     const payload = await readJson(request);
     return json(await checkDeliveryCoverage({ point: payload.meetingPoint, env }));
+  }
+
+  if (path === "/v1/admin/delivery-operations" && request.method === "GET") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    if (auth.claims.admin !== true || auth.claims.email_verified !== true) return json({ error: "permission-denied" }, 403);
+    return json(await listDeliveryOperations({ claims: auth.claims, env }));
+  }
+
+  const tableMembersMatch = path.match(new RegExp("^/v1/admin/virtual-tables/([A-Za-z0-9_-]{1,120})/members$"));
+  if (tableMembersMatch && request.method === "GET") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    if (auth.claims.admin !== true || auth.claims.email_verified !== true) return json({ error: "permission-denied" }, 403);
+    return json(await listVirtualTableMembers({ tableId: tableMembersMatch[1], claims: auth.claims, env }));
   }
 
   if (path === "/v1/admin/delivery-zones" && request.method === "POST") {

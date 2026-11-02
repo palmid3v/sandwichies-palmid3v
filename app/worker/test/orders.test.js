@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CATALOG } from "../../shared/catalog.js";
-import { createOrder, transitionOrder } from "../src/orders.js";
+import { createOrder, transitionOrder, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers } from "../src/orders.js";
 
 class MemoryFirestore {
   constructor(initial = {}) {
@@ -250,4 +250,91 @@ test("cancelling a meeting-point order releases its virtual table membership", a
   assert.equal((await sandwichiesDb.read("virtualTables/table-cancel")).data.activeOrderCount, 0);
   assert.equal((await sandwichiesDb.read("virtualTables/table-cancel/members/" + orderId)).data.deliveryStatus, "cancelled");
   assert.equal((await sandwichiesDb.read("customerOrderTracking/customer-uid/orders/" + orderId)).data.deliveryStatus, "cancelled");
+});
+
+
+const adminZonePayload = (overrides = {}) => ({
+  zoneId: "zone-local",
+  name: "Zona de prueba",
+  active: true,
+  capacity: 9,
+  groupingRadiusMeters: 50,
+  inactivityMinutes: 60,
+  polygon: [
+    { latitude: 4.60, longitude: -74.10 },
+    { latitude: 4.70, longitude: -74.10 },
+    { latitude: 4.70, longitude: -74.00 },
+    { latitude: 4.60, longitude: -74.00 },
+  ],
+  ...overrides,
+});
+
+test("admin can create and update a delivery zone through the Worker domain with atomic audit events", async () => {
+  const db = new MemoryFirestore();
+  const created = await saveDeliveryZone({ payload: adminZonePayload(), claims: adminClaims, env, db });
+  assert.equal(created.zoneId, "zone-local");
+  const first = await db.read("deliveryZones/zone-local");
+  assert.equal(first.exists, true);
+  assert.equal(first.data.name, "Zona de prueba");
+  assert.equal(first.data.active, true);
+  assert.equal(first.data.polygon.length, 4);
+  const createdAt = first.data.createdAt;
+
+  await saveDeliveryZone({
+    payload: adminZonePayload({ name: "Zona actualizada", active: false }),
+    claims: adminClaims,
+    env,
+    db,
+  });
+  const updated = await db.read("deliveryZones/zone-local");
+  assert.equal(updated.data.name, "Zona actualizada");
+  assert.equal(updated.data.active, false);
+  assert.equal(updated.data.createdAt.getTime(), createdAt.getTime());
+  assert.equal((await db.query("deliveryEvents")).length, 2);
+});
+
+test("delivery zone writes reject invalid polygons and non-admin claims", async () => {
+  const db = new MemoryFirestore();
+  await assert.rejects(
+    saveDeliveryZone({
+      payload: adminZonePayload({ polygon: [{ latitude: 4.6, longitude: -74.1 }] }),
+      claims: adminClaims,
+      env,
+      db,
+    }),
+    (error) => error.status === 400 && error.code === "invalid-argument",
+  );
+  await assert.rejects(
+    saveDeliveryZone({ payload: adminZonePayload(), claims: customerClaims, env, db }),
+    (error) => error.status === 403,
+  );
+  assert.equal((await db.query("deliveryZones")).length, 0);
+});
+
+test("admin delivery operations list is sorted and member responses omit customer identity", async () => {
+  const db = new MemoryFirestore({
+    "deliveryZones/zone-b": { name: "Zona B", active: true, polygon: [] },
+    "deliveryZones/zone-a": { name: "Zona A", active: false, polygon: [] },
+    "virtualTables/table-open": { status: "open", lastActivityAt: new Date("2026-11-02T12:00:00Z") },
+    "virtualTables/table-expired": { status: "expired", lastActivityAt: new Date("2026-11-02T10:00:00Z") },
+    "virtualTables/table-released": { status: "released" },
+    "deliveryEvents/event-old": { type: "zone_created", zoneId: "zone-a", createdAt: new Date("2026-11-02T10:00:00Z"), actorUid: "private-uid" },
+    "deliveryEvents/event-new": { type: "zone_updated", zoneId: "zone-b", createdAt: new Date("2026-11-02T11:00:00Z"), actorUid: "private-uid" },
+    "virtualTables/table-open/members/order-1": {
+      orderId: "order-1",
+      customerUid: "private-customer-uid",
+      deliveryStatus: "waiting_customer",
+      meetingPoint: { latitude: 4.65, longitude: -74.05 },
+    },
+  });
+  const operations = await listDeliveryOperations({ claims: adminClaims, env, db });
+  assert.deepEqual(operations.zones.map((zone) => zone.name), ["Zona A", "Zona B"]);
+  assert.deepEqual(operations.tables.map((table) => table.id), ["table-open", "table-expired"]);
+  assert.deepEqual(operations.events.map((event) => event.id), ["event-new", "event-old"]);
+  assert.equal("actorUid" in operations.events[0], false);
+
+  const members = await listVirtualTableMembers({ tableId: "table-open", claims: adminClaims, env, db });
+  assert.equal(members.members.length, 1);
+  assert.equal(members.members[0].orderId, "order-1");
+  assert.equal("customerUid" in members.members[0], false);
 });

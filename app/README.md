@@ -88,6 +88,7 @@ Se implementó `app/worker/` como backend alternativo bajo el objetivo de presup
 - Zonas de entrega, asignación de mesas virtuales por proximidad, llegada de cliente, estados logísticos individuales y cierre/expiración programada.
 - Vistas de cliente sanitizadas: no devuelven costos internos ni desglose de consumo.
 - Frontend de cliente y administración migrado en código al adaptador `src/api/worker.js`.
+- La consola de Entregas obtiene zonas, mesas, miembros y actividad desde rutas administrativas del Worker; evita leer esas colecciones directamente desde el navegador.
 
 **Rutas principales:** `POST /v1/orders`, `GET /v1/orders/:id`, `POST /v1/admin/orders/:id/status`, `POST /v1/admin/inventory/movements`, `POST /v1/admin/delivery-zones`, `POST /v1/admin/orders/:id/delivery`, `POST /v1/customer/orders/:id/ready` y `POST /v1/admin/virtual-tables/:id/close`. El detalle completo está en `app/worker/README.md`.
 
@@ -343,3 +344,19 @@ The current `VirtualTables.jsx` call still targets Firebase `httpsCallable` / `h
 **Next implementation gate:** implement secure server-side service credentials and a Firestore REST adapter with transaction semantics and tests. Then port zone validation/save in Worker, test in an isolated environment, and only then update the frontend to call the Worker. Cupboard credentials must remain a separate trust boundary.
 
 Cloudflare Builds were disabled by the owner to prevent the Git integration from deploying from the wrong repository root. Keep disabled until the Worker root/deploy command are reviewed. Do not deploy without explicit authorization. Strict budget remains $0: do not enable Firebase Blaze or billing.
+
+
+## Desarrollo local del Worker — actualizado 2026-11-02
+
+Se preparó un modo local de la API Worker con Wrangler + Firestore Emulator para desarrollar zonas y mesas sin service accounts ni escrituras en Firebase remoto.
+
+- API local: `http://127.0.0.1:8787`.
+- Firestore Emulator: `127.0.0.1:8080`, proyecto local `sandwich-pro`.
+- Frontend: `http://127.0.0.1:5182`, con `VITE_SANDWICHIES_WORKER_URL` apuntando al Worker local.
+- `LOCAL_DEV=true` y host loopback son obligatorios para habilitar el adaptador del emulador; el Worker usa el token especial de emulador únicamente en ese modo.
+- La pantalla Entregas ahora lee zonas, mesas, integrantes y actividad mediante endpoints protegidos del Worker, con refresco periódico y después de acciones.
+- Los endpoints nuevos son `GET /v1/admin/delivery-operations` y `GET /v1/admin/virtual-tables/:id/members`.
+- El endpoint de miembros omite `customerUid`; los eventos omiten `actorUid`.
+- `ORDERS_ENABLED=false` permanece intacto. Este modo no configura Cupboard, pedidos reales, Cloudflare remoto ni credenciales productivas.
+
+Guía de arranque: [docs/development/local-worker.md](docs/development/local-worker.md). Variables de ejemplo: `.env.local.example` y `worker/.dev.vars.example`; los archivos reales quedan ignorados por Git.

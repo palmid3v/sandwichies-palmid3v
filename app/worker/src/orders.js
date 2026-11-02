@@ -40,7 +40,21 @@ export class ApiError extends Error {
   }
 }
 
-export function createSandwichiesDb(env) {
+export export function createSandwichiesDb(env) {
+  const emulatorHost = String(env.FIRESTORE_EMULATOR_HOST || "").trim();
+  if (emulatorHost) {
+    if (env.LOCAL_DEV !== "true") {
+      throw new ApiError(503, "LOCAL_EMULATOR_NOT_ALLOWED", "El emulador Firestore solo puede usarse en modo local explícito.");
+    }
+    if (!/^(localhost|127\\.0\\.0\\.1):\\d{2,5}$/.test(emulatorHost)) {
+      throw new ApiError(503, "LOCAL_EMULATOR_HOST_INVALID", "El emulador Firestore debe usar localhost o 127.0.0.1.");
+    }
+    return new FirestoreRest({
+      projectId: env.FIRESTORE_PROJECT_ID || env.FIREBASE_PROJECT_ID,
+      emulatorHost,
+    });
+  }
+
   if (!env.FIREBASE_PROJECT_ID || !env.SANDWICHIES_SERVICE_ACCOUNT_JSON) {
     throw new ApiError(503, "BACKEND_NOT_CONFIGURED", "El backend de pedidos no tiene credenciales configuradas.");
   }
@@ -562,7 +576,7 @@ export async function checkDeliveryCoverage({ point, env }) {
   return { covered: Boolean(zone), zoneName: zone?.name || null, zoneId: zone?.id || null };
 }
 
-export async function saveDeliveryZone({ payload, claims, env }) {
+export async function saveDeliveryZone({ payload, claims, env, db: injectedDb }) {
   requireAdmin(claims);
   const name = typeof payload?.name === "string" ? payload.name.trim() : "";
   if (name.length < 2 || name.length > 80) throw new ApiError(400, "invalid-argument", "Nombre de zona inválido.");
@@ -579,7 +593,7 @@ export async function saveDeliveryZone({ payload, claims, env }) {
   }
   const zoneId = payload.zoneId ? String(payload.zoneId).trim() : randomId();
   if (!/^[A-Za-z0-9_-]{1,100}$/.test(zoneId)) throw new ApiError(400, "invalid-argument", "Identificador de zona inválido.");
-  const db = createSandwichiesDb(env);
+  const db = injectedDb || createSandwichiesDb(env);
   const zonePath = `deliveryZones/${zoneId}`;
   await db.runTransaction(async (tx) => {
     const existing = await tx.get(zonePath);
@@ -605,6 +619,60 @@ export async function saveDeliveryZone({ payload, claims, env }) {
     });
   });
   return { zoneId };
+}
+
+
+function timestampMillis(value) {
+  if (value instanceof Date) return value.getTime();
+  const parsed = Date.parse(value || "");
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+export async function listDeliveryOperations({ claims, env, db: injectedDb }) {
+  requireAdmin(claims);
+  const db = injectedDb || createSandwichiesDb(env);
+  const [tableDocs, zoneDocs, eventDocs] = await Promise.all([
+    db.query("virtualTables", { limit: 200 }),
+    db.query("deliveryZones", { limit: 200 }),
+    db.query("deliveryEvents", { limit: 200 }),
+  ]);
+  const tables = tableDocs
+    .filter(({ data }) => ["open", "closing", "expired"].includes(data.status))
+    .map(({ path, data }) => ({ ...data, id: path.split("/").at(-1) }))
+    .sort((a, b) => timestampMillis(b.lastActivityAt) - timestampMillis(a.lastActivityAt));
+  const zones = zoneDocs
+    .map(({ path, data }) => ({ ...data, id: path.split("/").at(-1) }))
+    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "es"));
+  const events = eventDocs
+    .map(({ path, data }) => ({
+      id: path.split("/").at(-1),
+      type: data.type,
+      tableId: data.tableId || null,
+      zoneId: data.zoneId || null,
+      createdAt: data.createdAt || null,
+    }))
+    .sort((a, b) => timestampMillis(b.createdAt) - timestampMillis(a.createdAt))
+    .slice(0, 60);
+  return { tables, zones, events };
+}
+
+export async function listVirtualTableMembers({ tableId, claims, env, db: injectedDb }) {
+  requireAdmin(claims);
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(tableId || "")) {
+    throw new ApiError(400, "invalid-argument", "Identificador de mesa inválido.");
+  }
+  const db = injectedDb || createSandwichiesDb(env);
+  const documents = await db.query(`virtualTables/${tableId}/members`, { limit: 100 });
+  const members = documents.map(({ path, data }) => ({
+    id: path.split("/").at(-1),
+    orderId: data.orderId,
+    joinedAt: data.joinedAt || null,
+    deliveryStatus: data.deliveryStatus,
+    meetingPoint: data.meetingPoint || null,
+    deliveredAt: data.deliveredAt || null,
+    cancelledAt: data.cancelledAt || null,
+  }));
+  return { members };
 }
 
 

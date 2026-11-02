@@ -1,13 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { CircleMarker, MapContainer, Polygon, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { VIRTUAL_TABLE_DEFAULTS } from "../../shared/virtual-tables.js";
-import { auth, db } from "../firebase";
+import { auth } from "../firebase";
 import { workerRequest } from "../api/worker";
 
 const BOGOTA = [4.65, -74.08];
-const formatTime = (value) => value?.toDate?.().toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" }) || "—";
+const dateValue = (value) => value?.toDate?.() || (value ? new Date(value) : null);
+const timestampMillis = (value) => {
+  const date = dateValue(value);
+  return date && Number.isFinite(date.getTime()) ? date.getTime() : 0;
+};
+const formatTime = (value) => {
+  const date = dateValue(value);
+  return date && Number.isFinite(date.getTime())
+    ? date.toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })
+    : "—";
+};
 
 function MapFocus({ points }) {
   const map = useMap();
@@ -43,21 +52,42 @@ export default function VirtualTables({ orders = [] }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
-    const stops = [
-      onSnapshot(query(collection(db, "virtualTables"), where("status", "in", ["open", "closing", "expired"]), orderBy("lastActivityAt", "desc")), (snapshot) => setTables(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), (reason) => setError(reason.message)),
-      onSnapshot(query(collection(db, "deliveryZones"), orderBy("name")), (snapshot) => setZones(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), (reason) => setError(reason.message)),
-      onSnapshot(query(collection(db, "deliveryEvents"), orderBy("createdAt", "desc"), limit(60)), (snapshot) => setEvents(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), (reason) => setError(reason.message)),
-    ];
-    return () => stops.forEach((stop) => stop());
-  }, []);
+    let active = true;
+    const refresh = async () => {
+      try {
+        const result = await workerRequest("/v1/admin/delivery-operations", { auth });
+        if (!active) return;
+        setTables(result.tables || []);
+        setZones(result.zones || []);
+        setEvents(result.events || []);
+      } catch (reason) {
+        if (active) setError(reason.message || "No se pudo cargar la operación de entregas.");
+      }
+    };
+    refresh();
+    const interval = window.setInterval(refresh, 10000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [refreshToken]);
 
   const selected = tables.find((table) => table.id === selectedId) || null;
   useEffect(() => {
     if (!selectedId) { setMembers([]); return undefined; }
-    return onSnapshot(collection(db, "virtualTables", selectedId, "members"), (snapshot) => setMembers(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))), (reason) => setError(reason.message));
-  }, [selectedId]);
+    let active = true;
+    const refresh = async () => {
+      try {
+        const result = await workerRequest(`/v1/admin/virtual-tables/${encodeURIComponent(selectedId)}/members`, { auth });
+        if (active) setMembers(result.members || []);
+      } catch (reason) {
+        if (active) setError(reason.message || "No se pudieron cargar los pedidos de la mesa.");
+      }
+    };
+    refresh();
+    const interval = window.setInterval(refresh, 10000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [selectedId, refreshToken]);
 
   const focusPoints = useMemo(() => [
     ...tables.filter((table) => table.center).map((table) => [table.center.latitude, table.center.longitude]),
@@ -90,6 +120,7 @@ export default function VirtualTables({ orders = [] }) {
         body: action.body,
       });
       setNotice(successMessage);
+      setRefreshToken((current) => current + 1);
     } catch (reason) {
       setError(reason.message || "No se pudo completar la acción.");
     } finally {
@@ -143,7 +174,7 @@ export default function VirtualTables({ orders = [] }) {
           {zones.map((zone) => <Polygon key={zone.id} positions={(zone.polygon || []).map((point) => [point.latitude, point.longitude])} pathOptions={{ color: zone.active ? "#21a366" : "#7a7d73", fillOpacity: zone.active ? 0.1 : 0.035, dashArray: zone.active ? undefined : "6 6" }} eventHandlers={{ click: () => tab === "zonas" && editZone(zone) }}><Tooltip>{zone.name} · {zone.active ? "Activa" : "Inactiva"}</Tooltip></Polygon>)}
           {polygon.length > 0 && <Polygon positions={polygon.map((point) => [point.latitude, point.longitude])} pathOptions={{ color: "#ffcf4a", fillOpacity: 0.12, dashArray: "5 5" }} />}
           {tables.filter((table) => table.center).map((table) => {
-            const mins = ((table.expiresAt?.toMillis?.() || 0) - Date.now()) / 60_000;
+            const mins = (timestampMillis(table.expiresAt) - Date.now()) / 60_000;
             const color = table.status === "expired" ? "#a8aaa1" : table.activeOrderCount >= table.capacity ? "#e75b4a" : mins <= 15 ? "#ffcf4a" : "#21a366";
             return <CircleMarker key={table.id} center={[table.center.latitude, table.center.longitude]} radius={10} pathOptions={{ color, fillColor: color, fillOpacity: 0.88 }} eventHandlers={{ click: () => { setSelectedId(table.id); setTab("mesas"); setMobileMap(false); } }}><Tooltip>{table.tableId?.slice(0, 8)} · {table.activeOrderCount}/{table.capacity} · {table.status}</Tooltip></CircleMarker>;
           })}
@@ -180,7 +211,7 @@ export default function VirtualTables({ orders = [] }) {
           </> : <>
             <h3>Mesas abiertas y pendientes</h3><p>{tables.length} mesas en curso · las vencidas siguen visibles mientras tengan pedidos activos.</p>
             {tables.map((table) => {
-              const mins = Math.max(0, Math.ceil(((table.expiresAt?.toMillis?.() || 0) - Date.now()) / 60_000));
+              const mins = Math.max(0, Math.ceil((timestampMillis(table.expiresAt) - Date.now()) / 60_000));
               return <button key={table.id} className="virtual-table-list-row" onClick={() => setSelectedId(table.id)}><span>Mesa {table.id.slice(0, 6).toUpperCase()}</span><strong>{table.activeOrderCount}/{table.capacity}</strong><small>{table.status}{table.status !== "expired" ? ` · ${mins <= 15 ? `vence en ${mins} min` : `vence ${formatTime(table.expiresAt)}`}` : " · pedidos pendientes"}</small></button>;
             })}
             {tables.length === 0 && <p className="empty-state">Aún no hay mesas activas.</p>}

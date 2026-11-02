@@ -23,6 +23,8 @@
     "cupboard:preflight": "node scripts/cupboard-preflight.mjs",
     "cupboard:catalog-sync": "node scripts/sync-cupboard-catalog.mjs",
     "worker:test": "npm --prefix worker test",
+    "worker:dev": "npx --yes wrangler@4 dev --config worker/wrangler.toml --ip 127.0.0.1 --port 8787",
+    "emulator:firestore": "firebase emulators:start --only firestore --project sandwich-pro",
     "qa": "node scripts/qa.mjs"
   },
   "dependencies": {
