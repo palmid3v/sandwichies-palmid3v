@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CATALOG } from "../../shared/catalog.js";
-import { applyCupboardOrderMovement, readCupboardConfig, CupboardWorkerError } from "../src/cupboard.js";
+import { applyCupboardOrderMovement, applyCupboardManualMovement, readCupboardConfig, CupboardWorkerError } from "../src/cupboard.js";
 
 class MemoryFirestore {
   constructor(initial = {}) {
@@ -146,4 +146,59 @@ test("partial historical consumption refuses a partial reversal", async () => {
     (error) => error instanceof CupboardWorkerError && error.code === "CUPBOARD_MOVEMENT_INCOMPLETE",
   );
   assert.equal((await db.read(inventoryPath)).data.portions, 6);
+});
+
+
+test("manual Cupboard purchase and adjustment use deterministic operation IDs", async () => {
+  const db = new MemoryFirestore({ [inventoryPath]: { portions: 10, unit: "unidad", sandwichiesInventoryRevision: 1 } });
+  const purchase = {
+    ingredientId: "pepperoni",
+    ingredientName: "Pepperoni",
+    unit: "unidad",
+    type: "purchase",
+    quantityDelta: 5,
+    reason: "Compra semanal",
+  };
+  const first = await applyCupboardManualMovement({
+    db, config, operationId: "manual-purchase-1", line: purchase,
+  });
+  assert.equal(first.applied, true);
+  assert.equal(first.balances[0].quantity, 15);
+  const retry = await applyCupboardManualMovement({
+    db, config, operationId: "manual-purchase-1", line: purchase,
+  });
+  assert.equal(retry.applied, false);
+  assert.equal((await db.read(inventoryPath)).data.portions, 15);
+  await assert.rejects(
+    applyCupboardManualMovement({
+      db,
+      config,
+      operationId: "manual-purchase-1",
+      line: { ...purchase, quantityDelta: 6 },
+    }),
+    (error) => error instanceof CupboardWorkerError && error.code === "CUPBOARD_IDEMPOTENCY_CONFLICT",
+  );
+});
+
+test("Cupboard configuration rejects shared Firebase project credentials", () => {
+  const validEnv = {
+    CUPBOARD_PROJECT_ID: "cupboard-project",
+    CUPBOARD_HOUSEHOLD_ID: "household-a",
+    FIREBASE_PROJECT_ID: "sandwich-pro",
+    CUPBOARD_SERVICE_ACCOUNT_JSON: JSON.stringify({
+      type: "service_account",
+      project_id: "cupboard-project",
+      client_email: "worker@cupboard-project.iam.gserviceaccount.com",
+      private_key: "test-private-key",
+    }),
+    CUPBOARD_INGREDIENT_MAP_JSON: JSON.stringify(mapping),
+  };
+  assert.throws(
+    () => readCupboardConfig({ ...validEnv, FIREBASE_PROJECT_ID: "cupboard-project" }),
+    (error) => error instanceof CupboardWorkerError && error.code === "CUPBOARD_PROJECT_MUST_DIFFER",
+  );
+  assert.throws(
+    () => readCupboardConfig({ ...validEnv, CUPBOARD_HOUSEHOLD_ID: "invalid/household" }),
+    (error) => error instanceof CupboardWorkerError && error.code === "CUPBOARD_HOUSEHOLD_INVALID",
+  );
 });
