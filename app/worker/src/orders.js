@@ -763,6 +763,8 @@ export async function expireVirtualTables(env) {
       return true;
     });
     if (didExpire) expired += 1;
+    // Keep scheduled invocations below the Workers Free subrequest/CPU budget.
+    if (expired >= 2) break;
   }
   return { expired };
 }
