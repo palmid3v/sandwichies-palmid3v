@@ -301,3 +301,19 @@ Para pruebas de reglas, se requiere Java disponible en `PATH`. Usa exclusivament
 ---
 
 **Regla permanente:** implementación, pruebas, despliegue y lanzamiento son etapas distintas. Ninguna documentación o mockup habilita por sí sola pedidos reales.
+
+## AI handoff checkpoint — 2026-11-01
+
+Sandwichies is part of the four-app PALMI-D3V Connected Workspace: DayFlow (5180), Cupboard (HTTPS 5181), Sandwichies (5182) and Financial-D3v (5183). Each app remains in its own repository. See the [ecosystem AI handoff](https://github.com/palmid3v/PALMI-D3V-Connected-Workspace/blob/main/AI-HANDOFF-2026-11-01.md).
+
+### Cloudflare Worker foundation validation
+
+The isolated Worker foundation is under `app/worker/`. The user ran `npm test` on 2026-11-01: **7/7 tests passed** (signed Firebase token, wrong audience, expired token, tampered signature, public health route, missing bearer token, unknown route). This is local automated evidence for the foundation only.
+
+**Current boundary:** Worker implements `GET /health`, `GET /v1/session`, and `GET /v1/admin/session`. It does not yet access Firestore or implement `saveDeliveryZone`, `validateMeetingPoint`, `createOrder`, order transitions, inventory, payments or cron. No business endpoint has been migrated or deployed.
+
+The current `VirtualTables.jsx` call still targets Firebase `httpsCallable` / `https://us-central1-sandwich-pro.cloudfunctions.net/saveDeliveryZone`. The observed browser error `POST .../saveDeliveryZone net::ERR_FAILED` is consistent with the verified absence of deployed Firebase Functions; it is not evidence that the Worker route failed. Do not ask the owner to retry creating real zones or orders yet.
+
+**Next implementation gate:** implement secure server-side service credentials and a Firestore REST adapter with transaction semantics and tests. Then port zone validation/save in Worker, test in an isolated environment, and only then update the frontend to call the Worker. Cupboard credentials must remain a separate trust boundary.
+
+Cloudflare Builds were disabled by the owner to prevent the Git integration from deploying from the wrong repository root. Keep disabled until the Worker root/deploy command are reviewed. Do not deploy without explicit authorization. Strict budget remains $0: do not enable Firebase Blaze or billing.
