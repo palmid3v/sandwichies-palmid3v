@@ -421,7 +421,7 @@ export async function transitionOrder({ orderId, status, claims, env, db: inject
       const config = requireCupboard(env);
       const consumption = buildOrderConsumption({ ...order, id: orderId });
       if (!consumption.complete) throw new ApiError(409, "RECIPE_USAGE_MISSING", "No se puede revertir el inventario: falta la receta original.");
-      const cupboardDb = new FirestoreRest({
+      const cupboardDb = injectedCupboardDb || new FirestoreRest({
         projectId: config.projectId,
         serviceAccountJson: env.CUPBOARD_SERVICE_ACCOUNT_JSON,
       });
