@@ -47,7 +47,7 @@ class MemoryFirestore {
 }
 
 const mapping = Object.fromEntries(
-  CATALOG.ingredients.filter((item) => item.active !== false).map((item) => [item.id, `product-${item.id}`]),
+  CATALOG.ingredients.filter((item) => item.active !== false).map((item) => [item.id, item.cupboardProductId]),
 );
 const config = {
   projectId: "cupboard-project",
@@ -60,7 +60,7 @@ const line = {
   unit: "unidad",
   quantityDelta: -4,
 };
-const inventoryPath = "households/household-a/workspaces/sandwichies/inventory/product-pepperoni";
+const inventoryPath = "households/household-a/workspaces/sandwichies/inventory/N-2000007";
 const baseMovement = "sandwichies-order-1-pepperoni";
 
 test("Cupboard configuration requires all active ingredients and unique product mappings", () => {
@@ -73,8 +73,8 @@ test("Cupboard configuration requires all active ingredients and unique product 
   };
   assert.deepEqual(readCupboardConfig(env).mapping, mapping);
   assert.throws(
-    () => readCupboardConfig({ ...env, CUPBOARD_INGREDIENT_MAP_JSON: "{}" }),
-    (error) => error instanceof CupboardWorkerError && error.code === "CUPBOARD_MAPPING_MISSING",
+    () => readCupboardConfig({ ...env, CUPBOARD_INGREDIENT_MAP_JSON: JSON.stringify({ ...mapping, pepperoni: "pepperoni" }) }),
+    (error) => error instanceof CupboardWorkerError && error.code === "CUPBOARD_MAPPING_INVALID_ID",
   );
   assert.throws(
     () => readCupboardConfig({ ...env, CUPBOARD_INGREDIENT_MAP_JSON: JSON.stringify({ ...mapping, chorizo: mapping.pepperoni }) }),
