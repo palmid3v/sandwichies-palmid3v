@@ -194,7 +194,7 @@ export async function createOrder({ request, claims, env, db: injectedDb }) {
   if (!BUSINESS.acceptingOrders) throw new ApiError(503, "ORDERS_DISABLED", "El negocio no está aceptando pedidos.");
   requireCupboard(env);
   const db = injectedDb || createSandwichiesDb(env);
-  const requestId = request.requestId?.trim();
+  const requestId = typeof request.requestId === "string" ? request.requestId.trim() : "";
   if (!validRequestId(requestId)) throw new ApiError(400, "invalid-argument", "Identificador de solicitud inválido.");
 
   const uid = claims.sub;
