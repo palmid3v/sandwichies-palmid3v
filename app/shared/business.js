@@ -4,7 +4,7 @@ export const BUSINESS = {
   whatsapp: "573226278286",
   currency: "COP",
   locale: "es-CO",
-  acceptingOrders: false,
+  acceptingOrders: true,
   deliveryFee: 5000,
   estimatedPickupMinutes: 25,
   estimatedDeliveryMinutes: 45,
