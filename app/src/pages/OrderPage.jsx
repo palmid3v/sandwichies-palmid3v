@@ -477,13 +477,7 @@ export default function OrderPage() {
 
   if (!authReady) {
     return (
-      <CustomerAuth
-        onAuthenticated={() => {
-          setAuthError("");
-          setAuthReady(false);
-        }}
-        pendingMessage={authError}
-      />
+      <CustomerAuth pendingMessage={authError} />
     );
   }
 
