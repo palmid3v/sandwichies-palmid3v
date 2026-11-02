@@ -6,7 +6,7 @@ Cloudflare Worker backend for Sandwichies, built to keep the mandatory service b
 
 - Cloudflare Worker source: implemented in `src/`.
 - Firebase ID token verification: implemented (RS256/JWK, issuer, audience, subject, time claims).
-- Firestore REST client: implemented with Google service-account OAuth and Firestore transactions.
+- Firestore REST client: implemented with Google service-account OAuth, Firestore transactions and batched transaction reads to reduce external subrequests.
 - Orders, delivery zones, virtual tables and Cupboard movement endpoints: implemented in source.
 - Frontend adapter: customer and admin actions now call the Worker API.
 - Automated Worker tests: added; execution is still pending in a local/CI runtime.
@@ -74,7 +74,7 @@ Public/non-secret configuration in `wrangler.toml`:
 - `FIREBASE_PROJECT_ID = "sandwich-pro"`
 - `ALLOWED_ORIGINS` — exact Vercel and local origins.
 - `ORDERS_ENABLED = "false"` — leave false until explicit release approval.
-- Cron trigger every five minutes for virtual-table expiry.
+- Cron trigger every five minutes for virtual-table expiry; each sweep processes at most two expired tables to bound transaction/subrequest use.
 
 Configure the following in Cloudflare secrets/settings, never in Git or frontend `.env` files:
 
@@ -100,7 +100,8 @@ After an explicitly approved deployment, set `VITE_SANDWICHIES_WORKER_URL` in th
 8. Verify the frontend Vercel origin in the exact CORS allowlist.
 9. Review Worker quotas and Cron Trigger availability under the Cloudflare Free plan.
 10. Review the actual IAM grants, secrets and runtime logs.
-11. Obtain explicit approval before deployment, enabling `ORDERS_ENABLED`, changing frontend production configuration or processing real orders.
+11. Confirm Workers Builds usage/plan and keep builds disabled if the $0 budget or free allocation cannot be guaranteed.
+12. Obtain explicit approval before deployment, enabling `ORDERS_ENABLED`, changing frontend production configuration or processing real orders.
 
 No production deployment, data mutation, billing change or real-order test has been performed.
 
@@ -119,7 +120,7 @@ npm run worker:test
 npm run check
 ```
 
-The Worker suite covers Firebase token verification, Firestore REST request/transaction encoding, CORS, trusted order creation, idempotency, Cupboard stock decrement/reversal and virtual delivery behavior. These tests must still be executed locally/CI; source files existing is not evidence of a passing run.
+The Worker suite covers Firebase token verification, Firestore REST request/transaction encoding, batched Firestore reads, CORS, trusted order creation, idempotency, Cupboard stock decrement/reversal and virtual delivery behavior. A prior CI run reached 29/30 tests; the only failure was an assertion that expected internal inventory state in the customer response. A follow-up branch corrects that assertion and adds batch-read coverage, but that branch still requires a new CI run. Do not treat the latest code as fully validated until CI passes.
 
 ## Deploy command — do not run without approval
 
