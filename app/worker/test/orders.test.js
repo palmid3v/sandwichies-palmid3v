@@ -84,8 +84,9 @@ test("new orders are server-priced and idempotent by authenticated UID plus requ
   assert.ok(created.order.id);
   assert.equal(created.order.status, "pendiente");
   assert.equal(created.order.total > 1, true);
-  assert.equal(created.order.inventory.system, "cupboard");
+  assert.equal(created.order.inventory, undefined);
   const stored = await db.read(`orders/${created.order.id}`);
+  assert.equal(stored.data.inventory.system, "cupboard");
   assert.equal(stored.data.customerUid, customerClaims.sub);
   assert.equal(stored.data.total, created.order.total);
 
