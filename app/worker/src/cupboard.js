@@ -185,3 +185,103 @@ export async function applyCupboardOrderMovement({
     };
   });
 }
+
+
+export async function applyCupboardManualMovement({ db, config, operationId, line }) {
+  if (typeof operationId !== "string" || !/^[A-Za-z0-9_-]{1,100}$/.test(operationId)) {
+    throw new CupboardWorkerError("INVALID_OPERATION_ID", "Identificador de movimiento inválido.");
+  }
+  if (!["purchase", "adjustment"].includes(line?.type)
+    || !Number.isInteger(line.quantityDelta) || line.quantityDelta === 0) {
+    throw new CupboardWorkerError("INVALID_MOVEMENT", "Movimiento manual inválido.");
+  }
+  if (line.type === "purchase" && line.quantityDelta < 0) {
+    throw new CupboardWorkerError("INVALID_MOVEMENT", "Una compra debe aumentar las existencias.");
+  }
+  const productId = config.mapping[line.ingredientId];
+  if (!productId) throw new CupboardWorkerError("CUPBOARD_MAPPING_MISSING", "El ingrediente no está asociado a Cupboard.");
+
+  const inventoryPath = inventoryPathFor(config.householdId, productId);
+  const movementId = "sandwichies-manual-" + safeId(operationId);
+  const movementPath = movementPathFor(config.householdId, movementId);
+
+  return db.runTransaction(async (tx) => {
+    const inventory = await tx.get(inventoryPath);
+    const movement = await tx.get(movementPath);
+    if (!inventory.exists) throw new CupboardWorkerError("CUPBOARD_PRODUCT_MISSING", "El producto no existe en el inventario comercial de Cupboard.");
+    const current = Number(inventory.data.portions);
+    if (!Number.isFinite(current) || current < 0) throw new CupboardWorkerError("CUPBOARD_STOCK_INVALID", "El saldo de inventario no es válido.");
+
+    const expected = {
+      ingredientId: line.ingredientId,
+      productId,
+      type: line.type,
+      quantityDelta: line.quantityDelta,
+      unit: line.unit,
+      reason: line.reason,
+    };
+    if (movement.exists) {
+      const saved = movement.data;
+      if (Object.entries(expected).some(([key, value]) => saved[key] !== value)) {
+        throw new CupboardWorkerError("CUPBOARD_IDEMPOTENCY_CONFLICT", "Este identificador ya representa otro movimiento.");
+      }
+      return {
+        applied: false,
+        skipped: true,
+        movementId,
+        balances: [{
+          ingredientId: line.ingredientId,
+          productId,
+          quantity: current,
+          revision: Number(inventory.data.sandwichiesInventoryRevision) || 0,
+        }],
+      };
+    }
+
+    const next = current + line.quantityDelta;
+    if (next < 0) throw new CupboardWorkerError("CUPBOARD_STOCK_INSUFFICIENT", "El ajuste dejaría el inventario en negativo.");
+    const revision = (Number(inventory.data.sandwichiesInventoryRevision) || 0) + 1;
+    const now = new Date();
+    tx.update(inventoryPath, {
+      portions: next,
+      unit: line.unit,
+      sandwichiesInventoryRevision: revision,
+      updatedAt: now,
+    });
+    tx.create(movementPath, {
+      productId,
+      ingredientId: line.ingredientId,
+      ingredientName: line.ingredientName,
+      unit: line.unit,
+      type: line.type,
+      quantity: Math.abs(line.quantityDelta),
+      quantityDelta: line.quantityDelta,
+      reason: line.reason,
+      userId: "sandwichies-backend",
+      sourceApp: "sandwichies",
+      operationId,
+      operationKey: movementId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return {
+      applied: true,
+      skipped: false,
+      movementId,
+      balances: [{
+        ingredientId: line.ingredientId,
+        productId,
+        quantity: next,
+        revision,
+      }],
+    };
+  });
+}
+
+function inventoryPathFor(householdId, productId) {
+  return "households/" + householdId + "/workspaces/sandwichies/inventory/" + productId;
+}
+
+function movementPathFor(householdId, movementId) {
+  return "households/" + householdId + "/workspaces/sandwichies/movements/" + movementId;
+}
