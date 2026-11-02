@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
@@ -16,6 +16,10 @@ export default function CustomerAuth({ pendingMessage = "" }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState(pendingMessage);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (pendingMessage) setNotice(pendingMessage);
+  }, [pendingMessage]);
 
   const clearMessages = () => {
     setError("");
