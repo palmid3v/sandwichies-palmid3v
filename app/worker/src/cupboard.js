@@ -11,11 +11,14 @@ export class CupboardWorkerError extends Error {
 }
 
 export function readCupboardConfig(env) {
-  let mapping = {};
+  const defaults = Object.fromEntries(CATALOG.ingredients
+    .filter((ingredient) => ingredient.active !== false && ingredient.cupboardProductId)
+    .map((ingredient) => [ingredient.id, ingredient.cupboardProductId]));
+  let mapping = { ...defaults };
   try {
     const parsed = JSON.parse(env.CUPBOARD_INGREDIENT_MAP_JSON || "{}");
     mapping = parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key.trim(), typeof value === "string" ? value.trim() : value]))
+      ? { ...defaults, ...Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key.trim(), typeof value === "string" ? value.trim() : value])) }
       : parsed;
   } catch {
     throw new CupboardWorkerError("CUPBOARD_MAPPING_INVALID", "El mapeo de ingredientes de Cupboard no contiene JSON válido.");
