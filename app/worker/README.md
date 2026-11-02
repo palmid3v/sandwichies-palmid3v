@@ -9,7 +9,7 @@ Cloudflare Worker backend for Sandwichies, built to keep the mandatory service b
 - Firestore REST client: implemented with Google service-account OAuth and Firestore transactions.
 - Orders, delivery zones, virtual tables and Cupboard movement endpoints: implemented in source.
 - Frontend adapter: customer and admin actions now call the Worker API.
-- Automated Worker tests: executed locally; the current local QA run passed all 30 Worker tests.
+- Automated Worker tests: the prior local QA run passed 30 tests; new local-emulator and zone-domain tests were added on 2026-11-02 and are awaiting the current CI/local run.
 - Local development: Wrangler can run the same Worker against the Firestore Emulator without service-account credentials; see `../docs/development/local-worker.md`.
 - Cloudflare deployment: **not performed**.
 - Service-account secrets, real Cupboard household ID and validated ingredient mapping: **not configured in this repository**.

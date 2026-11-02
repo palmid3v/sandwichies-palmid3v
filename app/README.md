@@ -329,21 +329,29 @@ Para pruebas de reglas, se requiere Java disponible en `PATH`. Usa exclusivament
 
 **Regla permanente:** implementación, pruebas, despliegue y lanzamiento son etapas distintas. Ninguna documentación o mockup habilita por sí sola pedidos reales.
 
-## AI handoff checkpoint — 2026-11-01
+## AI handoff checkpoint — 2026-11-02
 
-Sandwichies is part of the four-app PALMI-D3V Connected Workspace: DayFlow (5180), Cupboard (HTTPS 5181), Sandwichies (5182) and Financial-D3v (5183). Each app remains in its own repository. See the [ecosystem AI handoff](https://github.com/palmid3v/PALMI-D3V-Connected-Workspace/blob/main/AI-HANDOFF-2026-11-01.md).
+Sandwichies remains one of the four separate PALMI-D3V workspace repositories. The active Worker implementation is in `app/worker/`; Cloudflare deployment remains intentionally disabled.
 
-### Cloudflare Worker foundation validation
+### Local Worker delivery flow
 
-The isolated Worker foundation is under `app/worker/`. The user ran `npm test` on 2026-11-01: **7/7 tests passed** (signed Firebase token, wrong audience, expired token, tampered signature, public health route, missing bearer token, unknown route). This is local automated evidence for the foundation only.
+- The Worker now persists delivery zones using `POST /v1/admin/delivery-zones`.
+- The admin console reads zones, active/expired tables, sanitized members and recent activity through protected Worker routes:
+  - `GET /v1/admin/delivery-operations`
+  - `GET /v1/admin/virtual-tables/:id/members`
+- `VirtualTables.jsx` no longer reads those operational collections directly from the browser; it refreshes through the Worker API.
+- Local mode uses Wrangler on `127.0.0.1:8787` and Firestore Emulator on `127.0.0.1:8080`, with project ID `sandwich-pro`.
+- Firestore Emulator transport requires `LOCAL_DEV=true` and a loopback host. It uses the emulator-only owner token; production service-account OAuth remains unchanged.
+- Firebase Authentication still issues the administrator ID token for Worker verification. The local Worker sends zone/table/event persistence to the emulator, not the production Firestore database.
+- Local environment examples are `.env.local.example` and `worker/.dev.vars.example`; the copied real files are gitignored.
 
-**Current boundary:** Worker implements `GET /health`, `GET /v1/session`, and `GET /v1/admin/session`. It does not yet access Firestore or implement `saveDeliveryZone`, `validateMeetingPoint`, `createOrder`, order transitions, inventory, payments or cron. No business endpoint has been migrated or deployed.
+### Validation and boundaries
 
-The current `VirtualTables.jsx` call still targets Firebase `httpsCallable` / `https://us-central1-sandwich-pro.cloudfunctions.net/saveDeliveryZone`. The observed browser error `POST .../saveDeliveryZone net::ERR_FAILED` is consistent with the verified absence of deployed Firebase Functions; it is not evidence that the Worker route failed. Do not ask the owner to retry creating real zones or orders yet.
+The user's last full local QA run before this change passed 30 Worker tests, 40 domain tests, 9 Firestore rules tests, 7 Functions/Firestore integration tests, build, bundle budget and smoke. New Worker tests now cover the local emulator transport guard, zone create/update validation, admin listing and member-data sanitization; those new tests are awaiting the current CI run and local execution.
 
-**Next implementation gate:** implement secure server-side service credentials and a Firestore REST adapter with transaction semantics and tests. Then port zone validation/save in Worker, test in an isolated environment, and only then update the frontend to call the Worker. Cupboard credentials must remain a separate trust boundary.
+`ORDERS_ENABLED=false` remains the safety default. No Cloudflare deployment, Firebase Blaze upgrade, production Firestore write, production secret configuration or real order is authorized or performed. Cupboard's separate service-account boundary remains required for stock movements and is not configured by the local zone workflow.
 
-Cloudflare Builds were disabled by the owner to prevent the Git integration from deploying from the wrong repository root. Keep disabled until the Worker root/deploy command are reviewed. Do not deploy without explicit authorization. Strict budget remains $0: do not enable Firebase Blaze or billing.
+**Next gate:** pull the current `main`, run the documented three-terminal local setup, create/edit a test polygon and confirm it persists only in the emulator. After that, validate the full Worker + Cupboard integration and separately review Cloudflare secrets/IAM before any deployment. Keep Cloudflare Builds disabled and do not enable billing.
 
 
 ## Desarrollo local del Worker — actualizado 2026-11-02
