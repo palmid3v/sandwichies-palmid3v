@@ -1,5 +1,6 @@
 import {
   BUSINESS,
+  ORDER_STATUSES,
   canTransitionOrderStatus,
 } from "../../shared/business.js";
 import { buildOrderConsumption, normalizeInventoryTransaction, InventoryValidationError } from "../../shared/inventory.js";
@@ -61,7 +62,7 @@ export function createSandwichiesDb(env) {
 }
 
 function requireAdmin(claims) {
-  if (claims?.admin !== true) throw new ApiError(403, "permission-denied", "Se requiere permiso de administración.");
+  if (claims?.admin !== true || claims?.email_verified !== true) throw new ApiError(403, "permission-denied", "Se requiere una cuenta administradora con correo verificado.");
 }
 
 function requireCupboard(env) {
@@ -365,7 +366,7 @@ async function releaseTransitionLock(db, orderPath, lockId) {
 
 export async function transitionOrder({ orderId, status, claims, env, db: injectedDb, cupboardDb: injectedCupboardDb }) {
   requireAdmin(claims);
-  if (!/^[A-Za-z0-9_-]{1,150}$/.test(orderId || "") || typeof status !== "string") {
+  if (!/^[A-Za-z0-9_-]{1,150}$/.test(orderId || "") || !ORDER_STATUSES.some((item) => item.value === status)) {
     throw new ApiError(400, "invalid-argument", "Pedido o estado inválido.");
   }
   const db = injectedDb || createSandwichiesDb(env);
