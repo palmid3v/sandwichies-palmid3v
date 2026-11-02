@@ -99,7 +99,7 @@ test("new orders are server-priced and idempotent by authenticated UID plus requ
   assert.equal(stored.data.inventory.system, "cupboard");
   assert.equal(stored.data.inventory.consumptionStatus, "pending");
 
-  const repeated = await createOrder({ request: payload, claims: customerClaims, env, db });
+  const repeated = await createOrder({ request: payload, claims: customerClaims, env, db, policy: testOrderPolicy });
   assert.equal(repeated.order.id, created.order.id);
   assert.equal((await db.read("counters/orders")).data.value, 1);
 });
