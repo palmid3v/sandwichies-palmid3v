@@ -75,7 +75,9 @@ function requireCupboard(env) {
 
 function normalizeOrderForCustomer(order, orderId) {
   const items = (Array.isArray(order.items) ? order.items : []).map((item) => {
-    const { cost: _cost, ingredientUsage: _ingredientUsage, ...customerItem } = item;
+    const customerItem = { ...item };
+    delete customerItem.cost;
+    delete customerItem.ingredientUsage;
     return customerItem;
   });
   return {
@@ -96,7 +98,7 @@ function normalizeOrderForCustomer(order, orderId) {
   };
 }
 
-async function findZones(db, tx) {
+async function findZones(tx) {
   return tx.query("deliveryZones", { field: "active", op: "EQUAL", value: true, limit: 200 });
 }
 
@@ -241,7 +243,7 @@ export async function createOrder({ request, claims, env, db: injectedDb }) {
     let delivery = null;
     if (trusted.fulfillment.type === "punto_encuentro") {
       const point = trusted.fulfillment.meetingPoint;
-      const zones = await findZones(db, tx);
+      const zones = await findZones(tx);
       const zone = findOperatingZone(point, zones.map(({ path, data }) => ({
         id: path.split("/").at(-1),
         ...data,
