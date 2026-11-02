@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { initializeApp, deleteApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { CATALOG } from "../shared/catalog.js";
 import {
   applyCupboardInventoryMovement,
   applyCupboardManualInventoryMovement,
@@ -14,7 +15,7 @@ assert.ok(
 );
 assert.ok(
   CUPBOARD_INVENTORY_CONFIGURED,
-  "Set CUPBOARD_PROJECT_ID, CUPBOARD_HOUSEHOLD_ID and CUPBOARD_INGREDIENT_MAP_JSON in the emulator test runner.",
+  "Set CUPBOARD_PROJECT_ID and CUPBOARD_HOUSEHOLD_ID in the emulator test runner.",
 );
 
 const projectId = process.env.CUPBOARD_PROJECT_ID;
@@ -25,7 +26,7 @@ test("Cupboard movements are atomic, retry-safe, and reversible once per order",
   const orderId = `bridge-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const householdId = process.env.CUPBOARD_HOUSEHOLD_ID;
   const ingredientMap = JSON.parse(process.env.CUPBOARD_INGREDIENT_MAP_JSON || "{}");
-  const productId = ingredientMap.pepperoni || "pepperoni";
+  const productId = ingredientMap.pepperoni || CATALOG.ingredients.find((item) => item.id === "pepperoni").cupboardProductId;
   const collectionPath = `households/${householdId}/workspaces/sandwichies`;
   const inventoryRef = db.doc(`${collectionPath}/inventory/${productId}`);
   const consumeRef = db.doc(`${collectionPath}/movements/sandwichies-${encodeURIComponent(orderId)}-pepperoni-consume`);

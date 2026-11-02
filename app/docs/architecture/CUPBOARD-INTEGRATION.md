@@ -14,9 +14,9 @@ Variables que deben definirse para el runtime de Cloud Functions de Sandwichies:
 
 - `CUPBOARD_PROJECT_ID`: `cupboard-app-ce528`.
 - `CUPBOARD_HOUSEHOLD_ID`: ID real del hogar dueño de Cupboard.
-- `CUPBOARD_INGREDIENT_MAP_JSON`: objeto JSON que relaciona todos los IDs del catálogo de ingredientes de Sandwichies con IDs de documentos del inventario comercial de Cupboard. Puede usarse el mismo ID si el documento de Cupboard fue creado con ese ID.
+- `CUPBOARD_INGREDIENT_MAP_JSON`: opcional; permite sobrescribir el mapeo incorporado en `app/shared/catalog.js`. No es necesario configurarlo para los 11 ingredientes actuales.
 
-El mapeo debe ser completo y uno-a-uno: cada ingrediente activo apunta a un documento distinto, para evitar que dos ingredientes descuenten por separado el mismo saldo. El producto debe existir bajo `households/{householdId}/workspaces/sandwichies/inventory/{productId}`. Las cantidades tienen que corresponder a la unidad nativa usada por la receta (por ejemplo gramos para pimentón y unidades para pepperoni). La integración actualiza el campo `unit` para que Cupboard muestre esa unidad.
+Los 11 ingredientes activos conservan sus IDs semánticos en recetas y pedidos, pero cada uno apunta a un ID canónico único `N-#######` del catálogo compartido de Cupboard. Los ingredientes no son una colección ni una clase de inventario independiente: son productos de Negocio que Sandwichies utiliza en sus recetas. El mapeo incorporado se valida como completo, único y con prefijo `N-`. El producto debe existir bajo `productCatalog/{N-#######}` y su saldo bajo `households/{householdId}/workspaces/sandwichies/inventory/{N-#######}`. El código de barras es un atributo separado y no forma parte de la identidad. Las cantidades tienen que corresponder a la unidad nativa usada por la receta (por ejemplo gramos para pimentón y unidades para pepperoni). La integración actualiza el campo `unit` para que Cupboard muestre esa unidad.
 
 Copia `app/.env.example` al archivo local `app/.env` y reemplaza el ID del hogar según el entorno. No guardes claves privadas, JSON de cuentas de servicio ni credenciales en el repositorio.
 

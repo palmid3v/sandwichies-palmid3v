@@ -77,10 +77,12 @@ Trabajo ya documentado/implementado:
 - Separación entre consumo físico y criterio contable de venta completada.
 - Sincronización de compras y ajustes desde Sandwichies.
 - Preflight para detectar configuración incompleta.
+- Catálogo centralizado de 44 productos en Cupboard: los 11 ingredientes de recetas conservan sus IDs semánticos en Sandwichies y se asocian a productos Negocio con IDs `N-#######`; los otros 33 productos exportados se asignan a Hogar con IDs `HD-#######`. El código de barras queda como atributo, no como identidad.
+- El mapeo canónico de los 11 ingredientes está versionado en `app/shared/catalog.js`; `CUPBOARD_INGREDIENT_MAP_JSON` queda como override opcional.
 
 Pendiente para cerrar la fase:
 1. Reemplazar identificadores de ejemplo por el hogar real de Cupboard.
-2. Completar y revisar el mapeo de ingredientes.
+2. Aplicar la migración de identidad desde Cupboard y desplegar manualmente las Firestore Rules actualizadas.
 3. Ejecutar el preflight con variables reales.
 4. Configurar los permisos de la identidad real de Cloud Functions en Cupboard.
 5. Ejecutar pruebas cruzadas de confirmar, cancelar, falta de stock y reintentos.

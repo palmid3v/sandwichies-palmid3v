@@ -56,7 +56,7 @@ class MemoryFirestore {
 }
 
 const mapping = Object.fromEntries(
-  CATALOG.ingredients.filter((item) => item.active !== false).map((item) => [item.id, `product-${item.id}`]),
+  CATALOG.ingredients.filter((item) => item.active !== false).map((item) => [item.id, item.cupboardProductId]),
 );
 const env = {
   FIREBASE_PROJECT_ID: "sandwich-pro",
@@ -114,7 +114,7 @@ test("orders remain disabled unless an explicit Worker environment flag enables 
 
 const orderId = "order-transition-1";
 const orderPath = `orders/${orderId}`;
-const cupboardInventoryPath = "households/household-a/workspaces/sandwichies/inventory/product-pepperoni";
+const cupboardInventoryPath = "households/household-a/workspaces/sandwichies/inventory/N-2000007";
 const cupboardConsumptionPath = "households/household-a/workspaces/sandwichies/movements/sandwichies-order-transition-1-pepperoni-consume";
 const cupboardReversalPath = "households/household-a/workspaces/sandwichies/movements/sandwichies-order-transition-1-pepperoni-reverse";
 const orderDoc = (status = "pendiente", consumptionStatus = "pending") => ({
@@ -152,7 +152,7 @@ test("cancelling a confirmed unpaid order reverses Cupboard stock exactly once",
   const cupboardDb = new MemoryFirestore({
     [cupboardInventoryPath]: { portions: 8, unit: "unidad", sandwichiesInventoryRevision: 2 },
     [cupboardConsumptionPath]: {
-      orderId, productId: "product-pepperoni", ingredientId: "pepperoni",
+      orderId, productId: "N-2000007", ingredientId: "pepperoni",
       type: "consumption", quantityDelta: -2, unit: "unidad",
     },
   });
