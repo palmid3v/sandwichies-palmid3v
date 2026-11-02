@@ -22,7 +22,8 @@
     "integration:test": "node scripts/integration-test.mjs",
     "cupboard:preflight": "node scripts/cupboard-preflight.mjs",
     "cupboard:catalog-sync": "node scripts/sync-cupboard-catalog.mjs",
-    "worker:test": "npm --prefix worker test"
+    "worker:test": "npm --prefix worker test",
+    "qa": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa.ps1"
   },
   "dependencies": {
     "@google-cloud/storage": "8.4.0",
