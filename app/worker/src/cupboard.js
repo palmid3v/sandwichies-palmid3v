@@ -103,13 +103,19 @@ export async function applyCupboardOrderMovement({
   });
 
   return db.runTransaction(async (tx) => {
-    const current = [];
-    for (const item of prepared) {
-      const inventory = await tx.get(item.inventoryPath);
-      const movement = await tx.get(item.movementPath);
-      const consumption = operation === "reverse" ? await tx.get(item.consumptionPath) : null;
-      current.push({ ...item, inventory, movement, consumption });
-    }
+    const readPaths = prepared.flatMap((item) => [
+      item.inventoryPath,
+      item.movementPath,
+      ...(operation === "reverse" ? [item.consumptionPath] : []),
+    ]);
+    const snapshots = await tx.getMany(readPaths);
+    let cursor = 0;
+    const current = prepared.map((item) => {
+      const inventory = snapshots[cursor++];
+      const movement = snapshots[cursor++];
+      const consumption = operation === "reverse" ? snapshots[cursor++] : null;
+      return { ...item, inventory, movement, consumption };
+    });
 
     if (operation === "reverse") {
       const missing = current.filter((item) => !item.movement.exists && !item.consumption?.exists);
@@ -227,8 +233,7 @@ export async function applyCupboardManualMovement({ db, config, operationId, lin
   const movementPath = movementPathFor(config.householdId, movementId);
 
   return db.runTransaction(async (tx) => {
-    const inventory = await tx.get(inventoryPath);
-    const movement = await tx.get(movementPath);
+    const [inventory, movement] = await tx.getMany([inventoryPath, movementPath]);
     if (!inventory.exists) throw new CupboardWorkerError("CUPBOARD_PRODUCT_MISSING", "El producto no existe en el inventario comercial de Cupboard.");
     const current = Number(inventory.data.portions);
     if (!Number.isFinite(current) || current < 0) throw new CupboardWorkerError("CUPBOARD_STOCK_INVALID", "El saldo de inventario no es válido.");
