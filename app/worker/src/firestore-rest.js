@@ -2,18 +2,18 @@ const tokenCache = new Map();
 const FIRESTORE_SCOPE = "https://www.googleapis.com/auth/datastore";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 
-const base64Url = (bytes) => {
-  const binary = typeof bytes === "string"
-    ? bytes
-    : Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
-  return btoa(binary).replace(/=/g, "").replace(/\\+/g, "-").replace(/\\//g, "_");
+const base64Url = (value) => {
+  const binary = typeof value === "string"
+    ? value
+    : Array.from(value, (byte) => String.fromCharCode(byte)).join("");
+  return btoa(binary).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 };
 
 const pemBytes = (pem) => {
   const encoded = String(pem || "")
     .replace(/-----BEGIN PRIVATE KEY-----/g, "")
     .replace(/-----END PRIVATE KEY-----/g, "")
-    .replace(/\\s/g, "");
+    .replace(/\s/g, "");
   if (!encoded) throw new Error("SERVICE_ACCOUNT_PRIVATE_KEY_MISSING");
   const binary = atob(encoded);
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
@@ -28,7 +28,7 @@ async function signServiceAssertion(serviceAccount, nowSeconds) {
     iat: nowSeconds,
     exp: nowSeconds + 3600,
   }));
-  const signingInput = `${header}.${claims}`;
+  const signingInput = header + "." + claims;
   const key = await crypto.subtle.importKey(
     "pkcs8",
     pemBytes(serviceAccount.private_key),
@@ -41,7 +41,7 @@ async function signServiceAssertion(serviceAccount, nowSeconds) {
     key,
     new TextEncoder().encode(signingInput),
   );
-  return `${signingInput}.${base64Url(new Uint8Array(signature))}`;
+  return signingInput + "." + base64Url(new Uint8Array(signature));
 }
 
 export async function getGoogleAccessToken(serviceAccountJson, { fetchImpl = fetch, now = Date.now() } = {}) {
@@ -70,7 +70,7 @@ export async function getGoogleAccessToken(serviceAccountJson, { fetchImpl = fet
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok || typeof body.access_token !== "string") {
-    throw new Error(`GOOGLE_OAUTH_FAILED_${response.status}`);
+    throw new Error("GOOGLE_OAUTH_FAILED_" + response.status);
   }
   tokenCache.set(account.client_email, {
     accessToken: body.access_token,
@@ -117,7 +117,7 @@ const decodeFields = (fields = {}) => Object.fromEntries(
 
 export class FirestoreRestError extends Error {
   constructor(status, code, message) {
-    super(message || `Firestore request failed: ${status}`);
+    super(message || "Firestore request failed: " + status);
     this.name = "FirestoreRestError";
     this.status = status;
     this.code = code || "FIRESTORE_ERROR";
@@ -130,13 +130,14 @@ export class FirestoreRest {
     this.projectId = projectId;
     this.serviceAccountJson = serviceAccountJson;
     this.fetchImpl = fetchImpl;
-    this.root = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents`;
+    this.root = "https://firestore.googleapis.com/v1/projects/"
+      + encodeURIComponent(projectId) + "/databases/(default)/documents";
   }
 
   documentName(path) {
     const segments = String(path).split("/").filter(Boolean);
     if (!segments.length || segments.length % 2 !== 0) throw new Error("FIRESTORE_DOCUMENT_PATH_INVALID");
-    return `${this.root}/${segments.map(encodeURIComponent).join("/")}`;
+    return this.root + "/" + segments.map(encodeURIComponent).join("/");
   }
 
   async request(url, { method = "GET", body, transaction, accessToken } = {}) {
@@ -145,7 +146,7 @@ export class FirestoreRest {
     const response = await this.fetchImpl(url, {
       method,
       headers: {
-        authorization: `Bearer ${token}`,
+        authorization: "Bearer " + token,
         ...(payload ? { "content-type": "application/json" } : {}),
       },
       ...(payload ? { body: JSON.stringify(payload) } : {}),
@@ -159,7 +160,7 @@ export class FirestoreRest {
   }
 
   async beginTransaction() {
-    const result = await this.request(`${this.root}:beginTransaction`, {
+    const result = await this.request(this.root + ":beginTransaction", {
       method: "POST",
       body: { options: { readWrite: {} } },
     });
@@ -169,14 +170,13 @@ export class FirestoreRest {
 
   async read(path, transaction) {
     const name = this.documentName(path);
-    const result = await this.request(`${this.root}:batchGet`, {
+    const result = await this.request(this.root + ":batchGet", {
       method: "POST",
       body: { documents: [name] },
       transaction,
     });
     const item = Array.isArray(result) ? result[0] : result;
-    if (item?.missing) return { exists: false, data: null, updateTime: null };
-    if (!item?.found) return { exists: false, data: null, updateTime: null };
+    if (item?.missing || !item?.found) return { exists: false, data: null, updateTime: null };
     return {
       exists: true,
       data: decodeFields(item.found.fields),
@@ -189,7 +189,7 @@ export class FirestoreRest {
     const segments = String(collectionPath).split("/").filter(Boolean);
     if (!segments.length || segments.length % 2 !== 1) throw new Error("FIRESTORE_COLLECTION_PATH_INVALID");
     const structuredQuery = {
-      from: [{ collectionId: segments.at(-1) }],
+      from: [{ collectionId: segments[segments.length - 1] }],
       ...(field ? {
         where: {
           fieldFilter: {
@@ -201,8 +201,8 @@ export class FirestoreRest {
       } : {}),
       limit: Math.min(Math.max(1, Number(limit) || 100), 500),
     };
-    const parent = `${this.root}/${segments.slice(0, -1).map(encodeURIComponent).join("/")}`;
-    const result = await this.request(`${parent}:runQuery`, {
+    const parent = this.root + "/" + segments.slice(0, -1).map(encodeURIComponent).join("/");
+    const result = await this.request(parent + ":runQuery", {
       method: "POST",
       body: { structuredQuery },
       transaction,
@@ -222,19 +222,15 @@ export class FirestoreRest {
       if (operation.type === "delete") {
         return { delete: name, currentDocument: { exists: true } };
       }
-      const fields = encodeFields(operation.data);
-      const update = { name, fields };
-      if (operation.type === "create") {
-        return { update, currentDocument: { exists: false } };
-      }
-      const fieldPaths = Object.keys(operation.data);
+      const update = { name, fields: encodeFields(operation.data) };
+      if (operation.type === "create") return { update, currentDocument: { exists: false } };
       return {
         update,
-        updateMask: { fieldPaths },
+        updateMask: { fieldPaths: Object.keys(operation.data) },
         ...(operation.type === "update" ? { currentDocument: { exists: true } } : {}),
       };
     });
-    return this.request(`${this.root}:commit`, {
+    return this.request(this.root + ":commit", {
       method: "POST",
       body: { writes },
       transaction,
@@ -243,7 +239,7 @@ export class FirestoreRest {
 
   async rollback(transaction) {
     try {
-      await this.request(`${this.root}:rollback`, {
+      await this.request(this.root + ":rollback", {
         method: "POST",
         body: { transaction },
       });
