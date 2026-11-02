@@ -62,7 +62,7 @@ const env = {
   CUPBOARD_INGREDIENT_MAP_JSON: JSON.stringify(mapping),
 };
 const customerClaims = { sub: "customer-uid" };
-const adminClaims = { sub: "admin-uid", admin: true };
+const adminClaims = { sub: "admin-uid", admin: true, email_verified: true };
 const validOrderRequest = () => ({
   requestId: "a9e31e77-6e23-4f3d-ae90-1b2c3d4e5f60",
   customer: { name: "Cliente de prueba", phone: "3001234567" },
