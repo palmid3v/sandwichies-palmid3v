@@ -5,7 +5,6 @@ import {
 import { buildOrderConsumption } from "../../shared/inventory.js";
 import { buildTrustedOrder, OrderValidationError } from "../../shared/order-request.js";
 import {
-  distanceInMeters,
   findOperatingZone,
   isCompatibleVirtualTable,
   validatePolygon,
@@ -88,7 +87,7 @@ async function findZones(db, tx) {
   return tx.query("deliveryZones", { field: "active", op: "EQUAL", value: true, limit: 200 });
 }
 
-async function assignVirtualTable({ db, tx, orderId, uid, orderNumber, point, zone, now }) {
+async function assignVirtualTable({ tx, orderId, uid, orderNumber, point, zone, now }) {
   const config = {
     groupingRadiusMeters: Math.min(
       Math.max(1, Number(zone.groupingRadiusMeters) || VIRTUAL_TABLE_DEFAULTS.groupingRadiusMeters),
@@ -188,12 +187,12 @@ async function assignVirtualTable({ db, tx, orderId, uid, orderNumber, point, zo
   return { tableId, tableReference, zoneId: zone.id, status: "waiting_customer" };
 }
 
-export async function createOrder({ request, claims, env }) {
+export async function createOrder({ request, claims, env, db: injectedDb }) {
   if (!claims?.sub) throw new ApiError(401, "unauthenticated", "Inicia sesión para realizar tu pedido.");
   if (env.ORDERS_ENABLED !== "true") throw new ApiError(503, "ORDERS_DISABLED", "Los pedidos están deshabilitados mientras se completa la validación.");
   if (!BUSINESS.acceptingOrders) throw new ApiError(503, "ORDERS_DISABLED", "El negocio no está aceptando pedidos.");
   requireCupboard(env);
-  const db = createSandwichiesDb(env);
+  const db = injectedDb || createSandwichiesDb(env);
   const requestId = request.requestId?.trim();
   if (!validRequestId(requestId)) throw new ApiError(400, "invalid-argument", "Identificador de solicitud inválido.");
 
@@ -236,7 +235,6 @@ export async function createOrder({ request, claims, env }) {
       })));
       if (!zone) throw new ApiError(422, "OUTSIDE_DELIVERY_ZONE", "El punto elegido está fuera de las zonas habilitadas.");
       delivery = await assignVirtualTable({
-        db,
         tx,
         orderId,
         uid,
@@ -267,9 +265,9 @@ export async function createOrder({ request, claims, env }) {
   return { order: responseOrder };
 }
 
-export async function getCustomerOrder({ orderId, claims, env }) {
+export async function getCustomerOrder({ orderId, claims, env, db: injectedDb }) {
   if (!claims?.sub) throw new ApiError(401, "unauthenticated", "Inicia sesión para consultar tu pedido.");
-  const db = createSandwichiesDb(env);
+  const db = injectedDb || createSandwichiesDb(env);
   const snapshot = await db.read(`orders/${orderId}`);
   if (!snapshot.exists || snapshot.data.customerUid !== claims.sub) {
     throw new ApiError(404, "not-found", "No se encontró el pedido.");
@@ -350,12 +348,12 @@ async function releaseTransitionLock(db, orderPath, lockId) {
   }
 }
 
-export async function transitionOrder({ orderId, status, claims, env }) {
+export async function transitionOrder({ orderId, status, claims, env, db: injectedDb, cupboardDb: injectedCupboardDb }) {
   requireAdmin(claims);
   if (!/^[A-Za-z0-9_-]{1,150}$/.test(orderId || "") || typeof status !== "string") {
     throw new ApiError(400, "invalid-argument", "Pedido o estado inválido.");
   }
-  const db = createSandwichiesDb(env);
+  const db = injectedDb || createSandwichiesDb(env);
   const orderPath = `orders/${orderId}`;
   const lockId = randomId();
   let lockAcquired = false;
@@ -395,7 +393,7 @@ export async function transitionOrder({ orderId, status, claims, env }) {
       if (!consumption.complete) {
         throw new ApiError(409, "RECIPE_USAGE_MISSING", "No se puede confirmar: la receta no contiene el consumo físico completo.");
       }
-      const cupboardDb = new FirestoreRest({
+      const cupboardDb = injectedCupboardDb || new FirestoreRest({
         projectId: config.projectId,
         serviceAccountJson: env.CUPBOARD_SERVICE_ACCOUNT_JSON,
       });
