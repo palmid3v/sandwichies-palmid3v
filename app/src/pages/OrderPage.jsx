@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { onAuthStateChanged, signInAnonymously, updateProfile } from "firebase/auth";
+import { onAuthStateChanged, updateProfile } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { customerAuth, customerDb } from "../customerFirebase";
+import { auth, db } from "../firebase";
+import CustomerAuth from "./CustomerAuth";
 import { workerRequest } from "../api/worker";
 import Category from "../components/Category";
 import { generateName } from "../utils/generateName";
@@ -70,9 +71,9 @@ export default function OrderPage() {
   const requestIdRef = useRef(newRequestId());
 
   useEffect(() => {
-    const uid = customerAuth.currentUser?.uid;
+    const uid = auth.currentUser?.uid;
     if (!completedOrder?.id || !uid || completedOrder.fulfillment?.type !== "punto_encuentro") return undefined;
-    return onSnapshot(doc(customerDb, "customerOrderTracking", uid, "orders", completedOrder.id), (snapshot) => {
+    return onSnapshot(doc(db, "customerOrderTracking", uid, "orders", completedOrder.id), (snapshot) => {
       if (!snapshot.exists()) return;
       const tracking = snapshot.data();
       setCompletedOrder((current) => current ? {
@@ -84,23 +85,27 @@ export default function OrderPage() {
 
   useEffect(() => {
     let mounted = true;
-    const unsubscribe = onAuthStateChanged(customerAuth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!mounted) return;
-      if (user) {
+      if (!user) {
+        setAuthReady(false);
+        return;
+      }
+      try {
+        const token = await user.getIdTokenResult(true);
+        if (user.emailVerified !== true || token.claims.email_verified !== true) {
+          setAuthReady(false);
+          setAuthError("Verifica tu correo para continuar. Revisa tu bandeja de entrada.");
+          return;
+        }
         setClientName(user.displayName || "");
         setAuthError("");
         setAuthReady(true);
-        return;
+      } catch (error) {
+        console.error("No se pudo validar la sesión del cliente:", error);
+        setAuthReady(false);
+        setAuthError("No pudimos validar tu sesión. Inicia sesión de nuevo.");
       }
-
-      setAuthReady(false);
-      signInAnonymously(customerAuth).catch((error) => {
-        console.error("No se pudo iniciar la sesión anónima:", error);
-        if (mounted) {
-          setAuthError("No pudimos iniciar tu sesión de cliente. Recarga la página e inténtalo de nuevo.");
-          setAuthReady(false);
-        }
-      });
     });
 
     return () => {
@@ -111,7 +116,7 @@ export default function OrderPage() {
 
   const persistCustomerName = async () => {
     const name = clientName.trim();
-    const user = customerAuth.currentUser;
+    const user = auth.currentUser;
     if (name.length < 2 || !user) return false;
 
     try {
@@ -352,7 +357,7 @@ export default function OrderPage() {
   };
 
   const validateMeetingPoint = async () => {
-    if (!authReady || !customerAuth.currentUser) {
+    if (!authReady || !auth.currentUser) {
       showToast("Estamos preparando tu sesión de cliente.", "error");
       return;
     }
@@ -365,7 +370,7 @@ export default function OrderPage() {
     setCoverage(null);
     try {
       const response = await workerRequest("/v1/delivery/coverage", {
-        auth: customerAuth,
+        auth: auth,
         method: "POST",
         body: { meetingPoint: point },
       });
@@ -385,7 +390,7 @@ export default function OrderPage() {
     try {
       await workerRequest(
         `/v1/customer/orders/${encodeURIComponent(completedOrder.id)}/ready`,
-        { auth: customerAuth, method: "POST", body: {} },
+        { auth: auth, method: "POST", body: {} },
       );
     } catch (error) {
       showToast(error.message || "No pudimos registrar tu llegada.", "error");
@@ -406,7 +411,7 @@ export default function OrderPage() {
       return;
     }
 
-    if (!authReady || !customerAuth.currentUser) {
+    if (!authReady || !auth.currentUser) {
       showToast("Estamos preparando tu sesión. Espera un momento e inténtalo de nuevo.", "error");
       return;
     }
@@ -420,7 +425,7 @@ export default function OrderPage() {
       if (!nameSaved) throw new Error("No se pudo guardar el nombre del cliente.");
 
       const result = await workerRequest("/v1/orders", {
-        auth: customerAuth,
+        auth: auth,
         method: "POST",
         body: {
         requestId: requestIdRef.current,
@@ -468,6 +473,18 @@ export default function OrderPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (!authReady) {
+    return (
+      <CustomerAuth
+        onAuthenticated={() => {
+          setAuthError("");
+          setAuthReady(false);
+        }}
+        pendingMessage={authError}
+      />
+    );
+  }
 
   if (completedOrder) {
     return (
