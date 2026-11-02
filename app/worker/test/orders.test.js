@@ -58,7 +58,7 @@ const env = {
   ORDERS_ENABLED: "true",
   CUPBOARD_PROJECT_ID: "cupboard-project",
   CUPBOARD_HOUSEHOLD_ID: "household-a",
-  CUPBOARD_SERVICE_ACCOUNT_JSON: "{}",
+  CUPBOARD_SERVICE_ACCOUNT_JSON: JSON.stringify({ type: "service_account", project_id: "cupboard-project", client_email: "worker@cupboard-project.iam.gserviceaccount.com", private_key: "test-private-key" }),
   CUPBOARD_INGREDIENT_MAP_JSON: JSON.stringify(mapping),
 };
 const customerClaims = { sub: "customer-uid" };
