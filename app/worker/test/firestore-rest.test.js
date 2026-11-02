@@ -40,18 +40,14 @@ test("Firestore REST transaction authenticates with a signed service-account ass
     if (String(url).endsWith(":beginTransaction")) {
       return new Response(JSON.stringify({ transaction: "transaction-1" }));
     }
-    if (String(url).endsWith(":batchGet")) {
-      const body = JSON.parse(init.body);
-      assert.equal(body.transaction, "transaction-1");
-      return new Response(JSON.stringify([{
-        found: {
-          name: "projects/sandwich-pro/databases/(default)/documents/orders/order-1",
-          fields: {
-            status: { stringValue: "pendiente" },
-            orderNumber: { integerValue: "42" },
-          },
+    if (String(url).includes("/documents/orders/order-1?transaction=transaction-1")) {
+      return new Response(JSON.stringify({
+        name: "projects/sandwich-pro/databases/(default)/documents/orders/order-1",
+        fields: {
+          status: { stringValue: "pendiente" },
+          orderNumber: { integerValue: "42" },
         },
-      }]));
+      }));
     }
     if (String(url).endsWith(":commit")) {
       const body = JSON.parse(init.body);
