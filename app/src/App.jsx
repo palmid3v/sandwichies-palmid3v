@@ -46,11 +46,21 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      const token = currentUser
-        ? await currentUser.getIdTokenResult()
-        : null;
-      setIsAdmin(token?.claims.admin === true);
-      setLoading(false);
+      try {
+        const token = currentUser
+          ? await currentUser.getIdTokenResult(true)
+          : null;
+        const verified = currentUser?.emailVerified === true
+          && token?.claims.email_verified === true;
+        setIsAdmin(verified && token?.claims.admin === true);
+        if (currentUser && !verified) await signOut(auth);
+      } catch (error) {
+        console.error("No se pudo validar la sesión administrativa:", error);
+        setIsAdmin(false);
+        if (currentUser) await signOut(auth);
+      } finally {
+        setLoading(false);
+      }
     });
     return unsubscribe;
   }, []);
@@ -216,7 +226,7 @@ export default function App() {
 
   if (!user) return <Login />;
 
-  if (!isAdmin) {
+  if (!user.emailVerified || !isAdmin) {
     return (
       <main className="login-page">
         <section className="login-card">
