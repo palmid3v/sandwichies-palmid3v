@@ -83,6 +83,9 @@ async function authenticate(request, env) {
   if (!token) return { error: json({ error: "unauthenticated" }, 401) };
   try {
     const claims = await verifyFirebaseIdToken(token, { projectId: env.FIREBASE_PROJECT_ID });
+    if (claims.email_verified !== true) {
+      return { error: json({ error: "email-not-verified" }, 403) };
+    }
     return { claims };
   } catch {
     return { error: json({ error: "unauthenticated" }, 401) };
@@ -126,7 +129,7 @@ async function route(request, env) {
   if (request.method === "GET" && path === "/v1/admin/session") {
     const auth = await authenticate(request, env);
     if (auth.error) return auth.error;
-    if (auth.claims.admin !== true || auth.claims.email_verified !== true) return json({ error: "permission-denied" }, 403);
+    if (auth.claims.admin !== true) return json({ error: "permission-denied" }, 403);
     return json({ uid: auth.claims.sub, admin: true });
   }
 
@@ -154,7 +157,7 @@ async function route(request, env) {
   if (path === "/v1/admin/delivery-operations" && request.method === "GET") {
     const auth = await authenticate(request, env);
     if (auth.error) return auth.error;
-    if (auth.claims.admin !== true || auth.claims.email_verified !== true) return json({ error: "permission-denied" }, 403);
+    if (auth.claims.admin !== true) return json({ error: "permission-denied" }, 403);
     return json(await listDeliveryOperations({ claims: auth.claims, env }));
   }
 
@@ -162,7 +165,7 @@ async function route(request, env) {
   if (tableMembersMatch && request.method === "GET") {
     const auth = await authenticate(request, env);
     if (auth.error) return auth.error;
-    if (auth.claims.admin !== true || auth.claims.email_verified !== true) return json({ error: "permission-denied" }, 403);
+    if (auth.claims.admin !== true) return json({ error: "permission-denied" }, 403);
     return json(await listVirtualTableMembers({ tableId: tableMembersMatch[1], claims: auth.claims, env }));
   }
 
