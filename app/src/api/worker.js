@@ -1,4 +1,4 @@
-const workerBaseUrl = String(import.meta.env.VITE_SANDWICHIES_WORKER_URL || "").trim().replace(/\\/+$/, "");
+const workerBaseUrl = String(import.meta.env.VITE_SANDWICHIES_WORKER_URL || "").trim().replace(new RegExp("/+$"), "");
 
 export async function workerRequest(path, {
   auth,
