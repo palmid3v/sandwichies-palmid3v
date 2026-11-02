@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
-import { getFunctions, httpsCallable } from "firebase/functions";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "./firebase";
+import { workerRequest } from "./api/worker";
 import Dashboard from "./components/Dashboard";
 import OrdersHistory from "./components/OrdersHistory";
 import VirtualTables from "./components/VirtualTables";
@@ -174,16 +174,16 @@ export default function App() {
     setInventoryFeedback("");
 
     try {
-      const createMovement = httpsCallable(
-        getFunctions(),
-        "recordInventoryTransaction",
-      );
-      await createMovement({
-        ingredientId: inventoryForm.ingredientId,
-        type: inventoryForm.type,
-        quantityDelta: Number(inventoryForm.quantityDelta),
-        reason: inventoryForm.reason.trim(),
-        operationId: inventoryOperationId,
+      await workerRequest("/v1/admin/inventory/movements", {
+        auth,
+        method: "POST",
+        body: {
+          ingredientId: inventoryForm.ingredientId,
+          type: inventoryForm.type,
+          quantityDelta: Number(inventoryForm.quantityDelta),
+          reason: inventoryForm.reason.trim(),
+          operationId: inventoryOperationId,
+        },
       });
 
       setInventoryForm((current) => ({
