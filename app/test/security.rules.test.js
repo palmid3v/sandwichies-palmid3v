@@ -56,8 +56,15 @@ test("unauthenticated clients cannot access orders, counter, or inventory", asyn
   await assertFails(getDoc(doc(db, "inventoryTransactions", "transaction-1")));
 });
 
+test("unverified users cannot read customer tracking or protected data", async () => {
+  const db = env.authenticatedContext("unverified-user", { email_verified: false }).firestore();
+  await assertFails(getDoc(doc(db, "customerOrderTracking/unverified-user/orders/order-1")));
+  await assertFails(getDoc(doc(db, "orders", "order-1")));
+  await assertFails(getDoc(doc(db, "inventoryBalances", "pepperoni")));
+});
+
 test("authenticated non-admin cannot access protected operational data", async () => {
-  const db = env.authenticatedContext("user-1").firestore();
+  const db = env.authenticatedContext("user-1", { email_verified: true }).firestore();
   await assertFails(getDoc(doc(db, "orders", "order-1")));
   await assertFails(setDoc(doc(db, "orders", "order-2"), { total: 1 }));
   await assertFails(updateDoc(doc(db, "orders", "order-1"), { status: "cancelado" }));
@@ -67,7 +74,7 @@ test("authenticated non-admin cannot access protected operational data", async (
 });
 
 test("admin can read orders and update payment, but must use the trusted callable for state transitions", async () => {
-  const db = env.authenticatedContext("admin-1", { admin: true }).firestore();
+  const db = env.authenticatedContext("admin-1", { admin: true, email_verified: true }).firestore();
   await assertSucceeds(getDoc(doc(db, "orders", "order-1")));
   await assertFails(updateDoc(doc(db, "orders", "order-1"), { status: "confirmado" }));
   await assertFails(updateDoc(doc(db, "orders", "order-1"), { status: "entregado" }));
@@ -82,13 +89,13 @@ test("admin can read orders and update payment, but must use the trusted callabl
 });
 
 test("admin cannot create or delete orders directly", async () => {
-  const db = env.authenticatedContext("admin-1", { admin: true }).firestore();
+  const db = env.authenticatedContext("admin-1", { admin: true, email_verified: true }).firestore();
   await assertFails(setDoc(doc(db, "orders", "order-2"), { status: "pendiente" }));
   await assertFails(deleteDoc(doc(db, "orders", "order-1")));
 });
 
 test("inventory collections remain server-write-only", async () => {
-  const db = env.authenticatedContext("admin-1", { admin: true }).firestore();
+  const db = env.authenticatedContext("admin-1", { admin: true, email_verified: true }).firestore();
   await assertFails(
     setDoc(doc(db, "inventoryBalances", "pepperoni"), {
       ingredientId: "pepperoni",
@@ -104,13 +111,13 @@ test("inventory collections remain server-write-only", async () => {
 });
 
 test("counter remains inaccessible from browser", async () => {
-  const db = env.authenticatedContext("admin-1", { admin: true }).firestore();
+  const db = env.authenticatedContext("admin-1", { admin: true, email_verified: true }).firestore();
   await assertFails(getDoc(doc(db, "counters", "orders")));
   await assertFails(setDoc(doc(db, "counters", "orders"), { value: 99 }));
 });
 
 test("tracking is owner-only and all logistics writes remain server-side", async () => {
-  const customerDb = env.authenticatedContext("user-1").firestore();
+  const customerDb = env.authenticatedContext("user-1", { email_verified: true }).firestore();
   await assertSucceeds(getDoc(doc(customerDb, "customerOrderTracking/user-1/orders/order-1")));
   await assertFails(getDoc(doc(customerDb, "customerOrderTracking/user-2/orders/order-2")));
   await assertFails(updateDoc(doc(customerDb, "customerOrderTracking/user-1/orders/order-1"), { deliveryStatus: "delivered" }));
@@ -120,7 +127,7 @@ test("tracking is owner-only and all logistics writes remain server-side", async
   await assertFails(getDoc(doc(customerDb, "deliveryEvents", "event-1")));
   await assertFails(setDoc(doc(customerDb, "orderRequests", "forged_request_key"), { orderId: "order-1" }));
 
-  const adminDb = env.authenticatedContext("admin-1", { admin: true }).firestore();
+  const adminDb = env.authenticatedContext("admin-1", { admin: true, email_verified: true }).firestore();
   await assertSucceeds(getDoc(doc(adminDb, "virtualTables", "table-1")));
   await assertSucceeds(getDoc(doc(adminDb, "virtualTables/table-1/members", "order-1")));
   await assertSucceeds(getDoc(doc(adminDb, "deliveryZones", "zone-1")));
@@ -131,7 +138,7 @@ test("tracking is owner-only and all logistics writes remain server-side", async
 
 
 test("admin cannot mutate financial, customer, recipe or inventory snapshot fields", async () => {
-  const db = env.authenticatedContext("admin-1", { admin: true }).firestore();
+  const db = env.authenticatedContext("admin-1", { admin: true, email_verified: true }).firestore();
   const order = doc(db, "orders", "order-1");
   await assertFails(updateDoc(order, { total: 1 }));
   await assertFails(updateDoc(order, { cost: 1 }));
@@ -144,7 +151,7 @@ test("admin cannot mutate financial, customer, recipe or inventory snapshot fiel
 });
 
 test("admin must confirm an order before marking payment as paid", async () => {
-  const db = env.authenticatedContext("admin-1", { admin: true }).firestore();
+  const db = env.authenticatedContext("admin-1", { admin: true, email_verified: true }).firestore();
   const order = doc(db, "orders", "order-1");
   await assertFails(updateDoc(order, { status: "confirmado" }));
   await assertFails(updateDoc(order, { "payment.status": "pagado" }));
