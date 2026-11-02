@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import MapSizeInvalidator from "./MapSizeInvalidator";
 
-const DEFAULT_CENTER = [4.65, -74.08];
+const DEFAULT_CENTER = [6.2442, -75.5812];
 
 function MapInteraction({ point, onSelect }) {
   const map = useMap();
@@ -17,7 +18,8 @@ function MapInteraction({ point, onSelect }) {
 
 export default function MeetingPointPicker({ point, onSelect }) {
   return <div className="meeting-point-map-wrap">
-    <MapContainer center={point ? [point.latitude, point.longitude] : DEFAULT_CENTER} zoom={12} scrollWheelZoom={false} className="meeting-point-map" aria-label="Selecciona tu punto de encuentro. Toca el mapa para mover el pin.">
+    <MapContainer center={point ? [point.latitude, point.longitude] : DEFAULT_CENTER} zoom={13} scrollWheelZoom={false} className="meeting-point-map" aria-label="Selecciona tu punto de encuentro. Toca el mapa para mover el pin.">
+      <MapSizeInvalidator />
       <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <MapInteraction point={point} onSelect={onSelect} />
     </MapContainer>
