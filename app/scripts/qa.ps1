@@ -30,7 +30,8 @@ try {
   foreach ($step in $steps) {
     Write-Host ""
     Write-Host "=== $($step.Name) ===" -ForegroundColor Yellow
-    & $step.Command @($step.Args)
+    $arguments = $step.Args
+    & $step.Command @arguments
     $exitCode = $LASTEXITCODE
     $status = if ($exitCode -eq 0) { "PASS" } else { "FAIL" }
     $results += [pscustomobject]@{ Stage = $step.Name; Status = $status; ExitCode = $exitCode }
