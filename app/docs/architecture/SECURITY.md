@@ -1,40 +1,61 @@
-# Seguridad y Firebase
+# Seguridad y autenticación
 
-Las reglas de Firestore niegan escrituras públicas de pedidos y acceso del cliente al contador. Sólo un token con custom claim `admin: true` puede leer/actualizar pedidos desde el panel. La Cloud Function usa Admin SDK y por eso puede persistir la orden confiable.
+## Política de identidad
 
-El rol se asigna fuera de la UI mediante un proceso privilegiado de Firebase Admin SDK. Nunca publicar claves de servicio ni crear una pantalla pública para asignar roles. Validar estas reglas en Emulator Suite antes de release.
+Sandwichies utiliza una sola instancia de Firebase Authentication y una sola base de sesión para clientes y administradores. El único método permitido es correo electrónico + contraseña. Todo usuario debe verificar su dirección de correo antes de acceder a la tienda autenticada, consultar seguimiento, crear pedidos o entrar al panel.
 
-## Provisionar o revocar al administrador existente
+- No se crean sesiones anónimas.
+- No se vinculan ni migran pedidos asociados a UID anónimos anteriores.
+- El nuevo registro crea una identidad nueva; el historial anterior queda fuera del flujo nuevo.
+- La verificación se valida en el cliente, en el Worker (ID token Firebase verificado criptográficamente) y en Firestore Rules.
+- La autorización administrativa requiere además el custom claim booleano `admin: true`.
+- La verificación de correo es un claim reservado de Firebase; nunca se asigna como custom claim.
 
-La única convención de rol es el custom claim booleano `admin: true`. La misma clave se usa en el guard de `/admin` y en las reglas de Firestore. La función `createOrder` es pública para clientes por diseño; no es una operación administrativa y no concede lectura o gestión de pedidos.
+## Flujo de cliente
 
-Un operador autorizado, con credenciales de Firebase Admin para el entorno correcto, ejecuta:
+1. El cliente crea una cuenta con correo y contraseña.
+2. Firebase envía un enlace de verificación.
+3. La sesión no obtiene acceso a la tienda hasta que el correo esté verificado y el ID token refleje `email_verified: true`.
+4. El cliente puede iniciar sesión, solicitar restablecimiento de contraseña y reenviar la verificación.
+5. Los pedidos y el seguimiento quedan asociados al UID autenticado de esa cuenta nueva.
+
+## Flujo administrativo
+
+El administrador inicia sesión con correo y contraseña verificados. La UI exige `emailVerified === true` y `email_verified === true` en el ID token, además del claim `admin: true`. El Worker y Firestore repiten la autorización en el servidor.
+
+Provisionar o revocar el claim sólo para una cuenta existente:
 
 ```powershell
 $env:ADMIN_EMAIL = "correo-del-administrador"
 npm run provision:admin
 ```
 
-Para revocar en PowerShell:
+Para revocar:
 
 ```powershell
 $env:REVOKE_ADMIN = "true"
 npm run provision:admin
 ```
 
-El script busca ese usuario existente por correo y falla sin crear cuentas si no existe. Para revocar, ejecutar el mismo comando con `REVOKE_ADMIN=true`. Nunca incluir credenciales, contraseñas, UIDs hardcodeados ni roles en el frontend.
+El script rechaza asignar el rol a cuentas con correo no verificado. Nunca incluir credenciales, contraseñas, UIDs hardcodeados ni roles en el frontend.
 
-Después de asignar/revocar, el usuario debe cerrar sesión y volver a entrar o renovar su ID token. Restablecer la contraseña no elimina custom claims: autenticación y autorización son datos distintos. Verificar el rol iniciando sesión en `/admin`, confirmando carga de pedidos y comprobando que una cuenta autenticada sin claim recibe acceso restringido y denegación de Firestore.
+## Controles por capa
 
+- **Frontend:** comparte `auth` y `db` desde `src/firebase.js`; no ejecuta `signInAnonymously`.
+- **Worker:** toda ruta autenticada rechaza tokens sin `email_verified === true` con HTTP 403 y código `email-not-verified`. Las rutas de salud y preflight CORS siguen siendo públicas.
+- **Firestore:** `isSignedIn()` exige sesión y correo verificado; `isAdmin()` añade `admin: true`.
+- **Pedidos:** el Worker deriva la identidad del UID del token verificado; el navegador no puede escribir pedidos directamente.
+- **Inventario:** las colecciones `inventoryBalances` y `inventoryTransactions` son de lectura administrativa y escritura exclusiva del servidor.
+- **Seguimiento:** `customerOrderTracking/{uid}/orders/{orderId}` sólo puede ser leído por el UID propietario verificado o por un administrador.
 
-## Inventory authorization
+## Datos anteriores y reinicio
 
-The collections `inventoryBalances` and `inventoryTransactions` are readable only by admins. Browser writes remain denied. Admin browser status changes must go through the trusted `transitionOrderStatus` callable; Firestore Rules block direct status writes. The callable deducts stock from Cupboard before confirming the order, restores it once on cancellation after confirmation, then mirrors the external result to Sandwichies. Completed-sale accounting remains separate and counts only delivered, paid orders.
+La nueva autenticación no reclama ni migra usuarios anónimos, pedidos o historiales previos. No se ejecuta ninguna eliminación masiva de Firestore/Auth desde el código. Si se decide borrar datos antiguos del proyecto Firebase, deberá ser una operación separada, explícita y revisada en el entorno correcto.
 
-## Virtual delivery authorization
+## Release y costos
 
-Customer location submissions and arrival signals use callables. The backend validates active service-zone polygons, customer ownership and the current member state. Customer tracking is projected under `customerOrderTracking/{uid}/orders/{orderId}` and Firestore Rules limit reads to that UID; customers cannot read tables, members, zones or delivery events and cannot write delivery state. Admin claim `admin: true` is required for global operational reads and logistics mutations. Keep precise customer coordinates out of shared group views unless needed to navigate that specific order.
+No desplegar, activar pedidos reales, habilitar servicios de pago ni realizar escrituras de producción durante esta tarea. Mantener el presupuesto en $0 y `BUSINESS.acceptingOrders` desactivado hasta cerrar el checklist de release.
 
-## Release flag discrepancy
+## Validación pendiente
 
-As of 2026-10-30, `main` commit `270303d` sets `BUSINESS.acceptingOrders = true`, while release policy requires false pending the checklist. This is unresolved and blocks release. Do not deploy or create real orders as a validation method.
+Ejecutar lint, pruebas unitarias, Worker tests, Firestore Rules Emulator, build y smoke tests. Confirmar en Firebase Console que el proveedor Email/Password está habilitado. El cambio de código no habilita automáticamente el proveedor en Firebase Console.
