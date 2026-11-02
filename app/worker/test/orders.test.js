@@ -215,3 +215,35 @@ test("meeting-point orders are grouped into a virtual table using the fixed anch
   assert.equal((await db.read(`virtualTables/${firstTableId}/members/${first.order.id}`)).exists, true);
   assert.equal((await db.read(`virtualTables/${firstTableId}/members/${second.order.id}`)).exists, true);
 });
+
+
+test("cancelling a meeting-point order releases its virtual table membership", async () => {
+  const cancelledOrder = {
+    ...orderDoc("pendiente", "pending"),
+    delivery: { tableId: "table-cancel", tableReference: "V-CANCEL" },
+  };
+  const sandwichiesDb = new MemoryFirestore({
+    [orderPath]: cancelledOrder,
+    "virtualTables/table-cancel": { status: "open", activeOrderCount: 1, inactivityMinutes: 60 },
+    "virtualTables/table-cancel/members/" + orderId: {
+      orderId,
+      customerUid: "customer-uid",
+      deliveryStatus: "waiting_customer",
+    },
+    "customerOrderTracking/customer-uid/orders/" + orderId: {
+      orderId,
+      deliveryStatus: "waiting_customer",
+      tableStatus: "open",
+    },
+  });
+  const cupboardDb = new MemoryFirestore();
+  const result = await transitionOrder({
+    orderId, status: "cancelado", claims: adminClaims, env, db: sandwichiesDb, cupboardDb,
+  });
+  assert.equal(result.status, "cancelado");
+  assert.equal(result.cupboardConsumptionStatus, "not-consumed");
+  assert.equal((await sandwichiesDb.read("virtualTables/table-cancel")).data.status, "released");
+  assert.equal((await sandwichiesDb.read("virtualTables/table-cancel")).data.activeOrderCount, 0);
+  assert.equal((await sandwichiesDb.read("virtualTables/table-cancel/members/" + orderId)).data.deliveryStatus, "cancelled");
+  assert.equal((await sandwichiesDb.read("customerOrderTracking/customer-uid/orders/" + orderId)).data.deliveryStatus, "cancelled");
+});
