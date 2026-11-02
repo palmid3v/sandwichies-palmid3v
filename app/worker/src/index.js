@@ -135,7 +135,7 @@ async function route(request, env) {
     return json(await createOrder({ request: payload, claims: auth.claims, env }), 201);
   }
 
-  const customerOrderMatch = path.match(/^\\/v1\\/orders\\/([A-Za-z0-9_-]{1,150})$/);
+  const customerOrderMatch = path.match(new RegExp("^/v1/orders/([A-Za-z0-9_-]{1,150})$"));
   if (customerOrderMatch && request.method === "GET") {
     const auth = await authenticate(request, env);
     if (auth.error) return auth.error;
@@ -157,14 +157,14 @@ async function route(request, env) {
     return json(await saveDeliveryZone({ payload, claims: auth.claims, env }), 201);
   }
 
-  const readyMatch = path.match(/^\\/v1\\/customer\\/orders\\/([A-Za-z0-9_-]{1,150})\\/ready$/);
+  const readyMatch = path.match(new RegExp("^/v1/customer/orders/([A-Za-z0-9_-]{1,150})/ready$"));
   if (readyMatch && request.method === "POST") {
     const auth = await authenticate(request, env);
     if (auth.error) return auth.error;
     return json(await markCustomerReady({ orderId: readyMatch[1], claims: auth.claims, env }));
   }
 
-  const deliveryMatch = path.match(/^\\/v1\\/admin\\/orders\\/([A-Za-z0-9_-]{1,150})\\/delivery$/);
+  const deliveryMatch = path.match(new RegExp("^/v1/admin/orders/([A-Za-z0-9_-]{1,150})/delivery$"));
   if (deliveryMatch && request.method === "POST") {
     const auth = await authenticate(request, env);
     if (auth.error) return auth.error;
@@ -175,7 +175,7 @@ async function route(request, env) {
     }));
   }
 
-  const closeTableMatch = path.match(/^\\/v1\\/admin\\/virtual-tables\\/([A-Za-z0-9_-]{1,120})\\/close$/);
+  const closeTableMatch = path.match(new RegExp("^/v1/admin/virtual-tables/([A-Za-z0-9_-]{1,120})/close$"));
   if (closeTableMatch && request.method === "POST") {
     const auth = await authenticate(request, env);
     if (auth.error) return auth.error;
@@ -193,7 +193,7 @@ async function route(request, env) {
     return json(await recordManualInventory({ payload, claims: auth.claims, env }), 201);
   }
 
-  const transitionMatch = path.match(/^\\/v1\\/admin\\/orders\\/([A-Za-z0-9_-]{1,150})\\/status$/);
+  const transitionMatch = path.match(new RegExp("^/v1/admin/orders/([A-Za-z0-9_-]{1,150})/status$"));
   if (transitionMatch && request.method === "POST") {
     const auth = await authenticate(request, env);
     if (auth.error) return auth.error;
