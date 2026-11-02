@@ -84,10 +84,14 @@ test("new orders are server-priced and idempotent by authenticated UID plus requ
   assert.ok(created.order.id);
   assert.equal(created.order.status, "pendiente");
   assert.equal(created.order.total > 1, true);
-  assert.equal(created.order.inventory.system, "cupboard");
+  // The customer response must not expose internal inventory integration metadata.
+  assert.equal(created.order.inventory, undefined);
   const stored = await db.read(`orders/${created.order.id}`);
   assert.equal(stored.data.customerUid, customerClaims.sub);
   assert.equal(stored.data.total, created.order.total);
+  // The persisted trusted order must retain the Cupboard integration state.
+  assert.equal(stored.data.inventory.system, "cupboard");
+  assert.equal(stored.data.inventory.consumptionStatus, "pending");
 
   const repeated = await createOrder({ request: payload, claims: customerClaims, env, db });
   assert.equal(repeated.order.id, created.order.id);
