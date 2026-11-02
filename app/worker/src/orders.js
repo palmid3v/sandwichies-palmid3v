@@ -7,6 +7,7 @@ import { buildTrustedOrder, OrderValidationError } from "../../shared/order-requ
 import {
   findOperatingZone,
   isCompatibleVirtualTable,
+  canTransitionDeliveryStatus,
   validatePolygon,
   VIRTUAL_TABLE_DEFAULTS,
 } from "../../shared/virtual-tables.js";
@@ -537,4 +538,166 @@ export async function saveDeliveryZone({ payload, claims, env }) {
     });
   });
   return { zoneId };
+}
+
+
+export async function markCustomerReady({ orderId, claims, env, db: injectedDb }) {
+  if (!claims?.sub) throw new ApiError(401, "unauthenticated", "Inicia sesión para actualizar tu entrega.");
+  const db = injectedDb || createSandwichiesDb(env);
+  const orderPath = `orders/${orderId}`;
+  await db.runTransaction(async (tx) => {
+    const order = await tx.get(orderPath);
+    if (!order.exists || order.data.customerUid !== claims.sub) {
+      throw new ApiError(404, "not-found", "No se encontró el pedido.");
+    }
+    const data = order.data;
+    const tableId = data.delivery?.tableId;
+    if (!tableId || data.status === "cancelado") {
+      throw new ApiError(409, "NO_ACTIVE_VIRTUAL_TABLE", "El pedido no tiene una mesa activa.");
+    }
+    const tablePath = `virtualTables/${tableId}`;
+    const memberPath = `${tablePath}/members/${orderId}`;
+    const trackingPath = `customerOrderTracking/${claims.sub}/orders/${orderId}`;
+    const [member, table] = await Promise.all([tx.get(memberPath), tx.get(tablePath)]);
+    if (!member.exists || member.data.customerUid !== claims.sub) {
+      throw new ApiError(403, "permission-denied", "No puedes actualizar esta entrega.");
+    }
+    if (member.data.deliveryStatus !== "waiting_customer") {
+      throw new ApiError(409, "DELIVERY_ALREADY_UPDATED", "La llegada ya fue registrada o la entrega avanzó.");
+    }
+    const tableStatus = table.exists ? table.data.status : "released";
+    if (!["open", "closing", "expired"].includes(tableStatus)) {
+      throw new ApiError(409, "TABLE_CLOSED", "La mesa ya está cerrada.");
+    }
+    const now = nowDate();
+    tx.update(memberPath, { deliveryStatus: "customer_ready", customerReadyAt: now });
+    tx.set(trackingPath, { deliveryStatus: "customer_ready", tableStatus, updatedAt: now });
+    if (table.exists && ["open", "closing"].includes(tableStatus)) {
+      const inactivityMinutes = Number(table.data.inactivityMinutes) || VIRTUAL_TABLE_DEFAULTS.inactivityMinutes;
+      tx.update(tablePath, {
+        lastActivityAt: now,
+        expiresAt: new Date(now.getTime() + inactivityMinutes * 60_000),
+      });
+    }
+    tx.create(`deliveryEvents/${randomId()}`, {
+      tableId, orderId, type: "customer_ready", actorUid: claims.sub, createdAt: now,
+    });
+  });
+  return { orderId, deliveryStatus: "customer_ready" };
+}
+
+export async function updateVirtualDelivery({ orderId, status, claims, env, db: injectedDb }) {
+  requireAdmin(claims);
+  if (!["en_route", "arrived", "delivered"].includes(status)) {
+    throw new ApiError(400, "invalid-argument", "Estado logístico inválido.");
+  }
+  const db = injectedDb || createSandwichiesDb(env);
+  await db.runTransaction(async (tx) => {
+    const order = await tx.get(`orders/${orderId}`);
+    if (!order.exists || order.data.status === "cancelado") {
+      throw new ApiError(404, "not-found", "No existe una entrega activa para este pedido.");
+    }
+    const tableId = order.data.delivery?.tableId;
+    if (!tableId) throw new ApiError(409, "NO_VIRTUAL_TABLE", "El pedido no pertenece a una mesa virtual.");
+    const tablePath = `virtualTables/${tableId}`;
+    const memberPath = `${tablePath}/members/${orderId}`;
+    const trackingPath = `customerOrderTracking/${order.data.customerUid}/orders/${orderId}`;
+    const [member, table] = await Promise.all([tx.get(memberPath), tx.get(tablePath)]);
+    if (!member.exists || !table.exists || !canTransitionDeliveryStatus(member.data.deliveryStatus, status)) {
+      throw new ApiError(409, "INVALID_DELIVERY_TRANSITION", "La transición logística no está permitida.");
+    }
+    if (member.data.deliveryStatus === status) return;
+    const now = nowDate();
+    const count = status === "delivered"
+      ? Math.max(0, Number(table.data.activeOrderCount || 0) - 1)
+      : Number(table.data.activeOrderCount || 0);
+    const tableStatus = count === 0 ? "released" : table.data.status;
+    tx.update(memberPath, { deliveryStatus: status, ...(status === "delivered" ? { deliveredAt: now } : {}) });
+    tx.set(trackingPath, { deliveryStatus: status, tableStatus, updatedAt: now });
+    tx.update(tablePath, {
+      activeOrderCount: count,
+      lastActivityAt: now,
+      expiresAt: new Date(now.getTime() + (Number(table.data.inactivityMinutes) || VIRTUAL_TABLE_DEFAULTS.inactivityMinutes) * 60_000),
+      ...(count === 0 ? { status: "released", releasedAt: now } : {}),
+    });
+    tx.create(`deliveryEvents/${randomId()}`, {
+      tableId, orderId, type: `delivery_${status}`, actorUid: claims.sub, createdAt: now,
+    });
+  });
+  return { orderId, status };
+}
+
+export async function closeVirtualTable({ tableId, claims, env, db: injectedDb }) {
+  requireAdmin(claims);
+  if (!/^[A-Za-z0-9_-]{1,120}$/.test(tableId || "")) {
+    throw new ApiError(400, "invalid-argument", "Identificador de mesa inválido.");
+  }
+  const db = injectedDb || createSandwichiesDb(env);
+  await db.runTransaction(async (tx) => {
+    const tablePath = `virtualTables/${tableId}`;
+    const table = await tx.get(tablePath);
+    if (!table.exists) throw new ApiError(404, "not-found", "La mesa no existe.");
+    if (table.data.status !== "open") return;
+    const now = nowDate();
+    const nextStatus = Number(table.data.activeOrderCount || 0) > 0 ? "closing" : "released";
+    tx.update(tablePath, {
+      status: nextStatus,
+      closedAt: now,
+      ...(nextStatus === "released" ? { releasedAt: now } : {}),
+    });
+    tx.create(`deliveryEvents/${randomId()}`, {
+      tableId, type: "table_closed", actorUid: claims.sub, createdAt: now,
+    });
+  });
+  return { tableId };
+}
+
+export async function expireVirtualTables(env) {
+  const db = createSandwichiesDb(env);
+  const candidates = [];
+  for (const status of ["open", "closing"]) {
+    const found = await db.query("virtualTables", { field: "status", op: "EQUAL", value: status, limit: 200 });
+    candidates.push(...found);
+  }
+  const now = nowDate();
+  let expired = 0;
+  for (const candidate of candidates) {
+    if (!(candidate.data.expiresAt instanceof Date) || candidate.data.expiresAt.getTime() > now.getTime()) continue;
+    const tableId = candidate.path.split("/").at(-1);
+    await db.runTransaction(async (tx) => {
+      const tablePath = `virtualTables/${tableId}`;
+      const table = await tx.get(tablePath);
+      if (!table.exists || !["open", "closing"].includes(table.data.status)
+        || !(table.data.expiresAt instanceof Date) || table.data.expiresAt.getTime() > Date.now()) return;
+      const memberDocs = await tx.query(`${tablePath}/members`, {
+        field: "deliveryStatus",
+        op: "IN",
+        value: ["waiting_customer", "customer_ready", "en_route", "arrived"],
+        limit: 9,
+      });
+      const trackingDocs = [];
+      for (const member of memberDocs) {
+        const uid = member.data.customerUid;
+        if (uid) {
+          const orderId = member.path.split("/").at(-1);
+          const trackingPath = `customerOrderTracking/${uid}/orders/${orderId}`;
+          trackingDocs.push({ path: trackingPath, snapshot: await tx.get(trackingPath) });
+        }
+      }
+      const nextStatus = Number(table.data.activeOrderCount || 0) === 0 ? "released" : "expired";
+      tx.update(tablePath, {
+        status: nextStatus,
+        expiredAt: now,
+        ...(nextStatus === "released" ? { releasedAt: now } : {}),
+      });
+      for (const item of trackingDocs) {
+        if (item.snapshot.exists) tx.set(item.path, { tableStatus: nextStatus, updatedAt: now });
+      }
+      tx.create(`deliveryEvents/${randomId()}`, {
+        tableId, type: "table_expired", createdAt: now,
+      });
+      expired += 1;
+    });
+  }
+  return { expired };
 }
