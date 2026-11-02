@@ -193,7 +193,7 @@ test("meeting-point orders are grouped into a virtual table using the fixed anch
       name: "Centro",
       active: true,
       polygon,
-      capacity: 9,
+      capacity: 8,
       groupingRadiusMeters: 50,
       inactivityMinutes: 60,
     },
