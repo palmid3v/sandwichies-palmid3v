@@ -118,13 +118,13 @@ async function route(request, env) {
   if (request.method === "GET" && path === "/v1/session") {
     const auth = await authenticate(request, env);
     if (auth.error) return auth.error;
-    return json({ uid: auth.claims.sub, authenticated: true, admin: auth.claims.admin === true });
+    return json({ uid: auth.claims.sub, authenticated: true, admin: auth.claims.admin === true && auth.claims.email_verified === true });
   }
 
   if (request.method === "GET" && path === "/v1/admin/session") {
     const auth = await authenticate(request, env);
     if (auth.error) return auth.error;
-    if (auth.claims.admin !== true) return json({ error: "permission-denied" }, 403);
+    if (auth.claims.admin !== true || auth.claims.email_verified !== true) return json({ error: "permission-denied" }, 403);
     return json({ uid: auth.claims.sub, admin: true });
   }
 
