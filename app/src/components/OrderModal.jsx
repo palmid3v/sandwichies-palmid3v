@@ -96,7 +96,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
           next.inventory = {
             ...current.inventory,
             ...(transitionResult?.cupboardConsumptionStatus
-              ? { cupboardConsumptionStatus: transitionResult.data.cupboardConsumptionStatus }
+              ? { cupboardConsumptionStatus: transitionResult.cupboardConsumptionStatus }
               : {}),
           };
         }
