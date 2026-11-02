@@ -117,7 +117,7 @@ test("cancellation reverses a posted consumption exactly once", async () => {
   const db = new MemoryFirestore({ [inventoryPath]: { portions: 6, unit: "unidad", sandwichiesInventoryRevision: 3 } });
   await db.runTransaction(async (tx) => tx.create(
     `households/household-a/workspaces/sandwichies/movements/${baseMovement}-consume`,
-    { orderId: "order-1", productId: "product-pepperoni", ingredientId: "pepperoni", type: "consumption", quantityDelta: -4, unit: "unidad" },
+    { orderId: "order-1", productId: "N-2000007", ingredientId: "pepperoni", type: "consumption", quantityDelta: -4, unit: "unidad" },
   ));
   const first = await applyCupboardOrderMovement({
     db, config, orderId: "order-1", orderNumber: 1, lines: [line], operation: "reverse",
@@ -136,7 +136,7 @@ test("partial historical consumption refuses a partial reversal", async () => {
     [inventoryPath]: { portions: 6, unit: "unidad" },
     "households/household-a/workspaces/sandwichies/inventory/product-chorizo": { portions: 5, unit: "unidad" },
     [`households/household-a/workspaces/sandwichies/movements/${baseMovement}-consume`]: {
-      orderId: "order-1", productId: "product-pepperoni", ingredientId: "pepperoni", type: "consumption", quantityDelta: -4, unit: "unidad",
+      orderId: "order-1", productId: "N-2000007", ingredientId: "pepperoni", type: "consumption", quantityDelta: -4, unit: "unidad",
     },
   });
   const twoLines = [
