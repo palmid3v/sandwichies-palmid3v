@@ -17,14 +17,6 @@ const serviceAccount = JSON.stringify({
   client_email: "worker-test@sandwich-pro.iam.gserviceaccount.com",
   private_key: privateKey,
 });
-const encodeFields = (data) => Object.fromEntries(Object.entries(data).map(([key, value]) => {
-  if (typeof value === "string") return [key, { stringValue: value }];
-  if (typeof value === "number") return [key, { integerValue: String(value) }];
-  if (value instanceof Date) return [key, { timestampValue: value.toISOString() }];
-  if (typeof value === "boolean") return [key, { booleanValue: value }];
-  return [key, { nullValue: null }];
-}));
-
 test("Firestore REST transaction authenticates with a signed service-account assertion", async () => {
   clearGoogleTokenCacheForTests();
   const calls = [];
