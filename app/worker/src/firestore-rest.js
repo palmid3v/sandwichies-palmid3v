@@ -212,7 +212,7 @@ export class FirestoreRest {
         items = Array.isArray(parsed) ? parsed : [parsed];
       } catch {
         try {
-          items = raw.trim().split(/\\r?\\n/).filter(Boolean).map((line) => JSON.parse(line));
+          items = raw.trim().split(String.fromCharCode(10)).filter(Boolean).map((line) => JSON.parse(line.replaceAll(String.fromCharCode(13), "")));
         } catch {
           throw new Error("FIRESTORE_BATCH_GET_RESPONSE_INVALID");
         }
