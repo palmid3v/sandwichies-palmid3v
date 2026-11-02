@@ -149,12 +149,12 @@ export default function VirtualTables({ orders = [] }) {
     if (polygon.length < 3) { setError("Marca al menos tres vértices en el mapa."); return; }
     const saved = await invoke("saveDeliveryZone", { ...zoneForm, polygon }, zoneForm.zoneId ? "Zona actualizada." : "Zona creada.");
     if (!saved) return;
-    setZoneForm({ zoneId: "", name: "", active: true, capacity: 9, groupingRadiusMeters: 50, inactivityMinutes: 60 });
+    setZoneForm({ zoneId: "", name: "", active: true, capacity: VIRTUAL_TABLE_DEFAULTS.capacity, groupingRadiusMeters: 50, inactivityMinutes: 60 });
     setPolygon([]); setDrawing(false);
   };
 
   const clearZoneForm = () => {
-    setZoneForm({ zoneId: "", name: "", active: true, capacity: 9, groupingRadiusMeters: 50, inactivityMinutes: 60 });
+    setZoneForm({ zoneId: "", name: "", active: true, capacity: VIRTUAL_TABLE_DEFAULTS.capacity, groupingRadiusMeters: VIRTUAL_TABLE_DEFAULTS.groupingRadiusMeters, inactivityMinutes: VIRTUAL_TABLE_DEFAULTS.inactivityMinutes });
     setPolygon([]); setDrawing(false); setError("");
   };
 
@@ -227,7 +227,7 @@ export default function VirtualTables({ orders = [] }) {
           <form className="zone-editor-form" onSubmit={saveZone}>
             <label>Nombre de zona<input value={zoneForm.name} onChange={(event) => setZoneForm((current) => ({ ...current, name: event.target.value }))} minLength={2} maxLength={80} required /></label>
             <div className="zone-config-grid">
-              <label>Máx. pedidos<input type="number" min="1" max="9" value={zoneForm.capacity} onChange={(event) => setZoneForm((current) => ({ ...current, capacity: Number(event.target.value) }))} /></label>
+              <label>Máx. pedidos<input type="number" min="1" max={VIRTUAL_TABLE_DEFAULTS.capacity} value={zoneForm.capacity} onChange={(event) => setZoneForm((current) => ({ ...current, capacity: Number(event.target.value) }))} /></label>
               <label>Radio mesa (m)<input type="number" min="1" max="50" value={zoneForm.groupingRadiusMeters} onChange={(event) => setZoneForm((current) => ({ ...current, groupingRadiusMeters: Number(event.target.value) }))} /></label>
               <label>Inactividad (min)<input type="number" min="5" max="1440" value={zoneForm.inactivityMinutes} onChange={(event) => setZoneForm((current) => ({ ...current, inactivityMinutes: Number(event.target.value) }))} /></label>
             </div>
