@@ -33,6 +33,7 @@ export function readCupboardConfig(env) {
   const missing = required.filter((id) => typeof mapping[id] !== "string" || !mapping[id].trim() || mapping[id].includes("/"));
   const productIds = required.map((id) => mapping[id]).filter((id) => typeof id === "string" && id.trim());
   const duplicates = [...new Set(productIds.filter((id, index) => productIds.indexOf(id) !== index))];
+  const invalidIds = required.filter((id) => !/^N-[0-9]{7}$/.test(mapping[id] || ""));
 
   if (!env.CUPBOARD_PROJECT_ID || !env.CUPBOARD_HOUSEHOLD_ID) {
     throw new CupboardWorkerError("CUPBOARD_NOT_CONFIGURED", "Falta configurar el proyecto o el hogar de Cupboard.");
@@ -63,6 +64,9 @@ export function readCupboardConfig(env) {
   }
   if (duplicates.length) {
     throw new CupboardWorkerError("CUPBOARD_MAPPING_DUPLICATE", "Un producto de Cupboard no puede representar varios ingredientes.");
+  }
+  if (invalidIds.length) {
+    throw new CupboardWorkerError("CUPBOARD_MAPPING_INVALID_ID", "Los ingredientes de Sandwichies deben apuntar a IDs N- de siete dígitos.");
   }
   return { projectId: env.CUPBOARD_PROJECT_ID, householdId: env.CUPBOARD_HOUSEHOLD_ID, mapping };
 }
