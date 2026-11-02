@@ -10,7 +10,9 @@ const runtimeProjectId = String(
 ).trim();
 const rawMapping = String(process.env.CUPBOARD_INGREDIENT_MAP_JSON || "").trim();
 const errors = [];
-let mapping = {};
+let mapping = Object.fromEntries(CATALOG.ingredients
+  .filter((ingredient) => ingredient.active !== false && ingredient.cupboardProductId)
+  .map((ingredient) => [ingredient.id, ingredient.cupboardProductId]));
 
 if (!projectId) errors.push("Falta CUPBOARD_PROJECT_ID.");
 if (!householdId || householdId.includes("/")) {
@@ -20,14 +22,13 @@ if (runtimeProjectId && projectId && runtimeProjectId === projectId) {
   errors.push("CUPBOARD_PROJECT_ID debe ser distinto del proyecto de Sandwichies/Functions.");
 }
 
-if (!rawMapping) {
-  errors.push("Falta CUPBOARD_INGREDIENT_MAP_JSON.");
-} else {
+if (rawMapping) {
   try {
-    mapping = JSON.parse(rawMapping);
-    if (!mapping || typeof mapping !== "object" || Array.isArray(mapping)) {
+    const overrides = JSON.parse(rawMapping);
+    if (!overrides || typeof overrides !== "object" || Array.isArray(overrides)) {
       errors.push("CUPBOARD_INGREDIENT_MAP_JSON debe ser un objeto JSON { ingredienteId: productoId }.");
-      mapping = {};
+    } else {
+      mapping = { ...mapping, ...overrides };
     }
   } catch {
     errors.push("CUPBOARD_INGREDIENT_MAP_JSON no contiene JSON válido.");
