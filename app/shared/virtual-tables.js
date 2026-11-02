@@ -111,7 +111,8 @@ export const getVirtualTableExpiry = (activityTime, inactivityMinutes = VIRTUAL_
 export const isCompatibleVirtualTable = ({ table, point, zoneId, windowId, now = Date.now(), config = VIRTUAL_TABLE_DEFAULTS }) => {
   if (!table || table.status !== "open" || table.zoneId !== zoneId || table.windowId !== windowId) return false;
   if (table.activeOrderCount >= Math.min(config.capacity, VIRTUAL_TABLE_DEFAULTS.capacity)) return false;
-  const expiresAt = table.expiresAt?.toMillis?.() ?? table.expiresAt;
+  const expiresAt = table.expiresAt?.toMillis?.()
+    ?? (table.expiresAt instanceof Date ? table.expiresAt.getTime() : table.expiresAt);
   if (Number.isFinite(expiresAt) && expiresAt <= now) return false;
   const meters = distanceInMeters(table.center, point);
   return meters !== null && meters <= Math.min(config.groupingRadiusMeters, VIRTUAL_TABLE_DEFAULTS.groupingRadiusMeters);
