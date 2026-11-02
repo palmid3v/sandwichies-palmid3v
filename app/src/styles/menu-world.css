@@ -1397,3 +1397,110 @@ body {
 .phone-verification--disabled p { color: #65553b; }
 .phone-verification-success { color: #315b3e; font-weight: 800; }
 .phone-verification-feedback { color: var(--menu-muted); }
+
+
+/* Customer meeting-point map: these styles must live in a stylesheet loaded by OrderPage. */
+.checkout-details .meeting-point-fields {
+  margin-top: 14px;
+  padding: 15px;
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--menu-line);
+  border-radius: 14px;
+  color: var(--menu-ink);
+  background: var(--menu-paper-light);
+}
+.checkout-details .meeting-point-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.checkout-details .meeting-point-heading > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.checkout-details .meeting-point-heading small,
+.checkout-details .meeting-point-map-wrap > small,
+.checkout-details .meeting-point-fields > small {
+  color: var(--menu-muted, #756b60);
+  font-size: .76rem;
+  line-height: 1.45;
+}
+.checkout-details .meeting-point-heading button,
+.checkout-details .meeting-point-validate {
+  min-height: 46px;
+  padding: 9px 13px;
+  border: 1px solid var(--menu-line);
+  border-radius: 10px;
+  color: var(--menu-ink);
+  background: var(--menu-paper);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+.checkout-details .meeting-point-map-wrap {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+.checkout-details .meeting-point-map,
+.checkout-details .meeting-point-map.leaflet-container {
+  display: block;
+  width: 100%;
+  height: clamp(260px, 52vh, 340px);
+  min-height: 260px;
+  overflow: hidden;
+  border-radius: 13px;
+  background: #e8e2d7;
+  z-index: 0;
+}
+.checkout-details .meeting-point-map-loading {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: var(--menu-ink);
+  background: var(--menu-paper);
+}
+.checkout-details .meeting-point-validate {
+  color: #fff8ec;
+  border-color: var(--menu-tomato);
+  background: var(--menu-tomato);
+}
+.checkout-details .meeting-point-validate:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.checkout-details .meeting-point-status {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: .83rem;
+}
+.checkout-details .meeting-point-status.covered {
+  color: #17633f;
+  background: #e3f3e8;
+}
+.checkout-details .meeting-point-status.uncovered {
+  color: #873c2d;
+  background: #fae8df;
+}
+@media (max-width: 600px) {
+  .checkout-details .meeting-point-fields {
+    padding: 12px;
+  }
+  .checkout-details .meeting-point-heading {
+    align-items: stretch;
+  }
+  .checkout-details .meeting-point-heading button {
+    width: 100%;
+  }
+  .checkout-details .meeting-point-map,
+  .checkout-details .meeting-point-map.leaflet-container {
+    height: 290px;
+    min-height: 290px;
+  }
+}
