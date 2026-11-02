@@ -1,4 +1,5 @@
 import { hasVerifiedEmail, readBearerToken, verifyFirebaseIdToken } from "./firebase-auth.js";
+import { readCupboardInventory } from "./cupboard-diagnostics.js";
 import {
   ApiError,
   checkDeliveryCoverage,
@@ -124,6 +125,21 @@ async function route(request, env) {
     const auth = await authenticate(request, env);
     if (auth.error) return auth.error;
     return json({ uid: auth.claims.sub, authenticated: true, admin: auth.claims.admin === true && auth.claims.email_verified === true });
+  }
+
+  if (request.method === "GET" && path === "/v1/admin/cupboard/inventory") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    if (auth.claims.admin !== true) return json({ error: "permission-denied" }, 403);
+    try {
+      return json(await readCupboardInventory({ env }));
+    } catch (error) {
+      console.error("Cupboard inventory diagnostic failed", error);
+      return json({
+        error: error.code || "CUPBOARD_READ_FAILED",
+        message: "No fue posible consultar el inventario comercial de Cupboard.",
+      }, 503);
+    }
   }
 
   if (request.method === "GET" && path === "/v1/admin/session") {
