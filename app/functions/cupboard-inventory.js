@@ -50,6 +50,7 @@ const mappedProductIds = requiredIngredientIds.map((id) => ingredientMap[id]).fi
 const duplicateProductIds = [...new Set(
   mappedProductIds.filter((id, index) => mappedProductIds.indexOf(id) !== index),
 )];
+const invalidProductIds = requiredIngredientIds.filter((id) => !/^N-[0-9]{7}$/.test(ingredientMap[id] || ""));
 
 export const CUPBOARD_INVENTORY_CONFIGURED = Boolean(
   projectId &&
@@ -57,6 +58,7 @@ export const CUPBOARD_INVENTORY_CONFIGURED = Boolean(
   Object.keys(ingredientMap).length > 0 &&
   missingMappingIds.length === 0 &&
   duplicateProductIds.length === 0 &&
+  invalidProductIds.length === 0 &&
   !mappingError &&
   (!runtimeProjectId || runtimeProjectId !== projectId),
 );
@@ -69,7 +71,9 @@ export const CUPBOARD_INVENTORY_CONFIG_ERROR = mappingError
       ? "CUPBOARD_MAPPING_MISSING"
       : duplicateProductIds.length > 0
         ? "CUPBOARD_MAPPING_DUPLICATE"
-        : runtimeProjectId === projectId
+        : invalidProductIds.length > 0
+          ? "CUPBOARD_MAPPING_INVALID_ID"
+          : runtimeProjectId === projectId
       ? "CUPBOARD_PROJECT_MUST_DIFFER"
       : null;
 
