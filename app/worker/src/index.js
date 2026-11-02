@@ -9,7 +9,8 @@ import {
   markCustomerReady,
   updateVirtualDelivery,
   closeVirtualTable,
-  expireVirtualTables,\n  recordManualInventory,
+  expireVirtualTables,
+  recordManualInventory,
 } from "./orders.js";
 
 const ALLOWED_METHODS = new Set(["GET", "POST", "OPTIONS"]);
