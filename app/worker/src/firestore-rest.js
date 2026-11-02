@@ -177,13 +177,17 @@ export class FirestoreRest {
     return result.transaction;
   }
 
-  async read(path, transaction) {
+    async read(path, transaction) {
+    if (transaction) {
+      const [result] = await this.readMany([path], transaction);
+      return result;
+    }
+
     const name = this.documentName(path);
-    const url = transaction
-      ? name + "?transaction=" + encodeURIComponent(transaction)
-      : name;
+
     try {
-      const document = await this.request(url);
+      const document = await this.request(name);
+
       return {
         exists: true,
         data: decodeFields(document.fields),
@@ -194,6 +198,7 @@ export class FirestoreRest {
       if (error instanceof FirestoreRestError && error.status === 404) {
         return { exists: false, data: null, updateTime: null };
       }
+
       throw error;
     }
   }
@@ -273,7 +278,8 @@ export class FirestoreRest {
 
   async commit(transaction, operations) {
     const writes = operations.map((operation) => {
-      const name = this.documentName(operation.path);
+      const name = this.documentName(operation.path)
+            .replace(/^https?:\/\/[^/]+\/v1\//, "");
       if (operation.type === "delete") {
         return { delete: name, currentDocument: { exists: true } };
       }
