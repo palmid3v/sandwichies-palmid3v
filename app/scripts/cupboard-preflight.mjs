@@ -54,6 +54,9 @@ const mappedProductIds = requiredIngredients
 const duplicateProductIds = [...new Set(
   mappedProductIds.filter((productId, index) => mappedProductIds.indexOf(productId) !== index),
 )];
+const invalidProductIds = requiredIngredients
+  .filter((ingredient) => !/^N-[0-9]{7}$/.test(mapping[ingredient.id] || ""))
+  .map((ingredient) => ingredient.id);
 
 if (missing.length) {
   errors.push("Faltan " + missing.length + " ingredientes por mapear: " + missing.map((item) => item.id).join(", ") + ".");
@@ -64,12 +67,16 @@ if (invalid.length) {
 if (duplicateProductIds.length) {
   errors.push("Hay productos de Cupboard asignados a más de un ingrediente: " + duplicateProductIds.join(", ") + ".");
 }
+if (invalidProductIds.length) {
+  errors.push("Los ingredientes deben apuntar a IDs N- de siete dígitos: " + invalidProductIds.join(", ") + ".");
+}
 
 console.log("Sandwichies ↔ Cupboard — preflight de configuración");
 console.log("Proyecto Cupboard: " + (projectId || "(sin configurar)"));
 console.log("Hogar Cupboard: " + (householdId || "(sin configurar)"));
 console.log("Ingredientes activos: " + requiredIngredients.length);
-console.log("Asociaciones válidas detectadas: " + (requiredIngredients.length - missing.length));
+console.log("Asociaciones válidas detectadas: " + (requiredIngredients.length - missing.length - invalidProductIds.length));
+console.log("Mapeo integrado en código: " + (rawMapping ? "con overrides de entorno" : "sí"));
 console.log("Este chequeo no conecta con Firebase ni despliega servicios.");
 
 if (errors.length) {
