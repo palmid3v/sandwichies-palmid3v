@@ -13,6 +13,10 @@ const auth = getAuth();
 
 try {
   const user = await auth.getUserByEmail(adminEmail);
+  if (!revoke && user.emailVerified !== true) {
+    throw new Error("The account email must be verified before assigning the admin claim.");
+  }
+
   const nextClaims = { ...(user.customClaims || {}) };
 
   if (revoke) {
