@@ -40,7 +40,7 @@ export class ApiError extends Error {
   }
 }
 
-export export function createSandwichiesDb(env) {
+export function createSandwichiesDb(env) {
   const emulatorHost = String(env.FIRESTORE_EMULATOR_HOST || "").trim();
   if (emulatorHost) {
     if (env.LOCAL_DEV !== "true") {
