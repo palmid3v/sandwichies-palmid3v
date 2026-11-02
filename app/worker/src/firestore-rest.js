@@ -52,7 +52,7 @@ export async function getGoogleAccessToken(serviceAccountJson, { fetchImpl = fet
   } catch {
     throw new Error("SERVICE_ACCOUNT_JSON_INVALID");
   }
-  if (!account?.client_email || !account?.private_key) {
+  if (account?.type !== "service_account" || !account?.client_email || !account?.private_key) {
     throw new Error("SERVICE_ACCOUNT_JSON_INVALID");
   }
 
