@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
-import { getFunctions, httpsCallable } from "firebase/functions";
 import { CircleMarker, MapContainer, Polygon, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { VIRTUAL_TABLE_DEFAULTS } from "../../shared/virtual-tables.js";
-import { db } from "../firebase";
+import { auth, db } from "../firebase";
+import { workerRequest } from "../api/worker";
 
 const BOGOTA = [4.65, -74.08];
 const formatTime = (value) => value?.toDate?.().toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" }) || "—";
@@ -68,7 +68,27 @@ export default function VirtualTables({ orders = [] }) {
   const invoke = async (name, data, successMessage) => {
     setBusy(true); setError(""); setNotice("");
     try {
-      await httpsCallable(getFunctions(), name)(data);
+      const actions = {
+        saveDeliveryZone: {
+          path: "/v1/admin/delivery-zones",
+          body: data,
+        },
+        updateVirtualDelivery: {
+          path: `/v1/admin/orders/${encodeURIComponent(data.orderId)}/delivery`,
+          body: { status: data.status },
+        },
+        closeVirtualTable: {
+          path: `/v1/admin/virtual-tables/${encodeURIComponent(data.tableId)}/close`,
+          body: {},
+        },
+      };
+      const action = actions[name];
+      if (!action) throw new Error("Acción administrativa no soportada.");
+      await workerRequest(action.path, {
+        auth,
+        method: "POST",
+        body: action.body,
+      });
       setNotice(successMessage);
     } catch (reason) {
       setError(reason.message || "No se pudo completar la acción.");
