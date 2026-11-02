@@ -93,8 +93,7 @@ export default function VirtualTables({ orders = [] }) {
   const focusPoints = useMemo(() => [
     ...tables.filter((table) => table.center).map((table) => [table.center.latitude, table.center.longitude]),
     ...zones.flatMap((zone) => (zone.polygon || []).map((point) => [point.latitude, point.longitude])),
-    ...polygon.map((point) => [point.latitude, point.longitude]),
-  ], [tables, zones, polygon]);
+  ], [tables, zones]);
 
   const invoke = async (name, data, successMessage) => {
     setBusy(true); setError(""); setNotice("");
