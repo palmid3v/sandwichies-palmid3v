@@ -225,12 +225,12 @@ test("cancelling a meeting-point order releases its virtual table membership", a
   const sandwichiesDb = new MemoryFirestore({
     [orderPath]: cancelledOrder,
     "virtualTables/table-cancel": { status: "open", activeOrderCount: 1, inactivityMinutes: 60 },
-    "virtualTables/table-cancel/members/" + orderId: {
+    ["virtualTables/table-cancel/members/" + orderId]: {
       orderId,
       customerUid: "customer-uid",
       deliveryStatus: "waiting_customer",
     },
-    "customerOrderTracking/customer-uid/orders/" + orderId: {
+    ["customerOrderTracking/customer-uid/orders/" + orderId]: {
       orderId,
       deliveryStatus: "waiting_customer",
       tableStatus: "open",
