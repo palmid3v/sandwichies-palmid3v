@@ -4,7 +4,7 @@
 
 Sandwichies evoluciona desde su experiencia web hacia un producto **mobile-first** para clientes y una consola operativa completa para administración. La web ofrece una primera implementación local de puntos de encuentro y mesas virtuales; su validación operativa y eventual release siguen pendientes.
 
-> **Estado actual (31 de octubre de 2026):** desarrollo activo · mesas virtuales con implementación base en el código · integración Cupboard y release pendientes · backend Functions sin despliegue en Firebase. El commit `270303d` de `main` deja `BUSINESS.acceptingOrders = true`, en conflicto con el gate de release documentado; no se ha verificado ni autorizado producción.
+> **Estado actual (2 de noviembre de 2026):** desarrollo activo · integración de identidad y movimientos Cupboard implementada en código · configuración real, migración de datos, pruebas cruzadas y despliegue pendientes. Cloud Functions no está desplegado; el Worker tiene ruta local de validación. Los pedidos permanecen deshabilitados (`BUSINESS.acceptingOrders = false` y `ORDERS_ENABLED = false`). No hay autorización de release ni de despliegue productivo.
 
 ---
 
@@ -154,9 +154,9 @@ La estrategia es evolucionar por etapas, reutilizando el dominio y los servicios
 
 ## 🔒 Seguridad y límite de release
 
-- El commit `270303d` de `main` establece `BUSINESS.acceptingOrders = true`, a petición previa del propietario. Esto contradice el gate de release; no es autorización de despliegue ni prueba del estado de producción. Resolverlo antes de publicar una versión que habilite pedidos.
+- El gate de pedidos permanece cerrado tanto en el dominio compartido como en Wrangler (`acceptingOrders = false`, `ORDERS_ENABLED = false`).
 - No se deben recibir pedidos reales ni habilitar checkout en producción.
-- El estado en `main` de `acceptingOrders` contradice esta regla: `true` en `270303d`. No se ha verificado la producción; detener una publicación que habilite pedidos hasta resolver el gate.
+- Mantener `acceptingOrders = false` y `ORDERS_ENABLED = false` hasta validar Cupboard en ambos proyectos, cerrar pruebas cruzadas y aprobar explícitamente el release.
 - No desplegar Functions o Firestore Rules, activar facturación ni modificar credenciales sin autorización explícita.
 - No cambiar proveedores, métodos, comisiones o políticas de pago como parte de tareas de UX.
 - No introducir Tap to Pay.
