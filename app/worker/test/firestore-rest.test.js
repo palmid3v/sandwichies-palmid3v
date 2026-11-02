@@ -144,14 +144,22 @@ test("Firestore batchGet maps newline-delimited found and missing results in req
     projectId: "sandwich-pro",
     emulatorHost: "127.0.0.1:8080",
     fetchImpl: async (url, init = {}) => {
-      calls.push({ url: String(url), init });
-      return new Response([
-        JSON.stringify({ found: {
-          name: "projects/sandwich-pro/databases/(default)/documents/items/existing",
-          fields: { portions: { integerValue: "8" } },
-        } }),
-        JSON.stringify({ missing: "projects/sandwich-pro/databases/(default)/documents/items/missing" }),
-      ].join(String.fromCharCode(10)));
+      const target = String(url);
+      calls.push({ url: target, init });
+      if (target.endsWith(":beginTransaction")) {
+        return new Response(JSON.stringify({ transaction: "local-batch-transaction" }));
+      }
+      if (target.endsWith(":rollback")) return new Response("{}");
+      if (target.endsWith(":batchGet")) {
+        return new Response([
+          JSON.stringify({ found: {
+            name: "projects/sandwich-pro/databases/(default)/documents/items/existing",
+            fields: { portions: { integerValue: "8" } },
+          } }),
+          JSON.stringify({ missing: "projects/sandwich-pro/databases/(default)/documents/items/missing" }),
+        ].join(String.fromCharCode(10)));
+      }
+      throw new Error("Unexpected URL: " + target);
     },
   });
   const snapshots = await db.runTransaction((tx) => tx.getMany(["items/missing", "items/existing"]));
