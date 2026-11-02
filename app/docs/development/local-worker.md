@@ -50,10 +50,14 @@ La respuesta debe indicar `status = ok` y `ordersEnabled = false`.
 
 ### 3. Terminal — frontend
 
-Copiar el archivo de entorno local:
+Crear el archivo solo si todavía no existe. Si ya tienes un `.env.local`, conserva sus otras variables y agrega o actualiza únicamente la URL del Worker:
 
 ```powershell
-Copy-Item .env.local.example .env.local
+if (!(Test-Path .env.local)) {
+  Copy-Item .env.local.example .env.local
+}
+# En .env.local debe quedar:
+# VITE_SANDWICHIES_WORKER_URL=http://127.0.0.1:8787
 npm run dev -- --host 127.0.0.1 --port 5182
 ```
 
