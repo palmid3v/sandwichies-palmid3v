@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { CircleMarker, MapContainer, Polygon, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import MapSizeInvalidator from "./MapSizeInvalidator";
 import { VIRTUAL_TABLE_DEFAULTS } from "../../shared/virtual-tables.js";
 import { auth } from "../firebase";
 import { workerRequest } from "../api/worker";
 
-const BOGOTA = [4.65, -74.08];
+const MEDELLIN = [6.2442, -75.5812];
 const dateValue = (value) => value?.toDate?.() || (value ? new Date(value) : null);
 const timestampMillis = (value) => {
   const date = dateValue(value);
@@ -171,7 +172,8 @@ export default function VirtualTables({ orders = [] }) {
     {notice && <div className="delivery-notice" role="status">{notice}</div>}
     <div className={`virtual-operations-layout ${showMap ? "map-visible" : ""}`}>
       <div className="virtual-operations-map" aria-label="Mapa de operación">
-        <MapContainer center={BOGOTA} zoom={12} scrollWheelZoom className="virtual-map-canvas">
+        <MapContainer center={MEDELLIN} zoom={12} scrollWheelZoom className="virtual-map-canvas">
+          <MapSizeInvalidator />
           <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <MapActions drawing={drawing} onAddVertex={(point) => setPolygon((current) => [...current, point])} />
           {zones.map((zone) => <Polygon key={zone.id} positions={(zone.polygon || []).map((point) => [point.latitude, point.longitude])} pathOptions={{ color: zone.active ? "#21a366" : "#7a7d73", fillOpacity: zone.active ? 0.1 : 0.035, dashArray: zone.active ? undefined : "6 6" }} eventHandlers={{ click: () => tab === "zonas" && editZone(zone) }}><Tooltip>{zone.name} · {zone.active ? "Activa" : "Inactiva"}</Tooltip></Polygon>)}
