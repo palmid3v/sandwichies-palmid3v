@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { getFunctions, httpsCallable } from "firebase/functions";
-import { db } from "../firebase";
+import { auth, db } from "../firebase";
+import { workerRequest } from "../api/worker";
 import {
   canTransitionOrderStatus,
   canTransitionPaymentStatus,
@@ -73,14 +73,14 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
     try {
       let transitionResult = null;
       if (updates.status) {
-        const transitionOrderStatus = httpsCallable(
-          getFunctions(),
-          "transitionOrderStatus",
+        transitionResult = await workerRequest(
+          `/v1/admin/orders/${encodeURIComponent(selectedOrder.id)}/status`,
+          {
+            auth,
+            method: "POST",
+            body: { status: updates.status },
+          },
         );
-        transitionResult = await transitionOrderStatus({
-          orderId: selectedOrder.id,
-          status: updates.status,
-        });
       } else {
         await updateDoc(doc(db, "orders", selectedOrder.id), {
           ...updates,
@@ -95,7 +95,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
           next.status = updates.status;
           next.inventory = {
             ...current.inventory,
-            ...(transitionResult?.data?.cupboardConsumptionStatus
+            ...(transitionResult?.cupboardConsumptionStatus
               ? { cupboardConsumptionStatus: transitionResult.data.cupboardConsumptionStatus }
               : {}),
           };
