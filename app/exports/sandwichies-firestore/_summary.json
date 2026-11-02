@@ -1,0 +1,18 @@
+{
+  "projectId": "sandwich-pro",
+  "exportedAt": "2026-11-02T21:42:22.116Z",
+  "collections": [
+    {
+      "collection": "inventoryBalances",
+      "documents": 0
+    },
+    {
+      "collection": "inventoryTransactions",
+      "documents": 0
+    },
+    {
+      "collection": "orders",
+      "documents": 0
+    }
+  ]
+}
