@@ -28,7 +28,8 @@ test("health responds with CORS headers for an allowed origin", async () => {
   assert.deepEqual(await response.json(), {
     service: "sandwichies-worker",
     status: "ok",
-    stage: "orders-cupboard-backend",\n    ordersEnabled: false,
+    stage: "orders-cupboard-backend",
+    ordersEnabled: false,
   });
 });
 
