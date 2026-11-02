@@ -56,6 +56,12 @@ test("unauthenticated clients cannot access orders, counter, or inventory", asyn
   await assertFails(getDoc(doc(db, "inventoryTransactions", "transaction-1")));
 });
 
+test("users without an email_verified claim cannot read protected data", async () => {
+  const db = env.authenticatedContext("missing-verification-claim").firestore();
+  await assertFails(getDoc(doc(db, "customerOrderTracking/missing-verification-claim/orders/order-1")));
+  await assertFails(getDoc(doc(db, "orders", "order-1")));
+});
+
 test("unverified users cannot read customer tracking or protected data", async () => {
   const db = env.authenticatedContext("unverified-user", { email_verified: false }).firestore();
   await assertFails(getDoc(doc(db, "customerOrderTracking/unverified-user/orders/order-1")));
