@@ -8,7 +8,7 @@ if (existsSync(".env")) process.loadEnvFile(".env");
 const projectId = String(process.env.CUPBOARD_PROJECT_ID || "").trim();
 const householdId = String(process.env.CUPBOARD_HOUSEHOLD_ID || "").trim();
 const applyChanges = process.argv.includes("--apply");
-const idPrefix = "sandwichies-";
+const idPrefix = "N-";
 
 function fail(message) {
   console.error("Cupboard catalog sync:", message);
@@ -28,8 +28,11 @@ async function main() {
   const ingredients = CATALOG.ingredients.filter((ingredient) => ingredient.active !== false);
   const records = ingredients.map((ingredient) => ({
     ingredient,
-    productId: idPrefix + ingredient.id,
+    productId: ingredient.cupboardProductId,
   }));
+  if (records.some((record) => !/^N-[0-9]{7}$/.test(record.productId || ""))) {
+    throw new Error("Cada ingrediente activo debe tener un cupboardProductId N- de siete dígitos en shared/catalog.js.");
+  }
 
   const appName = "cupboard-catalog-sync";
   const app = getApps().find((item) => item.name === appName)
