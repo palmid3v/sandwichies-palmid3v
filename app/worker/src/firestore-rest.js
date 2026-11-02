@@ -170,19 +170,23 @@ export class FirestoreRest {
 
   async read(path, transaction) {
     const name = this.documentName(path);
-    const result = await this.request(this.root + ":batchGet", {
-      method: "POST",
-      body: { documents: [name] },
-      transaction,
-    });
-    const item = Array.isArray(result) ? result[0] : result;
-    if (item?.missing || !item?.found) return { exists: false, data: null, updateTime: null };
-    return {
-      exists: true,
-      data: decodeFields(item.found.fields),
-      updateTime: item.found.updateTime || null,
-      name: item.found.name,
-    };
+    const url = transaction
+      ? name + "?transaction=" + encodeURIComponent(transaction)
+      : name;
+    try {
+      const document = await this.request(url);
+      return {
+        exists: true,
+        data: decodeFields(document.fields),
+        updateTime: document.updateTime || null,
+        name: document.name,
+      };
+    } catch (error) {
+      if (error instanceof FirestoreRestError && error.status === 404) {
+        return { exists: false, data: null, updateTime: null };
+      }
+      throw error;
+    }
   }
 
   async query(collectionPath, { field, op = "EQUAL", value, limit = 100 } = {}, transaction) {
