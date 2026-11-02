@@ -2,11 +2,19 @@
 
 ## Purpose
 
-Sandwichies now treats inventory as a transactional ledger instead of a display-only estimate.
+Sandwichies now treats inventory as a transactional ledger instead of a display-only estimate. Product identity is centralized in Cupboard's shared `productCatalog`; "ingredient" is only the semantic role a product plays in Sandwichies recipes.
+
+## Shared product identity
+
+- All 44 exported Cupboard catalog entries receive one canonical identity.
+- Home products use `HD-#######`; business products used by Sandwichies use `N-#######`.
+- The 11 active recipe ingredients keep their semantic IDs (for example `pepperoni` and `mozzarella`) in Sandwichies and map to the corresponding canonical `N-` product IDs.
+- Barcode is an optional product attribute, never the canonical identity.
+- Cupboard owns the shared product catalog and separate Home/Business stock ledgers. Sandwichies never creates a second product identity or a separate authoritative stock balance.
 
 ## Opening baseline
 
-The catalog field `stockQuantity` is the opening baseline for the legacy local ledger. It is not a transaction history and must not be interpreted as purchase/consumption history. For Cupboard-backed inventory, the real opening stock is the quantity already registered in Cupboard's `Negocio · Sandwichies` workspace.
+The catalog field `stockQuantity` is a legacy recipe-costing baseline, not a physical stock balance or transaction history. For Cupboard-backed inventory, the real opening stock is the quantity registered in Cupboard's `Negocio · Sandwichies` workspace. Products with no exported physical balance are initialized at zero; recipe baselines are never converted into physical stock.
 
 ## Transaction types
 
