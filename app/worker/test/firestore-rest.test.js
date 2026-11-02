@@ -174,3 +174,23 @@ test("Firestore batchGet maps newline-delimited found and missing results in req
     "projects/sandwich-pro/databases/(default)/documents/items/existing",
   ]);
 });
+
+
+test("Firestore REST preserves the global fetch receiver in Worker runtimes", async () => {
+  let receiver;
+  const db = new FirestoreRest({
+    projectId: "sandwich-pro",
+    emulatorHost: "127.0.0.1:8080",
+    fetchImpl: function (url) {
+      receiver = this;
+      return Promise.resolve(new Response(JSON.stringify({
+        name: "projects/sandwich-pro/databases/(default)/documents/deliveryZones/zone-receiver",
+        fields: { name: { stringValue: "Zona receptor" } },
+      })));
+    },
+  });
+  const result = await db.read("deliveryZones/zone-receiver");
+  assert.equal(result.exists, true);
+  assert.equal(receiver, globalThis);
+});
+
