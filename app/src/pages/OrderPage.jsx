@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { onAuthStateChanged, updateProfile } from "firebase/auth";
+import { onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import CustomerAuth from "./CustomerAuth";
@@ -96,6 +96,7 @@ export default function OrderPage() {
         if (user.emailVerified !== true || token.claims.email_verified !== true) {
           setAuthReady(false);
           setAuthError("Verifica tu correo para continuar. Revisa tu bandeja de entrada.");
+          await signOut(auth);
           return;
         }
         setClientName(user.displayName || "");
