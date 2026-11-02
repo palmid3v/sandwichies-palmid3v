@@ -1,4 +1,4 @@
-import { readBearerToken, verifyFirebaseIdToken } from "./firebase-auth.js";
+import { hasVerifiedEmail, readBearerToken, verifyFirebaseIdToken } from "./firebase-auth.js";
 import {
   ApiError,
   checkDeliveryCoverage,
@@ -83,7 +83,7 @@ async function authenticate(request, env) {
   if (!token) return { error: json({ error: "unauthenticated" }, 401) };
   try {
     const claims = await verifyFirebaseIdToken(token, { projectId: env.FIREBASE_PROJECT_ID });
-    if (claims.email_verified !== true) {
+    if (!hasVerifiedEmail(claims)) {
       return { error: json({ error: "email-not-verified" }, 403) };
     }
     return { claims };
