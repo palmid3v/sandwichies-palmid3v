@@ -197,6 +197,47 @@ export class FirestoreRest {
     }
   }
 
+  async readMany(paths, transaction) {
+    if (!Array.isArray(paths) || paths.length === 0) return [];
+    // Firestore batchGet expects resource names, not REST URLs.
+    const names = paths.map((path) => this.documentName(path).replace(/^https?:\/\/[^/]+\/v1\//, ""));
+    const token = this.emulatorHost ? "owner" : await getGoogleAccessToken(this.serviceAccountJson, { fetchImpl: this.fetchImpl });
+    const response = await this.fetchImpl(this.root + ":batchGet", {
+      method: "POST",
+      headers: { authorization: "Bearer " + token, "content-type": "application/json" },
+      body: JSON.stringify({ documents: names, ...(transaction ? { transaction } : {}) }),
+    });
+    const raw = await response.text();
+    let items = [];
+    if (raw.trim()) {
+      try {
+        const parsed = JSON.parse(raw);
+        items = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        try {
+          items = raw.trim().split(String.fromCharCode(10)).filter(Boolean)
+            .map((line) => JSON.parse(line.replaceAll(String.fromCharCode(13), "")));
+        } catch {
+          throw new Error("FIRESTORE_BATCH_GET_RESPONSE_INVALID");
+        }
+      }
+    }
+    if (!response.ok) {
+      const error = items[0]?.error || {};
+      throw new FirestoreRestError(response.status, error.status, error.message);
+    }
+    const byName = new Map();
+    for (const item of items) {
+      const document = item.found;
+      const name = document?.name || item.missing;
+      if (!name) continue;
+      byName.set(name, document
+        ? { exists: true, data: decodeFields(document.fields), updateTime: document.updateTime || null, name: document.name }
+        : { exists: false, data: null, updateTime: null });
+    }
+    return names.map((name) => byName.get(name) || { exists: false, data: null, updateTime: null });
+  }
+
   async query(collectionPath, { field, op = "EQUAL", value, limit = 100 } = {}, transaction) {
     const segments = String(collectionPath).split("/").filter(Boolean);
     if (!segments.length || segments.length % 2 !== 1) throw new Error("FIRESTORE_COLLECTION_PATH_INVALID");
@@ -268,6 +309,7 @@ export class FirestoreRest {
       const operations = [];
       const tx = {
         get: (path) => this.read(path, transaction),
+        getMany: (paths) => this.readMany(paths, transaction),
         query: (path, options) => this.query(path, options, transaction),
         create: (path, data) => operations.push({ type: "create", path, data }),
         set: (path, data) => operations.push({ type: "set", path, data }),

@@ -137,3 +137,32 @@ test("Firestore REST local emulator uses loopback and never requests Google OAut
     /FIRESTORE_EMULATOR_MUST_USE_LOOPBACK/,
   );
 });
+
+test("Firestore batchGet maps newline-delimited found and missing results in requested order using emulator auth", async () => {
+  const calls = [];
+  const db = new FirestoreRest({
+    projectId: "sandwich-pro",
+    emulatorHost: "127.0.0.1:8080",
+    fetchImpl: async (url, init = {}) => {
+      calls.push({ url: String(url), init });
+      return new Response([
+        JSON.stringify({ found: {
+          name: "projects/sandwich-pro/databases/(default)/documents/items/existing",
+          fields: { portions: { integerValue: "8" } },
+        } }),
+        JSON.stringify({ missing: "projects/sandwich-pro/databases/(default)/documents/items/missing" }),
+      ].join(String.fromCharCode(10)));
+    },
+  });
+  const snapshots = await db.runTransaction((tx) => tx.getMany(["items/missing", "items/existing"]));
+  assert.equal(snapshots[0].exists, false);
+  assert.equal(snapshots[1].exists, true);
+  assert.equal(snapshots[1].data.portions, 8);
+  const call = calls.find(({ url }) => url.endsWith(":batchGet"));
+  assert.ok(call);
+  assert.equal(call.init.headers.authorization, "Bearer owner");
+  assert.deepEqual(JSON.parse(call.init.body).documents, [
+    "projects/sandwich-pro/databases/(default)/documents/items/missing",
+    "projects/sandwich-pro/databases/(default)/documents/items/existing",
+  ]);
+});

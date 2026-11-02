@@ -152,7 +152,7 @@ async function assignVirtualTable({ tx, orderId, uid, orderNumber, point, zone, 
   const tablePath = `virtualTables/${tableId}`;
   const memberPath = `${tablePath}/members/${orderId}`;
   const trackingPath = `customerOrderTracking/${uid}/orders/${orderId}`;
-  const [member, tracking] = await Promise.all([tx.get(memberPath), tx.get(trackingPath)]);
+  const [member, tracking] = await tx.getMany([memberPath, trackingPath]);
   if (member.exists || tracking.exists) throw new ApiError(409, "ORDER_ALREADY_ASSIGNED", "El pedido ya pertenece a una mesa virtual.");
 
   const table = candidate?.data || {
@@ -323,11 +323,7 @@ async function mirrorCupboardBalance({ db, orderId, orderNumber, lines, operatio
         delta: operation === "consume" ? line.quantityDelta : -line.quantityDelta,
       };
     });
-    const snapshots = [];
-    for (const item of prepared) {
-      snapshots.push(await tx.get(item.movementPath));
-      snapshots.push(await tx.get(item.balancePath));
-    }
+    const snapshots = await tx.getMany(prepared.flatMap((item) => [item.movementPath, item.balancePath]));
     for (let index = 0; index < prepared.length; index += 1) {
       const item = prepared[index];
       const movement = snapshots[index * 2];
@@ -495,11 +491,7 @@ export async function transitionOrder({ orderId, status, claims, env, db: inject
         const tablePath = "virtualTables/" + tableId;
         const memberPath = tablePath + "/members/" + orderId;
         const trackingPath = "customerOrderTracking/" + latest.data.customerUid + "/orders/" + orderId;
-        const [table, member, tracking] = await Promise.all([
-          tx.get(tablePath),
-          tx.get(memberPath),
-          tx.get(trackingPath),
-        ]);
+        const [table, member, tracking] = await tx.getMany([tablePath, memberPath, trackingPath]);
         cancellation = { tablePath, memberPath, trackingPath, table, member, tracking };
       }
 
@@ -693,7 +685,7 @@ export async function markCustomerReady({ orderId, claims, env, db: injectedDb }
     const tablePath = `virtualTables/${tableId}`;
     const memberPath = `${tablePath}/members/${orderId}`;
     const trackingPath = `customerOrderTracking/${claims.sub}/orders/${orderId}`;
-    const [member, table] = await Promise.all([tx.get(memberPath), tx.get(tablePath)]);
+    const [member, table] = await tx.getMany([memberPath, tablePath]);
     if (!member.exists || member.data.customerUid !== claims.sub) {
       throw new ApiError(403, "permission-denied", "No puedes actualizar esta entrega.");
     }
@@ -737,7 +729,7 @@ export async function updateVirtualDelivery({ orderId, status, claims, env, db: 
     const tablePath = `virtualTables/${tableId}`;
     const memberPath = `${tablePath}/members/${orderId}`;
     const trackingPath = `customerOrderTracking/${order.data.customerUid}/orders/${orderId}`;
-    const [member, table] = await Promise.all([tx.get(memberPath), tx.get(tablePath)]);
+    const [member, table] = await tx.getMany([memberPath, tablePath]);
     if (!member.exists || !table.exists || !canTransitionDeliveryStatus(member.data.deliveryStatus, status)) {
       throw new ApiError(409, "INVALID_DELIVERY_TRANSITION", "La transición logística no está permitida.");
     }
@@ -810,15 +802,14 @@ export async function expireVirtualTables(env) {
         value: ["waiting_customer", "customer_ready", "en_route", "arrived"],
         limit: 9,
       });
-      const trackingDocs = [];
-      for (const member of memberDocs) {
-        const uid = member.data.customerUid;
-        if (uid) {
-          const orderId = member.path.split("/").at(-1);
-          const trackingPath = `customerOrderTracking/${uid}/orders/${orderId}`;
-          trackingDocs.push({ path: trackingPath, snapshot: await tx.get(trackingPath) });
-        }
-      }
+      const trackingPaths = memberDocs
+        .filter((member) => member.data.customerUid)
+        .map((member) => {
+          const memberOrderId = member.path.split("/").at(-1);
+          return { orderId: memberOrderId, path: `customerOrderTracking/${member.data.customerUid}/orders/${memberOrderId}` };
+        });
+      const trackingSnapshots = await tx.getMany(trackingPaths.map((item) => item.path));
+      const trackingDocs = trackingPaths.map((item, index) => ({ ...item, snapshot: trackingSnapshots[index] }));
       const nextStatus = Number(table.data.activeOrderCount || 0) === 0 ? "released" : "expired";
       tx.update(tablePath, {
         status: nextStatus,
@@ -834,6 +825,8 @@ export async function expireVirtualTables(env) {
       return true;
     });
     if (didExpire) expired += 1;
+    // Keep scheduled invocations below the Workers Free subrequest/CPU budget.
+    if (expired >= 2) break;
   }
   return { expired };
 }
@@ -874,10 +867,7 @@ export async function recordManualInventory({ payload, claims, env, db: injected
   await db.runTransaction(async (tx) => {
     const movementPath = "inventoryTransactions/" + safeDocId(transactionId);
     const balancePath = "inventoryBalances/" + safeDocId(movement.ingredientId);
-    const [existingMovement, existingBalance] = await Promise.all([
-      tx.get(movementPath),
-      tx.get(balancePath),
-    ]);
+    const [existingMovement, existingBalance] = await tx.getMany([movementPath, balancePath]);
     const localRevision = Number(existingBalance.data?.cupboardInventoryRevision ?? -1);
     if (!existingBalance.exists || balance.revision >= localRevision) {
       tx.set(balancePath, {

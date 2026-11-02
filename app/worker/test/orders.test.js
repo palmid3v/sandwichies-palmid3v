@@ -28,6 +28,10 @@ class MemoryFirestore {
         const value = draft.get(path);
         return value === undefined ? { exists: false, data: null } : { exists: true, data: structuredClone(value) };
       },
+      getMany: async (paths) => Promise.all(paths.map(async (path) => {
+        const value = draft.get(path);
+        return value === undefined ? { exists: false, data: null } : { exists: true, data: structuredClone(value) };
+      })),
       query: async (path, options) => {
         const prefix = `${path}/`;
         return [...draft.entries()]

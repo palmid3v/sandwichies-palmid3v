@@ -24,6 +24,10 @@ class MemoryFirestore {
           ? { exists: false, data: null }
           : { exists: true, data: structuredClone(value) };
       },
+      getMany: async (paths) => Promise.all(paths.map(async (path) => {
+        const value = draft.get(path);
+        return value === undefined ? { exists: false, data: null } : { exists: true, data: structuredClone(value) };
+      })),
       create: (path, data) => {
         if (draft.has(path)) throw new Error("ALREADY_EXISTS");
         draft.set(path, structuredClone(data));
