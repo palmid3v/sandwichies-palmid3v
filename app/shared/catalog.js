@@ -6,22 +6,22 @@ export const CATALOG = {
     "30": { label: "30 cm", multiplier: 2, breadCost: 3500 },
   },
   ingredients: [
-    { id: "base", name: "Base (lechuga + cebolla)", unit: "porción", packageCost: 10000, packageQuantity: 10, portionQuantity: 1, stockQuantity: 10, active: true },
-    { id: "mozzarella", name: "Queso mozzarella incluido", unit: "unidad", packageCost: 10500, packageQuantity: 18, portionQuantity: 1, stockQuantity: 18, active: true },
-    { id: "pimenton-asado", name: "Pimentón asado", unit: "g", packageCost: 6490, packageQuantity: 150, portionQuantity: 30, stockQuantity: 150, active: true },
+    { id: "base", name: "Base (lechuga + cebolla)", unit: "porción", packageCost: 10000, packageQuantity: 10, portionQuantity: 1, stockQuantity: 10, cupboardProductId: "N-2000001", active: true },
+    { id: "mozzarella", name: "Queso mozzarella incluido", unit: "unidad", packageCost: 10500, packageQuantity: 18, portionQuantity: 1, stockQuantity: 18, cupboardProductId: "N-2000004", active: true },
+    { id: "pimenton-asado", name: "Pimentón asado", unit: "g", packageCost: 6490, packageQuantity: 150, portionQuantity: 30, stockQuantity: 150, cupboardProductId: "N-2000008", active: true },
 
-    { id: "jamon-serrano", name: "Jamón serrano Valdecava", unit: "unidad", packageCost: 8700, packageQuantity: 6, portionQuantity: 1, stockQuantity: 6, type: "protein", active: true },
-    { id: "pavo-finas-hierbas", name: "Jamón de Pavo Finas Hierbas White Holland", unit: "unidad", packageCost: 13950, packageQuantity: 20, portionQuantity: 1, stockQuantity: 20, type: "protein", active: true },
-    { id: "pechuga-pavo", name: "Jamón pechuga de pavo White Holland", unit: "unidad", packageCost: 12300, packageQuantity: 22, portionQuantity: 1, stockQuantity: 22, type: "protein", active: true },
-    { id: "pepperoni", name: "Pepperoni tajado Valdecava", unit: "unidad", packageCost: 4990, packageQuantity: 39, portionQuantity: 1, stockQuantity: 39, type: "protein", active: true },
-    { id: "chorizo", name: "Chorizo Vela Valdecava", unit: "unidad", packageCost: 4200, packageQuantity: 9, portionQuantity: 1, stockQuantity: 9, type: "protein", active: true },
-    { id: "salami", name: "Chorizo Salami Valdecava", unit: "unidad", packageCost: 4200, packageQuantity: 9, portionQuantity: 1, stockQuantity: 9, type: "protein", active: true },
-    { id: "prosciutto", name: "Prosciutto Valdecava", unit: "unidad", packageCost: 8700, packageQuantity: 5, portionQuantity: 1, stockQuantity: 5, type: "protein", active: true },
+    { id: "jamon-serrano", name: "Jamón serrano Valdecava", unit: "unidad", packageCost: 8700, packageQuantity: 6, portionQuantity: 1, stockQuantity: 6, type: "protein", cupboardProductId: "N-2000003", active: true },
+    { id: "pavo-finas-hierbas", name: "Jamón de Pavo Finas Hierbas White Holland", unit: "unidad", packageCost: 13950, packageQuantity: 20, portionQuantity: 1, stockQuantity: 20, type: "protein", cupboardProductId: "N-2000005", active: true },
+    { id: "pechuga-pavo", name: "Jamón pechuga de pavo White Holland", unit: "unidad", packageCost: 12300, packageQuantity: 22, portionQuantity: 1, stockQuantity: 22, type: "protein", cupboardProductId: "N-2000006", active: true },
+    { id: "pepperoni", name: "Pepperoni tajado Valdecava", unit: "unidad", packageCost: 4990, packageQuantity: 39, portionQuantity: 1, stockQuantity: 39, type: "protein", cupboardProductId: "N-2000007", active: true },
+    { id: "chorizo", name: "Chorizo Vela Valdecava", unit: "unidad", packageCost: 4200, packageQuantity: 9, portionQuantity: 1, stockQuantity: 9, type: "protein", cupboardProductId: "N-2000002", active: true },
+    { id: "salami", name: "Chorizo Salami Valdecava", unit: "unidad", packageCost: 4200, packageQuantity: 9, portionQuantity: 1, stockQuantity: 9, type: "protein", cupboardProductId: "N-2000011", active: true },
+    { id: "prosciutto", name: "Prosciutto Valdecava", unit: "unidad", packageCost: 8700, packageQuantity: 5, portionQuantity: 1, stockQuantity: 5, type: "protein", cupboardProductId: "N-2000009", active: true },
 
     // Historical compatibility for persisted orders from earlier versions.
     { id: "jamon-asado", name: "Jamón asado (legacy)", unit: "unidad", packageCost: 9900, packageQuantity: 6, portionQuantity: 1, stockQuantity: 6, type: "protein", active: false },
 
-    { id: "queso-tajado", name: "Queso tajado Vita Latti", unit: "unidad", packageCost: 9300, packageQuantity: 15, portionQuantity: 1, stockQuantity: 15, active: true },
+    { id: "queso-tajado", name: "Queso tajado Vita Latti", unit: "unidad", packageCost: 9300, packageQuantity: 15, portionQuantity: 1, stockQuantity: 15, cupboardProductId: "N-2000010", active: true },
   ],
   toppings: [
     { id: "pimenton", name: "Pimentón", ingredientId: "pimenton-asado", portionMultiplier: 1, customerCharge: 0 },
