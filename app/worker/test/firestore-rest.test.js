@@ -181,7 +181,7 @@ test("Firestore REST preserves the global fetch receiver in Worker runtimes", as
   const db = new FirestoreRest({
     projectId: "sandwich-pro",
     emulatorHost: "127.0.0.1:8080",
-    fetchImpl: function (url) {
+    fetchImpl: function () {
       receiver = this;
       return Promise.resolve(new Response(JSON.stringify({
         name: "projects/sandwich-pro/databases/(default)/documents/deliveryZones/zone-receiver",
