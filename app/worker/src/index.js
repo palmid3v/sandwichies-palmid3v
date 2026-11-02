@@ -6,6 +6,10 @@ import {
   getCustomerOrder,
   saveDeliveryZone,
   transitionOrder,
+  markCustomerReady,
+  updateVirtualDelivery,
+  closeVirtualTable,
+  expireVirtualTables,
 } from "./orders.js";
 
 const ALLOWED_METHODS = new Set(["GET", "POST", "OPTIONS"]);
@@ -171,7 +175,7 @@ async function route(request, env) {
 }
 
 export default {
-  async fetch(request, env) {
+  async scheduled(_controller, env, ctx) {\n    ctx.waitUntil(expireVirtualTables(env));\n  },\n  async fetch(request, env) {
     if (request.method === "OPTIONS") return preflight(request, env);
     const origin = request.headers.get("origin");
     if (origin && !allowedOrigins(env).has(origin)) return json({ error: "origin-not-allowed" }, 403);
