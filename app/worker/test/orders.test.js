@@ -66,7 +66,8 @@ const env = {
   CUPBOARD_SERVICE_ACCOUNT_JSON: JSON.stringify({ type: "service_account", project_id: "cupboard-project", client_email: "worker@cupboard-project.iam.gserviceaccount.com", private_key: "test-private-key" }),
   CUPBOARD_INGREDIENT_MAP_JSON: JSON.stringify(mapping),
 };
-const customerClaims = { sub: "customer-uid" };
+const customerClaims = { sub: "customer-uid", email_verified: true };
+const testOrderPolicy = { acceptingOrders: true };
 const adminClaims = { sub: "admin-uid", admin: true, email_verified: true };
 const validOrderRequest = () => ({
   requestId: "a9e31e77-6e23-4f3d-ae90-1b2c3d4e5f60",
@@ -80,12 +81,12 @@ const validOrderRequest = () => ({
 test("new orders are server-priced and idempotent by authenticated UID plus requestId", async () => {
   const db = new MemoryFirestore();
   const payload = validOrderRequest();
-  const first = await createOrder({ request: { ...payload, total: 1 }, claims: customerClaims, env, db })
+  const first = await createOrder({ request: { ...payload, total: 1 }, claims: customerClaims, env, db, policy: testOrderPolicy })
     .catch((error) => error);
   assert.equal(first.status, 400);
   assert.equal(first.code, "invalid-argument");
 
-  const created = await createOrder({ request: payload, claims: customerClaims, env, db });
+  const created = await createOrder({ request: payload, claims: customerClaims, env, db, policy: testOrderPolicy });
   assert.ok(created.order.id);
   assert.equal(created.order.status, "pendiente");
   assert.equal(created.order.total > 1, true);
@@ -106,7 +107,7 @@ test("new orders are server-priced and idempotent by authenticated UID plus requ
 test("orders remain disabled unless an explicit Worker environment flag enables them", async () => {
   const disabledEnv = { ...env, ORDERS_ENABLED: "false" };
   await assert.rejects(
-    createOrder({ request: validOrderRequest(), claims: customerClaims, env: disabledEnv, db: new MemoryFirestore() }),
+    createOrder({ request: validOrderRequest(), claims: customerClaims, env: disabledEnv, db: new MemoryFirestore(), policy: testOrderPolicy }),
     (error) => error.status === 503 && error.code === "ORDERS_DISABLED",
   );
 });
@@ -204,7 +205,7 @@ test("meeting-point orders are grouped into a virtual table using the fixed anch
       meetingPoint: { latitude: 4.65, longitude: -74.05, label: "Parque de prueba" },
     },
   };
-  const first = await createOrder({ request: firstRequest, claims: customerClaims, env, db });
+  const first = await createOrder({ request: firstRequest, claims: customerClaims, env, db, policy: testOrderPolicy });
   const firstTableId = first.order.delivery.tableId;
   assert.ok(firstTableId);
   assert.equal(first.order.delivery.status, "waiting_customer");
@@ -218,7 +219,7 @@ test("meeting-point orders are grouped into a virtual table using the fixed anch
       meetingPoint: { latitude: 4.6501, longitude: -74.05, label: "A pocos metros" },
     },
   };
-  const second = await createOrder({ request: secondRequest, claims: { sub: "customer-two" }, env, db });
+  const second = await createOrder({ request: secondRequest, claims: { sub: "customer-two", email_verified: true }, env, db, policy: testOrderPolicy });
   assert.equal(second.order.delivery.tableId, firstTableId);
   assert.equal((await db.read(`virtualTables/${firstTableId}`)).data.activeOrderCount, 2);
   assert.equal((await db.read(`virtualTables/${firstTableId}/members/${first.order.id}`)).exists, true);
