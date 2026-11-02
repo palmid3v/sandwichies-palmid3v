@@ -213,7 +213,8 @@ export class FirestoreRest {
       } : {}),
       limit: Math.min(Math.max(1, Number(limit) || 100), 500),
     };
-    const parent = this.root + "/" + segments.slice(0, -1).map(encodeURIComponent).join("/");
+    const parentPath = segments.slice(0, -1).map(encodeURIComponent).join("/");
+    const parent = this.root + (parentPath ? "/" + parentPath : "");
     const result = await this.request(parent + ":runQuery", {
       method: "POST",
       body: { structuredQuery },

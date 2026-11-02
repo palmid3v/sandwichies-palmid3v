@@ -83,6 +83,8 @@ test("Firestore REST query encodes IN filters and decodes timestamp values", asy
       return new Response(JSON.stringify({ access_token: "query-token", expires_in: 3600 }));
     }
     if (String(url).endsWith(":runQuery")) {
+      assert.equal(String(url).includes("/documents:runQuery"), true);
+      assert.equal(String(url).includes("/documents/:runQuery"), false);
       const body = JSON.parse(init.body);
       assert.equal(body.structuredQuery.where.fieldFilter.op, "IN");
       assert.deepEqual(body.structuredQuery.where.fieldFilter.value.arrayValue.values.map((item) => item.stringValue), ["open", "closing"]);
