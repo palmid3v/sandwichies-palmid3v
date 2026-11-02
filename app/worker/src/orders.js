@@ -4,7 +4,8 @@ import {
   canTransitionOrderStatus,
 } from "../../shared/business.js";
 import { buildOrderConsumption, normalizeInventoryTransaction, InventoryValidationError } from "../../shared/inventory.js";
-import { buildTrustedOrder, OrderValidationError } from "../../shared/order-request.js";
+import { buildTrustedOrder } from "../../shared/order-request.js";
+import { OrderValidationError } from "../../shared/pricing.js";
 import {
   findOperatingZone,
   isCompatibleVirtualTable,
