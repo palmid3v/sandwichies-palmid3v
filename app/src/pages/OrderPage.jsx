@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { onAuthStateChanged, signInAnonymously, updateProfile } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { customerApp, customerAuth, customerDb } from "../customerFirebase";
+import { customerAuth, customerDb } from "../customerFirebase";
+import { workerRequest } from "../api/worker";
 import Category from "../components/Category";
 import { generateName } from "../utils/generateName";
 import { INGREDIENTS } from "../data/ingredients";
@@ -363,11 +364,13 @@ export default function OrderPage() {
     setCoverageBusy(true);
     setCoverage(null);
     try {
-      const { getFunctions, httpsCallable } = await import("firebase/functions");
-      const validate = httpsCallable(getFunctions(customerApp), "validateMeetingPoint");
-      const response = await validate({ meetingPoint: point });
-      setCoverage(response.data);
-      showToast(response.data.covered ? `Punto dentro de la zona ${response.data.zoneName}.` : "Este punto está fuera de la zona operativa.", response.data.covered ? "success" : "error");
+      const response = await workerRequest("/v1/delivery/coverage", {
+        auth: customerAuth,
+        method: "POST",
+        body: { meetingPoint: point },
+      });
+      setCoverage(response);
+      showToast(response.covered ? `Punto dentro de la zona ${response.zoneName}.` : "Este punto está fuera de la zona operativa.", response.covered ? "success" : "error");
     } catch (error) {
       setCoverage({ covered: false });
       showToast(error.message || "No pudimos validar la cobertura.", "error");
@@ -380,8 +383,10 @@ export default function OrderPage() {
     if (!completedOrder?.id || readyBusy) return;
     setReadyBusy(true);
     try {
-      const { getFunctions, httpsCallable } = await import("firebase/functions");
-      await httpsCallable(getFunctions(customerApp), "markCustomerReady")({ orderId: completedOrder.id });
+      await workerRequest(
+        `/v1/customer/orders/${encodeURIComponent(completedOrder.id)}/ready`,
+        { auth: customerAuth, method: "POST", body: {} },
+      );
     } catch (error) {
       showToast(error.message || "No pudimos registrar tu llegada.", "error");
     } finally {
@@ -414,9 +419,10 @@ export default function OrderPage() {
       const nameSaved = await persistCustomerName();
       if (!nameSaved) throw new Error("No se pudo guardar el nombre del cliente.");
 
-      const { getFunctions, httpsCallable } = await import("firebase/functions");
-      const createOrder = httpsCallable(getFunctions(customerApp), "createOrder");
-      const result = await createOrder({
+      const result = await workerRequest("/v1/orders", {
+        auth: customerAuth,
+        method: "POST",
+        body: {
         requestId: requestIdRef.current,
         customer: { name: clientName.trim(), phone: normalizeColombianPhone(phone) },
         items: cart.flatMap((item) => Array.from(
@@ -436,8 +442,9 @@ export default function OrderPage() {
         },
         paymentMethod,
         notes: notes.trim(),
+        },
       });
-      savedOrder = result.data.order;
+      savedOrder = result.order;
       requestIdRef.current = newRequestId();
 
       setCompletedOrder(savedOrder);
