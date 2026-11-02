@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import {
   clearFirebaseKeyCacheForTests,
+  hasVerifiedEmail,
   verifyFirebaseIdToken,
 } from "../src/firebase-auth.js";
 
@@ -85,4 +86,12 @@ test("rejects a tampered token signature", async () => {
     verifyFirebaseIdToken(changed, { projectId, fetchImpl, now }),
     /signature is invalid/,
   );
+});
+
+
+test("verified-email policy accepts only the explicit true claim", () => {
+  assert.equal(hasVerifiedEmail({ email_verified: true }), true);
+  assert.equal(hasVerifiedEmail({ email_verified: false }), false);
+  assert.equal(hasVerifiedEmail({}), false);
+  assert.equal(hasVerifiedEmail(null), false);
 });
