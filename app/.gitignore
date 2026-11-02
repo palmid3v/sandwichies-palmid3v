@@ -31,3 +31,6 @@ dist-ssr
 worker/.dev.vars
 worker/.dev.vars.*
 !worker/.dev.vars.example
+
+# Generated Cloudflare Wrangler runtime files
+worker/.wrangler/
