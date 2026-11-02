@@ -56,7 +56,7 @@ class MemoryFirestore {
 }
 
 const mapping = Object.fromEntries(
-  CATALOG.ingredients.filter((item) => item.active !== false).map((item) => [item.id, `product-${item.id}`]),
+  CATALOG.ingredients.filter((item) => item.active !== false).map((item) => [item.id, item.cupboardProductId]),
 );
 const env = {
   FIREBASE_PROJECT_ID: "sandwich-pro",
