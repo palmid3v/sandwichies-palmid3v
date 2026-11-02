@@ -34,6 +34,24 @@ export function readCupboardConfig(env) {
   if (!env.CUPBOARD_SERVICE_ACCOUNT_JSON) {
     throw new CupboardWorkerError("CUPBOARD_CREDENTIALS_MISSING", "Falta la credencial segura del servicio de Cupboard.");
   }
+  if (env.CUPBOARD_PROJECT_ID === env.FIREBASE_PROJECT_ID) {
+    throw new CupboardWorkerError("CUPBOARD_PROJECT_MUST_DIFFER", "Cupboard y Sandwichies deben usar proyectos Firebase distintos.");
+  }
+  if (!/^[A-Za-z0-9_-]{1,150}$/.test(env.CUPBOARD_HOUSEHOLD_ID)) {
+    throw new CupboardWorkerError("CUPBOARD_HOUSEHOLD_INVALID", "El ID del hogar de Cupboard no es válido.");
+  }
+  let serviceAccount;
+  try {
+    serviceAccount = JSON.parse(env.CUPBOARD_SERVICE_ACCOUNT_JSON);
+  } catch {
+    throw new CupboardWorkerError("CUPBOARD_CREDENTIALS_INVALID", "La credencial de Cupboard no contiene JSON válido.");
+  }
+  if (serviceAccount.type !== "service_account"
+    || serviceAccount.project_id !== env.CUPBOARD_PROJECT_ID
+    || !serviceAccount.client_email
+    || !serviceAccount.private_key) {
+    throw new CupboardWorkerError("CUPBOARD_CREDENTIALS_PROJECT_MISMATCH", "La credencial de servicio no pertenece al proyecto Cupboard configurado.");
+  }
   if (missing.length) {
     throw new CupboardWorkerError("CUPBOARD_MAPPING_MISSING", `Faltan ingredientes por asociar: ${missing.join(", ")}.`);
   }
