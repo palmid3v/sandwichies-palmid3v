@@ -121,8 +121,10 @@ export default function VirtualTables({ orders = [] }) {
       });
       setNotice(successMessage);
       setRefreshToken((current) => current + 1);
+      return true;
     } catch (reason) {
       setError(reason.message || "No se pudo completar la acción.");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -145,7 +147,8 @@ export default function VirtualTables({ orders = [] }) {
   const saveZone = async (event) => {
     event.preventDefault();
     if (polygon.length < 3) { setError("Marca al menos tres vértices en el mapa."); return; }
-    await invoke("saveDeliveryZone", { ...zoneForm, polygon }, zoneForm.zoneId ? "Zona actualizada." : "Zona creada.");
+    const saved = await invoke("saveDeliveryZone", { ...zoneForm, polygon }, zoneForm.zoneId ? "Zona actualizada." : "Zona creada.");
+    if (!saved) return;
     setZoneForm({ zoneId: "", name: "", active: true, capacity: 9, groupingRadiusMeters: 50, inactivityMinutes: 60 });
     setPolygon([]); setDrawing(false);
   };

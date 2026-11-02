@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CATALOG } from "../../shared/catalog.js";
-import { createOrder, transitionOrder, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers } from "../src/orders.js";
+import { createOrder, transitionOrder, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers, createSandwichiesDb } from "../src/orders.js";
+import { FirestoreRest } from "../src/firestore-rest.js";
 
 class MemoryFirestore {
   constructor(initial = {}) {
@@ -252,6 +253,30 @@ test("cancelling a meeting-point order releases its virtual table membership", a
   assert.equal((await sandwichiesDb.read("customerOrderTracking/customer-uid/orders/" + orderId)).data.deliveryStatus, "cancelled");
 });
 
+
+test("Firestore Emulator transport requires explicit local mode and a loopback host", () => {
+  assert.throws(
+    () => createSandwichiesDb({
+      FIREBASE_PROJECT_ID: "sandwich-pro",
+      FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080",
+    }),
+    (error) => error.code === "LOCAL_EMULATOR_NOT_ALLOWED",
+  );
+  assert.throws(
+    () => createSandwichiesDb({
+      FIREBASE_PROJECT_ID: "sandwich-pro",
+      LOCAL_DEV: "true",
+      FIRESTORE_EMULATOR_HOST: "10.0.0.4:8080",
+    }),
+    (error) => error.code === "LOCAL_EMULATOR_HOST_INVALID",
+  );
+  const db = createSandwichiesDb({
+    FIREBASE_PROJECT_ID: "sandwich-pro",
+    LOCAL_DEV: "true",
+    FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080",
+  });
+  assert.equal(db instanceof FirestoreRest, true);
+});
 
 const adminZonePayload = (overrides = {}) => ({
   zoneId: "zone-local",

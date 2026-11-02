@@ -128,7 +128,7 @@ test("Firestore REST local emulator uses loopback and never requests Google OAut
   assert.equal(result.exists, true);
   assert.equal(result.data.name, "Zona local");
   assert.equal(calls.length, 1);
-  assert.match(calls[0].url, /^http:\/\/127\\.0\\.0\\.1:8080\/v1\/projects\/sandwich-pro/);
+  assert.equal(calls[0].url.startsWith("http://127.0.0.1:8080/v1/projects/sandwich-pro/"), true);
   assert.equal(calls[0].init.headers.authorization, "Bearer owner");
   assert.throws(
     () => new FirestoreRest({ projectId: "sandwich-pro", emulatorHost: "firestore.googleapis.com:443" }),

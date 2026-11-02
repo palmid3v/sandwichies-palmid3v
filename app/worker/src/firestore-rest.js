@@ -128,7 +128,7 @@ export class FirestoreRest {
   constructor({ projectId, serviceAccountJson, emulatorHost, fetchImpl = fetch }) {
     if (!projectId) throw new Error("FIRESTORE_PROJECT_ID_MISSING");
     const localHost = String(emulatorHost || "").trim();
-    if (localHost && !/^(localhost|127\\.0\\.0\\.1):\\d{2,5}$/.test(localHost)) {
+    if (localHost && !/^(localhost|127[.]0[.]0[.]1):[0-9]{2,5}$/.test(localHost)) {
       throw new Error("FIRESTORE_EMULATOR_MUST_USE_LOOPBACK");
     }
     this.projectId = projectId;

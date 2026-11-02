@@ -46,7 +46,7 @@ export export function createSandwichiesDb(env) {
     if (env.LOCAL_DEV !== "true") {
       throw new ApiError(503, "LOCAL_EMULATOR_NOT_ALLOWED", "El emulador Firestore solo puede usarse en modo local explícito.");
     }
-    if (!/^(localhost|127\\.0\\.0\\.1):\\d{2,5}$/.test(emulatorHost)) {
+    if (!/^(localhost|127[.]0[.]0[.]1):[0-9]{2,5}$/.test(emulatorHost)) {
       throw new ApiError(503, "LOCAL_EMULATOR_HOST_INVALID", "El emulador Firestore debe usar localhost o 127.0.0.1.");
     }
     return new FirestoreRest({
