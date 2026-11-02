@@ -109,3 +109,40 @@ test("Firestore REST query encodes IN filters and decodes timestamp values", asy
   assert.equal(docs[0].path, "virtualTables/table-1");
   assert.equal(docs[0].data.expiresAt instanceof Date, true);
 });
+
+
+test("Firestore batchGet returns ordered found and missing snapshots from a JSON stream", async () => {
+  clearGoogleTokenCacheForTests();
+  const fetchImpl = async (url, init = {}) => {
+    if (String(url).includes("oauth2.googleapis.com/token")) {
+      return new Response(JSON.stringify({ access_token: "batch-token", expires_in: 3600 }));
+    }
+    if (String(url).endsWith(":beginTransaction")) {
+      return new Response(JSON.stringify({ transaction: "batch-transaction" }));
+    }
+    if (String(url).endsWith(":batchGet")) {
+      const body = JSON.parse(init.body);
+      assert.equal(body.transaction, "batch-transaction");
+      assert.equal(body.documents.length, 2);
+      return new Response([
+        JSON.stringify({
+          found: {
+            name: body.documents[1],
+            fields: { portions: { integerValue: "8" } },
+          },
+        }),
+        JSON.stringify({ missing: body.documents[0] }),
+      ].join(String.fromCharCode(10)));
+    }
+    if (String(url).endsWith(":rollback")) return new Response("{}");
+    throw new Error("Unexpected URL: " + url);
+  };
+  const db = new FirestoreRest({ projectId: "cupboard-project", serviceAccountJson: serviceAccount, fetchImpl });
+  const snapshots = await db.runTransaction((tx) => tx.getMany([
+    "households/home/workspaces/sandwichies/inventory/missing",
+    "households/home/workspaces/sandwichies/inventory/existing",
+  ]));
+  assert.equal(snapshots[0].exists, false);
+  assert.equal(snapshots[1].exists, true);
+  assert.equal(snapshots[1].data.portions, 8);
+});
