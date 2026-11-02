@@ -42,6 +42,18 @@ export function createSandwichiesDb(env) {
   if (!env.FIREBASE_PROJECT_ID || !env.SANDWICHIES_SERVICE_ACCOUNT_JSON) {
     throw new ApiError(503, "BACKEND_NOT_CONFIGURED", "El backend de pedidos no tiene credenciales configuradas.");
   }
+  let serviceAccount;
+  try {
+    serviceAccount = JSON.parse(env.SANDWICHIES_SERVICE_ACCOUNT_JSON);
+  } catch {
+    throw new ApiError(503, "BACKEND_CREDENTIALS_INVALID", "La credencial del backend no contiene JSON válido.");
+  }
+  if (serviceAccount.type !== "service_account"
+    || serviceAccount.project_id !== env.FIREBASE_PROJECT_ID
+    || !serviceAccount.client_email
+    || !serviceAccount.private_key) {
+    throw new ApiError(503, "BACKEND_CREDENTIALS_PROJECT_MISMATCH", "La credencial del backend no pertenece al proyecto Sandwichies.");
+  }
   return new FirestoreRest({
     projectId: env.FIREBASE_PROJECT_ID,
     serviceAccountJson: env.SANDWICHIES_SERVICE_ACCOUNT_JSON,
@@ -62,12 +74,16 @@ function requireCupboard(env) {
 }
 
 function normalizeOrderForCustomer(order, orderId) {
+  const items = (Array.isArray(order.items) ? order.items : []).map((item) => {
+    const { cost: _cost, ingredientUsage: _ingredientUsage, ...customerItem } = item;
+    return customerItem;
+  });
   return {
     id: orderId,
     orderNumber: order.orderNumber,
     status: order.status,
     customer: order.customer,
-    items: order.items,
+    items,
     fulfillment: order.fulfillment,
     payment: order.payment,
     subtotal: order.subtotal,
@@ -77,10 +93,6 @@ function normalizeOrderForCustomer(order, orderId) {
     delivery: order.delivery || null,
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
-    inventory: {
-      system: order.inventory?.system || "cupboard",
-      consumptionStatus: order.inventory?.consumptionStatus || "pending",
-    },
   };
 }
 
