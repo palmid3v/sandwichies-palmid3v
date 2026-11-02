@@ -8,7 +8,6 @@ if (existsSync(".env")) process.loadEnvFile(".env");
 const projectId = String(process.env.CUPBOARD_PROJECT_ID || "").trim();
 const householdId = String(process.env.CUPBOARD_HOUSEHOLD_ID || "").trim();
 const applyChanges = process.argv.includes("--apply");
-const idPrefix = "N-";
 
 function fail(message) {
   console.error("Cupboard catalog sync:", message);
@@ -80,8 +79,15 @@ async function main() {
   for (const { ingredient, productId, catalogRef } of toCreate) {
     batch.create(catalogRef, {
       name: ingredient.name,
-      description: "Ingrediente de Sandwichies. Unidad operativa inicial: " + ingredient.unit + ".",
+      description: "Producto de inventario Negocio · Sandwichies. Unidad operativa: " + ingredient.unit + ".",
       category: ingredient.type || "ingrediente",
+      barcode: null,
+      workspaceId: "sandwichies",
+      ingredientId: ingredient.id,
+      unit: ingredient.unit,
+      identityVersion: 2,
+      legacyIds: ["sandwichies-" + ingredient.id],
+      sourceApp: "sandwichies",
       createdBy: ownerUid,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
