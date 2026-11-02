@@ -43,6 +43,7 @@ El script rechaza asignar el rol a cuentas con correo no verificado. Nunca inclu
 
 - **Frontend:** comparte `auth` y `db` desde `src/firebase.js`; no ejecuta `signInAnonymously`.
 - **Worker:** toda ruta autenticada rechaza tokens sin `email_verified === true` con HTTP 403 y código `email-not-verified`. Las rutas de salud y preflight CORS siguen siendo públicas.
+- **Cloud Functions callable:** `assertVerifiedUser()` valida UID y `request.auth.token.email_verified === true`; `assertAdmin()` reutiliza ese control y añade `admin: true`.
 - **Firestore:** `isSignedIn()` exige sesión y correo verificado; `isAdmin()` añade `admin: true`.
 - **Pedidos:** el Worker deriva la identidad del UID del token verificado; el navegador no puede escribir pedidos directamente.
 - **Inventario:** las colecciones `inventoryBalances` y `inventoryTransactions` son de lectura administrativa y escritura exclusiva del servidor.
