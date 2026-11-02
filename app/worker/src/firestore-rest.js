@@ -134,7 +134,8 @@ export class FirestoreRest {
     this.projectId = projectId;
     this.serviceAccountJson = serviceAccountJson;
     this.emulatorHost = localHost;
-    this.fetchImpl = fetchImpl;
+    // Cloudflare's global fetch requires its original global receiver; do not invoke it as a class method.
+    this.fetchImpl = (...args) => fetchImpl(...args);
     const apiRoot = localHost ? "http://" + localHost : "https://firestore.googleapis.com";
     this.root = apiRoot + "/v1/projects/" + encodeURIComponent(projectId)
       + "/databases/(default)/documents";
