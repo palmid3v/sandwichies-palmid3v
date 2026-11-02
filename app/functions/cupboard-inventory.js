@@ -28,10 +28,13 @@ function parseMapping(raw) {
   );
 }
 
-let ingredientMap = {};
+const defaultIngredientMap = Object.fromEntries(CATALOG.ingredients
+  .filter((ingredient) => ingredient.active !== false && ingredient.cupboardProductId)
+  .map((ingredient) => [ingredient.id, ingredient.cupboardProductId]));
+let ingredientMap = { ...defaultIngredientMap };
 let mappingError = null;
 try {
-  ingredientMap = parseMapping(rawMapping);
+  ingredientMap = { ...defaultIngredientMap, ...parseMapping(rawMapping) };
 } catch (error) {
   mappingError = error;
   console.error("Invalid Cupboard inventory mapping:", error.message);
