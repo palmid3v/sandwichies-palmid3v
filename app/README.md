@@ -347,7 +347,7 @@ Sandwichies remains one of the four separate PALMI-D3V workspace repositories. T
 
 ### Validation and boundaries
 
-The user's last full local QA run before this change passed 30 Worker tests, 40 domain tests, 9 Firestore rules tests, 7 Functions/Firestore integration tests, build, bundle budget and smoke. New Worker tests now cover the local emulator transport guard, zone create/update validation, admin listing and member-data sanitization; those new tests are awaiting the current CI run and local execution.
+The user's last full local QA run before this change passed 30 Worker tests, 40 domain tests, 9 Firestore rules tests, 7 Functions/Firestore integration tests, build, bundle budget and smoke. New Worker tests cover the local emulator transport guard, zone create/update validation, admin listing and member-data sanitization. GitHub Actions for commit `ddc8171` passed lint, domain tests, Worker tests, Firestore security regression, Functions/Firestore integration, production build and smoke. The actual three-process local UI + Wrangler + Firestore Emulator flow still requires owner-side verification.
 
 `ORDERS_ENABLED=false` remains the safety default. No Cloudflare deployment, Firebase Blaze upgrade, production Firestore write, production secret configuration or real order is authorized or performed. Cupboard's separate service-account boundary remains required for stock movements and is not configured by the local zone workflow.
 
