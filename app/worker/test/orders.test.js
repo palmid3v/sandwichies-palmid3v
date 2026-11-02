@@ -287,7 +287,7 @@ const adminZonePayload = (overrides = {}) => ({
   zoneId: "zone-local",
   name: "Zona de prueba",
   active: true,
-  capacity: 9,
+  capacity: 8,
   groupingRadiusMeters: 50,
   inactivityMinutes: 60,
   polygon: [
