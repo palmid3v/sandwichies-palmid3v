@@ -116,3 +116,8 @@ export function readBearerToken(request) {
 export function clearFirebaseKeyCacheForTests() {
   jwksCache.clear();
 }
+
+
+export function hasVerifiedEmail(claims) {
+  return claims?.email_verified === true;
+}
