@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import worker from "../src/index.js";
 
-test("health endpoint is public and reports foundation stage", async () => {
+test("health endpoint is public and reports backend stage", async () => {
   const response = await worker.fetch(new Request("https://worker.example/health"), {
     FIREBASE_PROJECT_ID: "sandwich-pro",
   });
@@ -10,7 +10,8 @@ test("health endpoint is public and reports foundation stage", async () => {
   assert.deepEqual(await response.json(), {
     service: "sandwichies-worker",
     status: "ok",
-    stage: "foundation",
+    stage: "orders-cupboard-backend",
+    ordersEnabled: false,
   });
 });
 

@@ -70,27 +70,53 @@ Firestore / integración Cupboard
 
 El navegador es un entorno no confiable. No aceptar desde el cliente precios, totales, costos, utilidad, consecutivos ni estados privilegiados como fuente de verdad.
 
-**Estado de despliegue verificado (31-oct-2026):** el código de `functions/` existe, pero `firebase functions:list --project sandwich-pro` y `gcloud functions list` devolvieron cero funciones; las URLs `createOrder` y `validateMeetingPoint` responden 404. Por tanto, el flujo backend definido en el código no está disponible en el proyecto Firebase de producción. Los emuladores permiten desarrollo y pruebas locales, pero no sustituyen el backend desplegado.
+**Estado de despliegue verificado (31-oct-2026):** el código de `functions/` existe, pero `firebase functions:list --project sandwich-pro` y `gcloud functions list` devolvieron cero funciones; las URLs de Cloud Functions respondieron 404. Las Functions no son endpoints productivos disponibles. No habilitar Firebase Blaze para resolverlo.
 
-### Migración backend a Cloudflare Workers — fundación creada
+### Migración backend a Cloudflare Workers — implementación en código
 
-Se creó `app/worker/` como una unidad aislada para evaluar la migración del backend bajo el presupuesto $0. El primer corte incluye:
+Se implementó `app/worker/` como backend alternativo bajo el objetivo de presupuesto $0. El Worker aún no está desplegado ni conectado a credenciales reales.
 
-- `GET /health`: comprobación pública de disponibilidad del Worker.
-- `GET /v1/session`: verificación de Firebase ID token y lectura de UID/claim administrativo.
-- `GET /v1/admin/session`: exige custom claim `admin: true`.
-- Verificación RS256 mediante JWK oficial de Firebase Secure Token; valida firma, issuer, audience, subject, `iat`, `auth_time` y `exp`.
-- Pruebas Node para token válido, audiencia incorrecta, expiración y firma manipulada.
+**Backend implementado en el repositorio:**
+- Verificación Firebase ID token RS256 con JWK oficial; valida firma, issuer, audience, subject, `iat`, `auth_time` y `exp`.
+- Cliente Firestore REST con OAuth firmado por service account y transacciones Firestore.
+- Identidades separadas para Firestore de Sandwichies y Cupboard.
+- CORS con allowlist de orígenes, métodos y cabeceras.
+- Creación de pedidos con precios, costos y consumo de ingredientes calculados desde `shared/`; request UUID idempotente y consecutivo transaccional.
+- Transiciones administrativas de pedido con bloqueo temporal.
+- Consumo de inventario Cupboard al confirmar y reversión al cancelar pedidos no pagados.
+- Compras y ajustes manuales de inventario desde el administrador.
+- Zonas de entrega, asignación de mesas virtuales por proximidad, llegada de cliente, estados logísticos individuales y cierre/expiración programada.
+- Vistas de cliente sanitizadas: no devuelven costos internos ni desglose de consumo.
+- Frontend de cliente y administración migrado en código al adaptador `src/api/worker.js`.
 
-**Límite deliberado de esta primera entrega:** todavía no hay acceso a Firestore, creación/transición de pedidos, integración Cupboard, pagos ni tareas programadas. Ninguna operación de producción se ha ejecutado. El siguiente gate es diseñar y probar credenciales de servicio y transacciones Firestore REST antes de migrar cualquier endpoint de negocio.
+**Rutas principales:** `POST /v1/orders`, `GET /v1/orders/:id`, `POST /v1/admin/orders/:id/status`, `POST /v1/admin/inventory/movements`, `POST /v1/admin/delivery-zones`, `POST /v1/admin/orders/:id/delivery`, `POST /v1/customer/orders/:id/ready` y `POST /v1/admin/virtual-tables/:id/close`. El detalle completo está en `app/worker/README.md`.
 
-La configuración está en `app/worker/wrangler.toml`. Desde la raíz del repositorio, el comando previsto para una futura publicación manual es:
+**Conexión segura con Cupboard:** el Worker exige dos credenciales de servicio independientes y verifica que sus `project_id` correspondan a proyectos distintos. Los movimientos comerciales se limitan desde el código a `households/{householdId}/workspaces/sandwichies/`. Consumos, reversos y movimientos manuales usan IDs deterministas y transacciones para soportar reintentos sin duplicar descuentos.
+
+**Límite de seguridad IAM:** el acceso Firestore con service account omite Firestore Security Rules y los permisos IAM de Firestore son de alcance de proyecto, no de colección. Por eso las dos identidades deben mantenerse separadas, con permisos de datos mínimos en sus proyectos respectivos, secretos protegidos y revisión explícita de ese alcance antes de configurar credenciales. El código no sustituye una política IAM por colección.
+
+**Estado operativo y gates pendientes:**
+- `ORDERS_ENABLED=false` por defecto; la creación de pedidos se rechaza hasta una habilitación explícita.
+- `SANDWICHIES_SERVICE_ACCOUNT_JSON`, `CUPBOARD_SERVICE_ACCOUNT_JSON`, `CUPBOARD_PROJECT_ID`, `CUPBOARD_HOUSEHOLD_ID` y el mapeo completo de ingredientes aún no están configurados con valores reales.
+- El frontend espera `VITE_SANDWICHIES_WORKER_URL`; `.env.example` lo deja vacío deliberadamente.
+- Se añadieron pruebas Worker para autenticación, CORS, Firestore REST, idempotencia, consumo, insuficiencia de stock y reversión. **Todavía deben ejecutarse** en local/CI; no afirmar que pasan hasta tener resultados.
+- El cron de expiración está declarado en Wrangler, pero no está validado en un Worker desplegado.
+- No se ha desplegado el Worker, habilitado Cloudflare Builds, cambiado la configuración productiva de Vercel, creado credenciales ni modificado datos reales.
+
+La configuración y los gates se documentan en `app/worker/README.md`. Comandos desde `app/`:
+
+```bash
+npm run worker:test
+npm run check
+```
+
+La publicación manual futura sería:
 
 ```bash
 npx wrangler deploy --config app/worker/wrangler.toml
 ```
 
-Cloudflare Builds debe permanecer deshabilitado hasta configurar explícitamente ese comando y validar el Root directory. La creación de estos archivos no implica despliegue.
+No ejecutar sin revisión de IAM, secretos, mapeo, cuotas y autorización explícita. No habilitar Firebase Blaze ni facturación.
 
 ## 4. Stack tecnológico y herramientas
 

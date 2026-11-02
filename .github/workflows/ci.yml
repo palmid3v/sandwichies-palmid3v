@@ -34,6 +34,9 @@ jobs:
       - name: Unit and domain tests
         run: npm test
 
+      - name: Cloudflare Worker tests
+        run: npm run worker:test
+
       - name: Install Firebase CLI
         run: npm install --global firebase-tools
 

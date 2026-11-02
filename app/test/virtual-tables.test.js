@@ -42,6 +42,7 @@ test("capacity is limited to 9 and expired or incompatible tables are rejected",
   assert.equal(eligible({ zoneId: "zone-2" }), false);
   assert.equal(eligible({ windowId: "2026-10-31" }), false);
   assert.equal(eligible({ expiresAt: Date.now() - 1 }), false);
+  assert.equal(eligible({ expiresAt: new Date(Date.now() - 1) }), false);
 });
 
 test("operational zones are validated as non-self-intersecting polygons", () => {
