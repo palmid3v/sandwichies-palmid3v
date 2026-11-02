@@ -35,10 +35,17 @@ import {
 initializeApp();
 const db = getFirestore();
 
-const assertAdmin = (request) => {
-  if (!request.auth) {
+const assertVerifiedUser = (request) => {
+  if (!request.auth?.uid) {
     throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
   }
+  if (request.auth.token?.email_verified !== true) {
+    throw new HttpsError("permission-denied", "Debes verificar tu correo antes de continuar.");
+  }
+};
+
+const assertAdmin = (request) => {
+  assertVerifiedUser(request);
 
   if (request.auth.token?.admin !== true) {
     throw new HttpsError("permission-denied", "No tienes permisos de administración.");
@@ -48,7 +55,7 @@ const assertAdmin = (request) => {
 // Public customer endpoint. It deliberately accepts only a configuration request;
 // values such as total, cost, profit, status and consecutive number are rebuilt here.
 export const createOrder = onCall({ region: "us-central1" }, async (request) => {
-  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Inicia una sesión de cliente para realizar tu pedido.");
+  assertVerifiedUser(request);
 
   try {
     let order;
@@ -152,7 +159,7 @@ export const createOrder = onCall({ region: "us-central1" }, async (request) => 
 });
 
 export const validateMeetingPoint = onCall({ region: "us-central1" }, async (request) => {
-  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Inicia sesión para validar el punto.");
+  assertVerifiedUser(request);
   const point = request.data?.meetingPoint;
   if (!point || !Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) {
     throw new HttpsError("invalid-argument", "Ubicación inválida.");
@@ -209,7 +216,7 @@ export const saveDeliveryZone = onCall({ region: "us-central1" }, async (request
 });
 
 export const markCustomerReady = onCall({ region: "us-central1" }, async (request) => {
-  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Inicia sesión para actualizar tu entrega.");
+  assertVerifiedUser(request);
   const orderId = typeof request.data?.orderId === "string" ? request.data.orderId.trim() : "";
   if (!orderId) throw new HttpsError("invalid-argument", "Pedido inválido.");
   const orderRef = db.doc(`orders/${orderId}`);
