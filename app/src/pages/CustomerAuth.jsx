@@ -47,6 +47,9 @@ export default function CustomerAuth({ pendingMessage = "" }) {
         setNotice("Tu correo aún no está verificado. Te enviamos un nuevo enlace; verifica tu correo y vuelve a ingresar.");
       }
     } catch (authError) {
+      if (auth.currentUser && auth.currentUser.emailVerified !== true) {
+        await signOut(auth).catch(() => undefined);
+      }
       const messages = {
         "auth/email-already-in-use": "Ya existe una cuenta con ese correo. Inicia sesión.",
         "auth/invalid-email": "El correo no tiene un formato válido.",
