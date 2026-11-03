@@ -13,7 +13,7 @@ Cloudflare Worker backend for Sandwichies, built to keep the mandatory service b
 - Local development: Wrangler can run the same Worker against the Firestore Emulator without service-account credentials; see `../docs/development/local-worker.md`.
 - Cloudflare deployment: **not performed**.
 - Service-account secrets, real Cupboard household ID and validated ingredient mapping: **not configured in this repository**.
-- `ORDERS_ENABLED`: defaults to `false`; real order creation stays blocked.
+- `ORDERS_ENABLED`: defaults to `false` in the Wrangler configuration; real order creation stays blocked.
 - No Firebase Blaze, billing, production data migration, production write or real order is authorized by this implementation.
 
 ## API
@@ -73,7 +73,7 @@ When `schedule.enabled` is false or absent, the zone remains open 24 hours for b
 
 ## Order and inventory lifecycle
 
-1. The customer signs in through the isolated Firebase Anonymous Auth session and sends its ID token.
+1. The customer signs in with a verified Firebase Email/Password account and sends its ID token. A legacy anonymous session may be linked to Email/Password before verification; the UID remains unchanged.
 2. The Worker verifies the token and validates the order with the shared Sandwichies catalog/pricing domain.
 3. The server calculates item prices, totals, costs and ingredient usage; client-supplied totals/status/costs are rejected.
 4. A Firestore transaction creates the order, increments the order counter and stores an idempotency record keyed by customer UID + request UUID.
@@ -143,7 +143,7 @@ No production deployment, data mutation, billing change or real-order test has b
 
 For the complete three-terminal setup, PowerShell commands, local auth boundary and migration path to Cloudflare, see [Local Worker development](../docs/development/local-worker.md).
 
-The Worker accepts `FIRESTORE_EMULATOR_HOST` only when `LOCAL_DEV=true` and the host is `localhost` or `127.0.0.1`. In that mode it uses the Firestore Emulator owner token and does not request Google OAuth. These settings are supplied through the ignored `worker/.dev.vars` file; they are not part of the deployed Wrangler configuration.
+The Worker accepts `FIRESTORE_EMULATOR_HOST` only when `LOCAL_DEV=true`, the host is `localhost` or `127.0.0.1`, and the emulator project matches `FIREBASE_PROJECT_ID`. Local mode without an emulator host fails closed instead of falling through to remote Firestore. In emulator mode it uses the emulator owner token and does not request Google OAuth. These settings are supplied through the ignored `worker/.dev.vars` file; they are not part of the deployed Wrangler configuration. Vite development also connects the browser Firestore SDK to the same emulator; Firebase Authentication remains remote for real ID tokens.
 
 ## Local tests
 
