@@ -1,3 +1,31 @@
+# ROADMAP — Sandwichies
+
+## Delivery phases approved — 2026-11-03
+
+### Delivery Phase 1 — Automatic nearest active zone
+**Implementation:** published to `main`; local QA pending.
+- [x] Prefer an active polygon containing the customer point.
+- [x] If the point is outside all active polygons, select the active polygon with the shortest edge distance.
+- [x] No maximum distance cap at this initial rollout stage.
+- [x] Exclude inactive/invalid polygons and return no assignment when there are no active valid zones.
+- [x] Persist assignment method and estimated edge distance with the delivery record.
+- [x] Keep virtual-table grouping independent: 50 m fixed-anchor radius and maximum capacity 9.
+- [ ] Run Worker tests, integration tests and manual customer coverage checks locally.
+
+### Delivery Phase 2 — Zone service schedules
+**Implementation:** published to `main`; local QA pending.
+- [x] Store a per-zone weekly schedule in the delivery-zone document.
+- [x] Configure timezone explicitly; default is `America/Bogota`.
+- [x] Admin can enable/disable schedule enforcement and configure each weekday's opening/closing time.
+- [x] A day with no interval is closed when schedule enforcement is enabled.
+- [x] Validate schedule on the Worker before saving.
+- [x] Validate selected-zone hours again during order creation; reject out-of-hours orders with `ZONE_OUTSIDE_SERVICE_HOURS`.
+- [x] Preserve backward compatibility: zones without schedule enforcement remain open 24 hours until the administrator configures a schedule.
+- [ ] Run automated tests and verify customer-facing error messaging in local browser.
+- [ ] Verify daylight/timezone boundaries and operational exceptions before release.
+
+**Release note:** source implementation is not QA approval, deployment, or permission to accept production orders. Do not deploy or enable real orders without explicit owner approval.
+
 ## Customer phone verification — implemented behind an explicit feature flag
 
 - [x] Normalize valid Colombian mobile numbers to E.164 (+57XXXXXXXXXX)
