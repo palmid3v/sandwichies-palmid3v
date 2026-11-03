@@ -39,6 +39,38 @@ All protected routes require `Authorization: Bearer <Firebase ID token>`. Admin 
 
 CORS is restricted to exact origins listed in `ALLOWED_ORIGINS`; methods are `GET/POST/OPTIONS`; request headers are `Authorization/Content-Type`. The Worker rejects unlisted origins, methods and headers. Do not use wildcard origins.
 
+## Delivery zone assignment and service hours
+
+Delivery coverage is resolved by the Worker using active, valid polygons:
+
+1. If the customer point is inside one or more active polygons, a containing polygon wins (stable zone-ID tie-break).
+2. Otherwise, the Worker selects the active polygon with the shortest estimated distance to its boundary. There is currently no maximum-distance cap; this is an intentional early-stage policy while coverage zones are sparse.
+3. Inactive/invalid zones are excluded. If no active valid zone exists, no delivery assignment is possible.
+4. The order stores `zoneId`, `zoneName`, `zoneAssignment.method` (`inside_polygon` or `nearest_polygon`) and `zoneAssignment.distanceMeters`. This is straight-line boundary distance, not road distance or an ETA.
+5. Virtual-table grouping remains separate: fixed anchor, 50 m maximum grouping radius and capacity 9.
+
+Each zone may store:
+
+```json
+{
+  "schedule": {
+    "enabled": true,
+    "timeZone": "America/Bogota",
+    "weekly": {
+      "monday": [{ "start": "07:00", "end": "21:00" }],
+      "tuesday": [{ "start": "07:00", "end": "21:00" }],
+      "wednesday": [{ "start": "07:00", "end": "21:00" }],
+      "thursday": [{ "start": "07:00", "end": "21:00" }],
+      "friday": [{ "start": "07:00", "end": "21:00" }],
+      "saturday": [],
+      "sunday": []
+    }
+  }
+}
+```
+
+When `schedule.enabled` is false or absent, the zone remains open 24 hours for backward compatibility. When enabled, empty days are closed. The Worker validates the saved schedule and checks it again at order creation using the zone timezone. Out-of-hours creation returns HTTP 422 / `ZONE_OUTSIDE_SERVICE_HOURS`; no order, counter, idempotency record or virtual-table membership is created. The customer-facing frontend should present the returned message and keep the cart intact.
+
 ## Order and inventory lifecycle
 
 1. The customer signs in through the isolated Firebase Anonymous Auth session and sends its ID token.
