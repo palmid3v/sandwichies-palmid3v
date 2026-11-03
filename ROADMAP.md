@@ -522,3 +522,29 @@ IMPROVE
 
 - [ ] Restore/verify GitHub Actions execution: recent `main` workflow runs ended within a few seconds with no runner assigned, no steps reported and no downloadable job logs. This is currently inconclusive about code correctness; do not mark CI green or infer a code-level cause from these runs.
 - [ ] Check repository Actions settings, quota/billing availability and rerun the workflow once a runner can start.
+
+## Customer continuity — execution track A–B (current)
+
+### A — Backend persistence and environment isolation
+- [x] Require explicit `LOCAL_DEV=true` plus a loopback Firestore Emulator host for local Worker persistence.
+- [x] Fail closed when local mode omits the emulator host or the emulator project differs from `FIREBASE_PROJECT_ID`.
+- [x] Connect Vite development Firestore Web SDK to the local emulator; keep Firebase Authentication on the configured Auth project.
+- [x] Set Wrangler `ORDERS_ENABLED=false` by default.
+- [x] Add a persistent emulator launcher that imports the previous export and exports on normal shutdown.
+- [x] Ignore local emulator export data in Git.
+- [x] Add regression coverage for local/remote Firestore configuration boundaries.
+- [ ] Run the Worker and frontend against the emulator locally; verify zone, table, event and order persistence after Worker restart and emulator stop/start.
+- [ ] Verify the local admin dashboard reads emulator collections, not production Firestore.
+- [ ] Confirm the first export and subsequent import on the owner's machine.
+
+### B — Customer identity
+- [x] Preserve an existing anonymous Firebase Auth session instead of signing it out before the customer can link it.
+- [x] Link an anonymous user to Email/Password with `linkWithCredential`, retaining the original UID.
+- [x] Keep email verification, password login and password-reset flows.
+- [x] Add unit tests proving linking keeps the same UID and normal registration creates a new account.
+- [x] Fail safely when the email credential already belongs to another UID; do not merge accounts or move data automatically.
+- [ ] Run lint, customer-auth tests, Worker tests and production build locally.
+- [ ] Manually validate anonymous-session linking with Firebase Auth and a verified test account.
+- [ ] Verify login, logout, verification resend and password recovery in the browser.
+
+**Boundary:** no production deployment, Auth/Firestore migration, account deletion, secret configuration, billing change, or real order is included. Legacy anonymous data is retained only when Firebase can link the credential to the same UID. Existing email accounts with a different UID require a separately authorized migration plan.
