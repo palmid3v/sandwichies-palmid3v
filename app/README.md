@@ -2,7 +2,7 @@
 
 **Actualizado:** 3 de noviembre de 2026  
 **Rama principal:** `main`  
-**Estado:** desarrollo activo; release no aprobado. `main` tiene `BUSINESS.acceptingOrders = true` en `270303d`, en conflicto con los documentos de release.
+**Estado:** desarrollo activo; release no aprobado. `main` tiene `BUSINESS.acceptingOrders = false`; la recepción y creación de pedidos están desactivadas.
 **Fases activas:** entrega Phase 1 (zona activa más cercana) y Phase 2 (horarios semanales por zona) implementadas en código; QA local pendiente. La integración Sandwichies ↔ Cupboard conserva sus gates propios.
 
 > Fuente de verdad: código y configuración actuales del repositorio. Las especificaciones, mockups y roadmaps describen objetivos; no prueban que una función esté implementada.
@@ -38,7 +38,7 @@ La web actual usa React y Vite. No existe todavía una aplicación nativa iOS/An
 - Identidad de cliente con Firebase Email/Password, verificación de correo y recuperación de contraseña.
 - Compatibilidad de vinculación de una sesión anónima heredada mediante `linkWithCredential`, conservando el UID; no crea nuevas sesiones anónimas.
 - Validación de solicitudes y reconstrucción confiable de pedidos en backend.
-- El flujo usa la callable confiable y está sujeto a `BUSINESS.acceptingOrders`; `main` quedó habilitada en `270303d`, pero release/producción no están aprobados. No ejecutar pedidos reales.
+- El flujo está sujeto a `BUSINESS.acceptingOrders = false`; el storefront muestra los pedidos como cerrados y el dominio rechaza nuevas órdenes.
 
 ### Administración
 - Firebase Authentication y custom claim `admin: true`.
@@ -107,7 +107,7 @@ Se implementó `app/worker/` como backend alternativo bajo el objetivo de presup
 **Límite de seguridad IAM:** el acceso Firestore con service account omite Firestore Security Rules y los permisos IAM de Firestore son de alcance de proyecto, no de colección. Por eso las dos identidades deben mantenerse separadas, con permisos de datos mínimos en sus proyectos respectivos, secretos protegidos y revisión explícita de ese alcance antes de configurar credenciales. El código no sustituye una política IAM por colección.
 
 **Estado operativo y gates pendientes:**
-- `ORDERS_ENABLED=false` por defecto en Wrangler; la creación de pedidos se rechaza hasta una habilitación explícita.
+- `ORDERS_ENABLED=false` en Wrangler y `BUSINESS.acceptingOrders=false` en el dominio compartido; ambos controles mantienen desactivada la recepción de pedidos.
 - En Vite development, Firestore Web SDK y Worker usan el emulador local; Firebase Auth conserva el proyecto configurado para emitir tokens. El emulador exporta/importa datos desde `app/.emulator-data` al reiniciar.
 - `SANDWICHIES_SERVICE_ACCOUNT_JSON`, `CUPBOARD_SERVICE_ACCOUNT_JSON`, `CUPBOARD_PROJECT_ID`, `CUPBOARD_HOUSEHOLD_ID` y el mapeo completo de ingredientes aún no están configurados con valores reales.
 - El frontend espera `VITE_SANDWICHIES_WORKER_URL`; `.env.example` lo deja vacío deliberadamente.
@@ -217,7 +217,7 @@ Los porcentajes son estimaciones de avance documental/funcional por área, no m�
 | UX cliente web | 70% | Flujos base; validación completa pendiente |
 | UX administración | 85% | Herramientas principales; validación operativa pendiente |
 | Integración con Cupboard | 65% | Falta configuración real y pruebas cruzadas |
-| Release de pedidos reales | Bloqueado | La bandera source contradice la checklist; no desplegar ni probar con órdenes reales |
+| Recepción de pedidos | Desactivada | `BUSINESS.acceptingOrders=false` y `ORDERS_ENABLED=false`; no se aceptan nuevas órdenes |
 | Mesas virtuales | Implementación base | Cliente, funciones, consola admin y reglas; validación/release pendientes |
 | iOS y Android nativos | 0% código | Plan de crecimiento, sin app nativa |
 
