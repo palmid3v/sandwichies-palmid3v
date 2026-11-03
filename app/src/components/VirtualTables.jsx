@@ -243,7 +243,7 @@ export default function VirtualTables({ orders = [] }) {
 
         {tab === "zonas" && <>
           <div className="zone-panel-heading"><div><p className="admin-eyebrow">Cobertura geográfica</p><h3>{zoneForm.zoneId ? "Editar zona" : "Nueva zona"}</h3></div></div>
-          <p>En el mapa, activa “Dibujar zona” y marca sus vértices. La cobertura usa el polígono completo; el radio de 50 m solo agrupa mesas.</p>
+          <p>Activa “Dibujar zona” para añadir vértices y arrastrar los puntos amarillos para ajustar el contorno. La cobertura usa el polígono completo; el radio de 50 m solo agrupa mesas.</p>
           <form className="zone-editor-form" onSubmit={saveZone}>
             <label>Nombre de zona<input value={zoneForm.name} onChange={(event) => setZoneForm((current) => ({ ...current, name: event.target.value }))} minLength={2} maxLength={80} required /></label>
             <div className="zone-config-grid">
