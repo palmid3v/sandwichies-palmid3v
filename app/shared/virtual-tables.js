@@ -159,7 +159,7 @@ export const DEFAULT_ZONE_SCHEDULE = Object.freeze({
 });
 
 const WEEKDAY_KEYS = Object.freeze(["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]);
-const validClock = (value) => typeof value === "string" && /^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+const validClock = (value) => typeof value === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
 
 export const validateZoneSchedule = (schedule) => {
   if (schedule == null) return structuredClone(DEFAULT_ZONE_SCHEDULE);
