@@ -12,6 +12,17 @@
 - [x] Keep virtual-table grouping independent: 50 m fixed-anchor radius and maximum capacity 9.
 - [ ] Run Worker tests, integration tests and manual customer coverage checks locally.
 
+### Delivery Phase 3 — Customer/admin map interactions
+**Implementation:** published to `main`; local browser QA pending.
+- [x] Make the customer meeting-point pin draggable; map taps and manual coordinates remain supported.
+- [x] Keep the customer map synchronized with the selected coordinates and preserve the existing explicit GPS permission flow.
+- [x] Render delivery-zone polygon vertices as visible map handles in the admin operations view.
+- [x] Allow administrators to drag polygon vertices while drawing/editing a zone; map clicks continue adding vertices.
+- [x] Preserve the existing polygon save contract and server-side coverage validation.
+- [ ] Verify pin dragging, GPS selection, manual coordinates and coverage feedback on mobile and desktop.
+- [ ] Verify polygon vertex editing, undo, save/reload and coverage results against test zones.
+- [ ] Confirm Leaflet marker rendering and map sizing on narrow screens and after tab changes.
+
 ### Delivery Phase 2 — Zone service schedules
 **Implementation:** published to `main`; local QA pending.
 - [x] Store a per-zone weekly schedule in the delivery-zone document.
