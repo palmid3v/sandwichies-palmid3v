@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import {
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
+  linkWithCredential,
+  onAuthStateChanged,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
@@ -8,9 +11,10 @@ import {
 } from "firebase/auth";
 import { auth } from "../firebase";
 import { BUSINESS } from "../config/business";
+import { createOrLinkCustomerAccount } from "../auth/customer-account";
 
 export default function CustomerAuth({ pendingMessage = "" }) {
-  const [mode, setMode] = useState("login");
+  const [mode, setMode] = useState(() => auth.currentUser?.isAnonymous ? "register" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,6 +24,10 @@ export default function CustomerAuth({ pendingMessage = "" }) {
   useEffect(() => {
     if (pendingMessage) setNotice(pendingMessage);
   }, [pendingMessage]);
+
+  useEffect(() => onAuthStateChanged(auth, (user) => {
+    if (user?.isAnonymous) setMode("register");
+  }), []);
 
   const clearMessages = () => {
     setError("");
@@ -32,10 +40,20 @@ export default function CustomerAuth({ pendingMessage = "" }) {
     clearMessages();
     try {
       if (mode === "register") {
-        const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        const linkedAnonymousSession = auth.currentUser?.isAnonymous === true;
+        const credential = await createOrLinkCustomerAccount({
+          auth,
+          email,
+          password,
+          createAccount: createUserWithEmailAndPassword,
+          linkAccount: linkWithCredential,
+          createEmailCredential: EmailAuthProvider.credential,
+        });
         await sendEmailVerification(credential.user);
         await signOut(auth);
-        setNotice("Cuenta creada. Te enviamos un enlace de verificación; confirma tu correo y luego inicia sesión.");
+        setNotice(linkedAnonymousSession
+          ? "Cuenta vinculada. Conservamos el mismo identificador de tu sesión anterior y sus datos; verifica tu correo y luego inicia sesión."
+          : "Cuenta creada. Te enviamos un enlace de verificación; confirma tu correo y luego inicia sesión.");
         setMode("login");
         return;
       }
@@ -47,11 +65,14 @@ export default function CustomerAuth({ pendingMessage = "" }) {
         setNotice("Tu correo aún no está verificado. Te enviamos un nuevo enlace; verifica tu correo y vuelve a ingresar.");
       }
     } catch (authError) {
-      if (auth.currentUser && auth.currentUser.emailVerified !== true) {
+      if (auth.currentUser
+        && auth.currentUser.isAnonymous !== true
+        && auth.currentUser.emailVerified !== true) {
         await signOut(auth).catch(() => undefined);
       }
       const messages = {
-        "auth/email-already-in-use": "Ya existe una cuenta con ese correo. Inicia sesión.",
+        "auth/email-already-in-use": "Ya existe una cuenta con ese correo. Inicia sesión; por seguridad no fusionamos automáticamente dos cuentas distintas.",
+        "auth/credential-already-in-use": "Ese correo ya pertenece a otra cuenta. Inicia sesión con esa cuenta; sus datos no se fusionan automáticamente con la sesión temporal.",
         "auth/invalid-email": "El correo no tiene un formato válido.",
         "auth/weak-password": "La contraseña debe tener al menos 6 caracteres.",
         "auth/too-many-requests": "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
