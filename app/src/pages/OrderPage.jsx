@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { onAuthStateChanged, updateProfile } from "firebase/auth";
+import { onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import CustomerAuth from "./CustomerAuth";
@@ -118,6 +118,23 @@ export default function OrderPage() {
       unsubscribe();
     };
   }, []);
+
+  const handleCustomerSignOut = async () => {
+    try {
+      await signOut(auth);
+      setCart([]);
+      setCompletedOrder(null);
+      setClientName("");
+      setPhone("");
+      setAddress("");
+      setNeighborhood("");
+      setAddressReference("");
+      setNotes("");
+    } catch (error) {
+      console.error("No se pudo cerrar la sesión del cliente:", error);
+      showToast("No pudimos cerrar la sesión. Inténtalo de nuevo.", "error");
+    }
+  };
 
   const persistCustomerName = async () => {
     const name = clientName.trim();
@@ -554,6 +571,13 @@ export default function OrderPage() {
           <span />
           {BUSINESS.acceptingOrders ? "Recibiendo pedidos" : "Pedidos cerrados"}
         </div>
+        <button
+          type="button"
+          className="customer-signout-button"
+          onClick={handleCustomerSignOut}
+        >
+          Cerrar sesión
+        </button>
       </header>
 
       <div id="nuestro-menu" className="catalog-anchor">
