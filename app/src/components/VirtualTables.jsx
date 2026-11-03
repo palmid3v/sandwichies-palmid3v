@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { CircleMarker, MapContainer, Polygon, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import { CircleMarker, MapContainer, Marker, Polygon, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import MapSizeInvalidator from "./MapSizeInvalidator";
 import { VIRTUAL_TABLE_DEFAULTS } from "../../shared/virtual-tables.js";
@@ -7,6 +8,7 @@ import { auth } from "../firebase";
 import { workerRequest } from "../api/worker";
 
 const MEDELLIN = [6.2442, -75.5812];
+const ZONE_VERTEX_ICON = L.divIcon({ className: "delivery-zone-vertex", html: "", iconSize: [16, 16], iconAnchor: [8, 8] });
 const ZONE_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 const EMPTY_ZONE_SCHEDULE = { enabled: false, timeZone: "America/Bogota", weekly: Object.fromEntries(ZONE_DAYS.map((day) => [day, []])) };
 const dateValue = (value) => value?.toDate?.() || (value ? new Date(value) : null);
@@ -186,7 +188,20 @@ export default function VirtualTables({ orders = [] }) {
             const color = table.status === "expired" ? "#a8aaa1" : table.activeOrderCount >= table.capacity ? "#e75b4a" : mins <= 15 ? "#ffcf4a" : "#21a366";
             return <CircleMarker key={table.id} center={[table.center.latitude, table.center.longitude]} radius={10} pathOptions={{ color, fillColor: color, fillOpacity: 0.88 }} eventHandlers={{ click: () => { setSelectedId(table.id); setTab("mesas"); setMobileMap(false); } }}><Tooltip>{table.tableId?.slice(0, 8)} · {table.activeOrderCount}/{table.capacity} · {table.status}</Tooltip></CircleMarker>;
           })}
-          {drawing && polygon.map((point, index) => <CircleMarker key={`${point.latitude}-${point.longitude}-${index}`} center={[point.latitude, point.longitude]} radius={5} pathOptions={{ color: "#ffcf4a", fillOpacity: 1 }}><Tooltip>Vértice {index + 1}</Tooltip></CircleMarker>)}
+          {polygon.map((point, index) => <Marker
+            key={`zone-vertex-${index}`}
+            position={[point.latitude, point.longitude]}
+            icon={ZONE_VERTEX_ICON}
+            draggable={drawing}
+            bubblingMouseEvents={false}
+            eventHandlers={{ dragend: (event) => {
+              const position = event.target.getLatLng();
+              setPolygon((current) => current.map((vertex, vertexIndex) => vertexIndex === index
+                ? { latitude: position.lat, longitude: position.lng }
+                : vertex));
+            } }}
+            title={drawing ? `Arrastra para mover el vértice ${index + 1}` : `Vértice ${index + 1}`}
+          ><Tooltip>Vértice {index + 1}{drawing ? " · arrastra para mover" : ""}</Tooltip></Marker>)}
           {focusPoints.length > 0 && <MapFocus points={focusPoints} />}
         </MapContainer>
       </div>
