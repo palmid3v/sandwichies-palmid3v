@@ -183,3 +183,7 @@ temp/
 **/temp/
 *.tmp
 *.temp
+
+# Firestore Emulator persistent local export
+.emulator-data/
+app/.emulator-data/
