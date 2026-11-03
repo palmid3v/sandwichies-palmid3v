@@ -2,7 +2,7 @@
 
 > **PALMI-D3V** · Storefront mobile-first y consola de operación del negocio.
 
-> **Estado documental:** código de storefront, Worker, pedidos, zonas, mesas y puente Cupboard existe en `main`. Las pruebas locales recientes del usuario confirmaron creación de zonas, pedidos y mesas mediante el entorno local. Esto no equivale a despliegue ni validación de producción. La configuración de ejecución local debe revisarse en `app/worker/.dev.vars`; nunca versionar secretos.
+> **Estado documental:** la recepción de pedidos está desactivada. `BUSINESS.acceptingOrders=false` en el dominio compartido y `ORDERS_ENABLED=false` en Wrangler. El storefront debe mostrar **Pedidos cerrados** y el Worker debe rechazar nuevas órdenes. La configuración local debe revisarse en `app/worker/.dev.vars`; nunca versionar secretos.
 
 ## 🎯 Producto
 Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, precios, carrito, pedidos, pagos, entrega y operación administrativa. La experiencia cliente es mobile-first; la administración funciona en móvil y escritorio.
@@ -20,7 +20,7 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 ### Backend
 - Dominio compartido de catálogo, recetas, precios, promociones y consumo en `app/shared/`.
 - React 19, Vite 8, Firebase 12, Cloudflare Worker/Wrangler, Firestore REST, Firebase ID token/JWK, Leaflet/React-Leaflet y Node Test Runner.
-- El Worker verifica tokens, valida CORS, reconstruye precios/consumos en servidor, registra pedidos idempotentes y comunica movimientos con Cupboard.
+- El Worker verifica tokens, valida CORS, reconstruye precios/consumos en servidor y conserva la API de pedidos; la creación de nuevas órdenes está desactivada por configuración.
 - Cupboard es la autoridad de balances comerciales; Sandwichies mantiene referencias/sincronización operativa, no una segunda autoridad de stock.
 
 ## 📊 Estado del proyecto
@@ -32,7 +32,7 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 |---|---|
 | Catálogo, recetas y precios confiables | Implementado en dominio compartido |
 | Storefront y carrito | Implementado; persistencia de cuenta por completar |
-| Pedidos y Worker | Implementados en código; local probado parcialmente |
+| Pedidos y Worker | Recepción desactivada; `BUSINESS.acceptingOrders=false` y `ORDERS_ENABLED=false` |
 | Zonas y mesas virtuales | Implementación y prueba local confirmadas; ampliar reglas |
 | Cupboard | Puente idempotente en código; configuración/QA cruzado pendiente |
 | Registro, perfil y direcciones persistentes | Pendiente de completar |
@@ -56,7 +56,7 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 - Las credenciales de servicio Sandwichies y Cupboard deben ser distintas. El acceso Firestore REST con service account omite Firestore Rules y las reglas IAM son de alcance de proyecto; revisar el riesgo antes de producción.
 - El consumo Cupboard y la actualización del pedido son una saga entre proyectos, no una transacción distribuida. Reintentos, locks y movimientos deterministas deben recuperarse de forma comprobada.
 - Mantener pruebas en emuladores. No ejecutar pedidos de prueba contra inventario real.
-- No desplegar Worker/Functions, cambiar facturación ni habilitar pedidos reales sin aprobación explícita y release checklist aprobado.
+- La recepción de pedidos permanece desactivada. No habilitar pedidos ni desplegar cambios de backend sin aprobación explícita y release checklist aprobado.
 
 ## 🧪 Desarrollo local
 Desde `app/`:
