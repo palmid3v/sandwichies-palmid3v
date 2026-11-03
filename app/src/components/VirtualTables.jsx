@@ -7,6 +7,8 @@ import { auth } from "../firebase";
 import { workerRequest } from "../api/worker";
 
 const MEDELLIN = [6.2442, -75.5812];
+const ZONE_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const EMPTY_ZONE_SCHEDULE = { enabled: false, timeZone: "America/Bogota", weekly: Object.fromEntries(ZONE_DAYS.map((day) => [day, []])) };
 const dateValue = (value) => value?.toDate?.() || (value ? new Date(value) : null);
 const timestampMillis = (value) => {
   const date = dateValue(value);
@@ -48,6 +50,7 @@ export default function VirtualTables({ orders = [] }) {
     capacity: VIRTUAL_TABLE_DEFAULTS.capacity,
     groupingRadiusMeters: VIRTUAL_TABLE_DEFAULTS.groupingRadiusMeters,
     inactivityMinutes: VIRTUAL_TABLE_DEFAULTS.inactivityMinutes,
+    schedule: EMPTY_ZONE_SCHEDULE,
   });
   const [polygon, setPolygon] = useState([]);
   const [error, setError] = useState("");
@@ -138,6 +141,7 @@ export default function VirtualTables({ orders = [] }) {
       capacity: zone.capacity,
       groupingRadiusMeters: zone.groupingRadiusMeters,
       inactivityMinutes: zone.inactivityMinutes,
+      schedule: zone.schedule || EMPTY_ZONE_SCHEDULE,
     });
     setPolygon(zone.polygon || []);
     setDrawing(false);
@@ -149,12 +153,12 @@ export default function VirtualTables({ orders = [] }) {
     if (polygon.length < 3) { setError("Marca al menos tres vértices en el mapa."); return; }
     const saved = await invoke("saveDeliveryZone", { ...zoneForm, polygon }, zoneForm.zoneId ? "Zona actualizada." : "Zona creada.");
     if (!saved) return;
-    setZoneForm({ zoneId: "", name: "", active: true, capacity: VIRTUAL_TABLE_DEFAULTS.capacity, groupingRadiusMeters: 50, inactivityMinutes: 60 });
+    setZoneForm({ zoneId: "", name: "", active: true, capacity: VIRTUAL_TABLE_DEFAULTS.capacity, groupingRadiusMeters: 50, inactivityMinutes: 60, schedule: EMPTY_ZONE_SCHEDULE });
     setPolygon([]); setDrawing(false);
   };
 
   const clearZoneForm = () => {
-    setZoneForm({ zoneId: "", name: "", active: true, capacity: VIRTUAL_TABLE_DEFAULTS.capacity, groupingRadiusMeters: VIRTUAL_TABLE_DEFAULTS.groupingRadiusMeters, inactivityMinutes: VIRTUAL_TABLE_DEFAULTS.inactivityMinutes });
+    setZoneForm({ zoneId: "", name: "", active: true, capacity: VIRTUAL_TABLE_DEFAULTS.capacity, groupingRadiusMeters: VIRTUAL_TABLE_DEFAULTS.groupingRadiusMeters, inactivityMinutes: VIRTUAL_TABLE_DEFAULTS.inactivityMinutes, schedule: EMPTY_ZONE_SCHEDULE });
     setPolygon([]); setDrawing(false); setError("");
   };
 
@@ -233,6 +237,24 @@ export default function VirtualTables({ orders = [] }) {
               <label>Inactividad (min)<input type="number" min="5" max="1440" value={zoneForm.inactivityMinutes} onChange={(event) => setZoneForm((current) => ({ ...current, inactivityMinutes: Number(event.target.value) }))} /></label>
             </div>
             <label className="zone-active-toggle"><input type="checkbox" checked={zoneForm.active} onChange={(event) => setZoneForm((current) => ({ ...current, active: event.target.checked }))} /> Zona activa</label>
+            <fieldset className="zone-schedule-editor">
+              <legend>Horario de atención</legend>
+              <label className="zone-active-toggle"><input type="checkbox" checked={zoneForm.schedule?.enabled === true} onChange={(event) => setZoneForm((current) => ({ ...current, schedule: { ...(current.schedule || EMPTY_ZONE_SCHEDULE), enabled: event.target.checked } }))} /> Aplicar horario de atención (hora Colombia)</label>
+              {zoneForm.schedule?.enabled && <div className="zone-schedule-days">
+                {ZONE_DAYS.map((day) => {
+                  const intervals = zoneForm.schedule?.weekly?.[day] || [];
+                  const interval = intervals[0] || { start: "07:00", end: "21:00" };
+                  const enabled = intervals.length > 0;
+                  return <div className="zone-schedule-day" key={day}>
+                    <label><input type="checkbox" checked={enabled} onChange={(event) => setZoneForm((current) => ({ ...current, schedule: { ...current.schedule, weekly: { ...current.schedule.weekly, [day]: event.target.checked ? [{ start: "07:00", end: "21:00" }] : [] } } }))} /> {day.charAt(0).toUpperCase() + day.slice(1)}</label>
+                    <input aria-label={day + " apertura"} type="time" value={interval.start} disabled={!enabled} onChange={(event) => setZoneForm((current) => ({ ...current, schedule: { ...current.schedule, weekly: { ...current.schedule.weekly, [day]: [{ ...interval, start: event.target.value }] } } }))} />
+                    <span>a</span>
+                    <input aria-label={day + " cierre"} type="time" value={interval.end} disabled={!enabled} onChange={(event) => setZoneForm((current) => ({ ...current, schedule: { ...current.schedule, weekly: { ...current.schedule.weekly, [day]: [{ ...interval, end: event.target.value }] } } }))} />
+                  </div>;
+                })}
+              </div>}
+              {!zoneForm.schedule?.enabled && <small>Sin horario configurado: la zona permanece disponible las 24 horas.</small>}
+            </fieldset>
             <div className="zone-polygon-help"><strong>{polygon.length} vértices</strong><span>{drawing ? "Toca el mapa para añadir vértices." : "Activa el dibujo para marcar o corregir el polígono."}</span></div>
             <div className="zone-form-actions"><button type="button" onClick={() => setDrawing((current) => !current)}>{drawing ? "Terminar dibujo" : "Dibujar zona en mapa"}</button><button type="button" onClick={() => setPolygon((current) => current.slice(0, -1))} disabled={!polygon.length}>Deshacer punto</button><button type="button" onClick={clearZoneForm}>Limpiar</button></div>
             <button className="zone-save-button" type="submit" disabled={busy || polygon.length < 3}>{busy ? "Guardando…" : zoneForm.zoneId ? "Guardar zona" : "Crear zona"}</button>
