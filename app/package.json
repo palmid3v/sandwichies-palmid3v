@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "test": "node --test test/pricing.test.js test/business.test.js test/inventory.test.js test/delivery-coverage.test.js test/phone.test.js test/promotions.test.js test/virtual-tables.test.js",
+    "test": "node --test test/pricing.test.js test/business.test.js test/inventory.test.js test/delivery-coverage.test.js test/phone.test.js test/promotions.test.js test/virtual-tables.test.js test/customer-auth.test.js",
     "security:rules": "node --test test/security.rules.test.js",
     "security:test": "firebase emulators:exec --only firestore --project demo-sandwichies \"npm run security:rules\"",
     "emulators:test": "npm run security:test",
