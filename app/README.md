@@ -35,7 +35,8 @@ La web actual usa React y Vite. No existe todavía una aplicación nativa iOS/An
 - Búsqueda y filtros del catálogo.
 - Carrito con cantidades, eliminación y cálculo de totales.
 - Selección de recogida o domicilio y captura de datos de contacto.
-- Sesión de cliente mediante Firebase Anonymous Auth, separada del cliente Firebase administrativo.
+- Identidad de cliente con Firebase Email/Password, verificación de correo y recuperación de contraseña.
+- Compatibilidad de vinculación de una sesión anónima heredada mediante `linkWithCredential`, conservando el UID; no crea nuevas sesiones anónimas.
 - Validación de solicitudes y reconstrucción confiable de pedidos en backend.
 - El flujo usa la callable confiable y está sujeto a `BUSINESS.acceptingOrders`; `main` quedó habilitada en `270303d`, pero release/producción no están aprobados. No ejecutar pedidos reales.
 
@@ -106,7 +107,8 @@ Se implementó `app/worker/` como backend alternativo bajo el objetivo de presup
 **Límite de seguridad IAM:** el acceso Firestore con service account omite Firestore Security Rules y los permisos IAM de Firestore son de alcance de proyecto, no de colección. Por eso las dos identidades deben mantenerse separadas, con permisos de datos mínimos en sus proyectos respectivos, secretos protegidos y revisión explícita de ese alcance antes de configurar credenciales. El código no sustituye una política IAM por colección.
 
 **Estado operativo y gates pendientes:**
-- `ORDERS_ENABLED=false` por defecto; la creación de pedidos se rechaza hasta una habilitación explícita.
+- `ORDERS_ENABLED=false` por defecto en Wrangler; la creación de pedidos se rechaza hasta una habilitación explícita.
+- En Vite development, Firestore Web SDK y Worker usan el emulador local; Firebase Auth conserva el proyecto configurado para emitir tokens. El emulador exporta/importa datos desde `app/.emulator-data` al reiniciar.
 - `SANDWICHIES_SERVICE_ACCOUNT_JSON`, `CUPBOARD_SERVICE_ACCOUNT_JSON`, `CUPBOARD_PROJECT_ID`, `CUPBOARD_HOUSEHOLD_ID` y el mapeo completo de ingredientes aún no están configurados con valores reales.
 - El frontend espera `VITE_SANDWICHIES_WORKER_URL`; `.env.example` lo deja vacío deliberadamente.
 - Se añadieron pruebas Worker para autenticación, CORS, Firestore REST, idempotencia, consumo, insuficiencia de stock y reversión. **Todavía deben ejecutarse** en local/CI; no afirmar que pasan hasta tener resultados.
