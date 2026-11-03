@@ -111,3 +111,56 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* Delivery zone weekly schedule editor */
+.zone-schedule-editor {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  margin: 16px 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+.zone-schedule-editor legend {
+  padding: 0 6px;
+  color: var(--ink);
+  font-weight: 700;
+}
+.zone-schedule-days {
+  display: grid;
+  gap: 8px;
+}
+.zone-schedule-day {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(88px, 112px) auto minmax(88px, 112px);
+  align-items: center;
+  gap: 8px;
+}
+.zone-schedule-day > label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 0.88rem;
+}
+.zone-schedule-day input[type="time"] {
+  width: 100%;
+  min-width: 0;
+}
+.zone-schedule-editor small {
+  color: var(--muted);
+}
+@media (max-width: 480px) {
+  .zone-schedule-day {
+    grid-template-columns: 1fr 1fr;
+  }
+  .zone-schedule-day > label {
+    grid-column: 1 / -1;
+  }
+  .zone-schedule-day > span {
+    display: none;
+  }
+}
