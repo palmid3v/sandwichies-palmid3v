@@ -218,7 +218,7 @@ async function assignVirtualTable({ tx, orderId, uid, orderNumber, point, zone, 
     createdAt: now,
   });
   return {
-    tableId, tableReference, zoneId: zone.id, status: "waiting_customer",
+    tableId, tableReference, zoneId: zone.id, zoneName: zone.name || null, status: "waiting_customer",
     zoneAssignment: zone.assignment || { method: "inside_polygon", distanceMeters: 0 },
   };
 }
@@ -297,7 +297,7 @@ export async function createOrder({ request, claims, env, db: injectedDb, policy
         delivery: {
           mode: "virtual_table",
           ...delivery,
-          zoneName: (await tx.get(`deliveryZones/${safeDocId(delivery.zoneId)}`)).data?.name || null,
+          zoneName: delivery.zoneName,
         },
       } : {}),
       inventory: {
@@ -585,7 +585,18 @@ export async function checkDeliveryCoverage({ point, env }) {
   const db = createSandwichiesDb(env);
   const zones = await db.query("deliveryZones", { field: "active", op: "EQUAL", value: true, limit: 200 });
   const zone = findOperatingZone(point, zones.map(({ path, data }) => ({ id: path.split("/").at(-1), ...data })));
-  return { covered: Boolean(zone), zoneName: zone?.name || null, zoneId: zone?.id || null };
+  if (!zone) return { covered: false, assigned: false, zoneName: null, zoneId: null };
+  const schedule = getZoneScheduleStatus(zone);
+  return {
+    covered: true,
+    assigned: true,
+    insidePolygon: zone.assignment?.method === "inside_polygon",
+    zoneName: zone.name || null,
+    zoneId: zone.id || null,
+    distanceMeters: zone.assignment?.distanceMeters ?? 0,
+    assignmentMethod: zone.assignment?.method || "inside_polygon",
+    schedule,
+  };
 }
 
 export async function saveDeliveryZone({ payload, claims, env, db: injectedDb }) {
