@@ -102,8 +102,100 @@ export const pointInPolygon = (point, polygon) => {
   return inside;
 };
 
-export const findOperatingZone = (point, zones) =>
-  zones.find((zone) => zone.active === true && pointInPolygon(point, zone.polygon)) || null;
+const pointToSegmentMeters = (point, start, end) => {
+  const latitudeScale = 110540;
+  const longitudeScale = 111320 * Math.cos(point.latitude * Math.PI / 180);
+  const project = (value) => ({
+    x: (value.longitude - point.longitude) * longitudeScale,
+    y: (value.latitude - point.latitude) * latitudeScale,
+  });
+  const a = project(start);
+  const b = project(end);
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const t = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1, -(a.x * dx + a.y * dy) / lengthSquared));
+  return Math.hypot(a.x + t * dx, a.y + t * dy);
+};
+
+export const distanceToPolygonMeters = (point, polygon) => {
+  if (!validPoint(point)) return null;
+  let points;
+  try { points = validatePolygon(polygon); } catch { return null; }
+  if (pointInPolygon(point, points)) return 0;
+  let nearest = Infinity;
+  for (let index = 0; index < points.length; index += 1) {
+    const distance = pointToSegmentMeters(point, points[index], points[(index + 1) % points.length]);
+    nearest = Math.min(nearest, distance);
+  }
+  return Number.isFinite(nearest) ? nearest : null;
+};
+
+export const findOperatingZone = (point, zones) => {
+  if (!validPoint(point) || !Array.isArray(zones)) return null;
+  const active = zones.filter((zone) => zone?.active === true && Array.isArray(zone.polygon));
+  const containing = active
+    .filter((zone) => pointInPolygon(point, zone.polygon))
+    .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  if (containing.length) {
+    return { ...containing[0], assignment: { method: "inside_polygon", distanceMeters: 0 } };
+  }
+  const nearest = active
+    .map((zone) => ({ zone, distanceMeters: distanceToPolygonMeters(point, zone.polygon) }))
+    .filter((item) => Number.isFinite(item.distanceMeters))
+    .sort((a, b) => a.distanceMeters - b.distanceMeters || String(a.zone.id).localeCompare(String(b.zone.id)))[0];
+  return nearest
+    ? { ...nearest.zone, assignment: { method: "nearest_polygon", distanceMeters: Math.round(nearest.distanceMeters) } }
+    : null;
+};
+
+export const DEFAULT_ZONE_SCHEDULE = Object.freeze({
+  enabled: false,
+  timeZone: "America/Bogota",
+  weekly: Object.freeze({
+    monday: Object.freeze([]), tuesday: Object.freeze([]), wednesday: Object.freeze([]),
+    thursday: Object.freeze([]), friday: Object.freeze([]), saturday: Object.freeze([]), sunday: Object.freeze([]),
+  }),
+});
+
+const WEEKDAY_KEYS = Object.freeze(["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]);
+const validClock = (value) => typeof value === "string" && /^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+
+export const validateZoneSchedule = (schedule) => {
+  if (schedule == null) return structuredClone(DEFAULT_ZONE_SCHEDULE);
+  if (typeof schedule !== "object" || typeof schedule.enabled !== "boolean") {
+    throw new Error("La configuración de horario de la zona no es válida.");
+  }
+  const timeZone = typeof schedule.timeZone === "string" ? schedule.timeZone : "America/Bogota";
+  try { new Intl.DateTimeFormat("en", { timeZone }).format(new Date()); }
+  catch { throw new Error("La zona horaria configurada no es válida."); }
+  const weekly = {};
+  for (const day of WEEKDAY_KEYS) {
+    const intervals = schedule.weekly?.[day] ?? [];
+    if (!Array.isArray(intervals) || intervals.length > 4) throw new Error("Cada día admite hasta cuatro intervalos de atención.");
+    weekly[day] = intervals.map((interval) => {
+      if (!validClock(interval?.start) || !validClock(interval?.end) || interval.start >= interval.end) {
+        throw new Error("Cada intervalo debe tener horas válidas y la apertura debe ser anterior al cierre.");
+      }
+      return { start: interval.start, end: interval.end };
+    });
+  }
+  return { enabled: schedule.enabled, timeZone, weekly };
+};
+
+export const getZoneScheduleStatus = (zone, at = new Date()) => {
+  const schedule = validateZoneSchedule(zone?.schedule);
+  if (!schedule.enabled) return { open: true, scheduleEnabled: false, timeZone: schedule.timeZone, intervals: null };
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: schedule.timeZone, weekday: "long", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(at);
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  const weekday = values.weekday.toLowerCase();
+  const current = values.hour + ":" + values.minute;
+  const intervals = schedule.weekly[weekday] || [];
+  const open = intervals.some(({ start, end }) => current >= start && current < end);
+  return { open, scheduleEnabled: true, timeZone: schedule.timeZone, weekday, currentTime: current, intervals };
+};
 
 export const getVirtualTableExpiry = (activityTime, inactivityMinutes = VIRTUAL_TABLE_DEFAULTS.inactivityMinutes) =>
   activityTime + inactivityMinutes * 60_000;
