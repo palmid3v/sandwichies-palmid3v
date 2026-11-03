@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { CATALOG } from "../../shared/catalog.js";
 import { createOrder, transitionOrder, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers, createSandwichiesDb } from "../src/orders.js";
 import { FirestoreRest } from "../src/firestore-rest.js";
+import { findOperatingZone, getZoneScheduleStatus, validateZoneSchedule } from "../../shared/virtual-tables.js";
 
 class MemoryFirestore {
   constructor(initial = {}) {
@@ -367,4 +368,106 @@ test("admin delivery operations list is sorted and member responses omit custome
   assert.equal(members.members.length, 1);
   assert.equal(members.members[0].orderId, "order-1");
   assert.equal("customerUid" in members.members[0], false);
+});
+
+
+test("nearest active zone is selected when the customer point is outside every polygon", () => {
+  const polygon = [
+    { latitude: 4.60, longitude: -74.10 },
+    { latitude: 4.70, longitude: -74.10 },
+    { latitude: 4.70, longitude: -74.00 },
+    { latitude: 4.60, longitude: -74.00 },
+  ];
+  const zone = findOperatingZone({ latitude: 4.59, longitude: -74.05 }, [
+    { id: "zone-a", name: "Zona cercana", active: true, polygon },
+    { id: "zone-disabled", name: "Zona inactiva", active: false, polygon: [
+      { latitude: 4.58, longitude: -74.10 }, { latitude: 4.59, longitude: -74.10 },
+      { latitude: 4.59, longitude: -74.00 }, { latitude: 4.58, longitude: -74.00 },
+    ] },
+  ]);
+  assert.equal(zone.id, "zone-a");
+  assert.equal(zone.assignment.method, "nearest_polygon");
+  assert.ok(zone.assignment.distanceMeters > 0);
+});
+
+test("a containing active polygon has priority over a nearer outside candidate", () => {
+  const point = { latitude: 4.65, longitude: -74.05 };
+  const containing = [
+    { latitude: 4.60, longitude: -74.10 }, { latitude: 4.70, longitude: -74.10 },
+    { latitude: 4.70, longitude: -74.00 }, { latitude: 4.60, longitude: -74.00 },
+  ];
+  const near = [
+    { latitude: 4.64, longitude: -74.06 }, { latitude: 4.645, longitude: -74.06 },
+    { latitude: 4.645, longitude: -74.055 }, { latitude: 4.64, longitude: -74.055 },
+  ];
+  const zone = findOperatingZone(point, [
+    { id: "inside", active: true, polygon: containing },
+    { id: "near-outside", active: true, polygon: near },
+  ]);
+  assert.equal(zone.id, "inside");
+  assert.equal(zone.assignment.method, "inside_polygon");
+  assert.equal(zone.assignment.distanceMeters, 0);
+});
+
+test("zone schedule uses America/Bogota weekday and blocks closed intervals", () => {
+  const schedule = validateZoneSchedule({
+    enabled: true,
+    timeZone: "America/Bogota",
+    weekly: {
+      monday: [{ start: "07:00", end: "21:00" }],
+      tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [], sunday: [],
+    },
+  });
+  const mondayMorning = getZoneScheduleStatus({ schedule }, new Date("2026-11-02T13:00:00.000Z"));
+  const mondayNight = getZoneScheduleStatus({ schedule }, new Date("2026-11-02T03:00:00.000Z"));
+  assert.equal(mondayMorning.open, true);
+  assert.equal(mondayNight.open, false);
+});
+
+test("zone schedule rejects invalid or overnight intervals", () => {
+  assert.throws(() => validateZoneSchedule({
+    enabled: true, timeZone: "America/Bogota",
+    weekly: { monday: [{ start: "21:00", end: "07:00" }] },
+  }));
+});
+
+test("order creation assigns the nearest zone and persists assignment distance", async () => {
+  const polygon = [
+    { latitude: 4.60, longitude: -74.10 }, { latitude: 4.70, longitude: -74.10 },
+    { latitude: 4.70, longitude: -74.00 }, { latitude: 4.60, longitude: -74.00 },
+  ];
+  const db = new MemoryFirestore({
+    "deliveryZones/zone-near": { name: "Zona cercana", active: true, polygon, schedule: { enabled: false } },
+  });
+  const request = {
+    ...validOrderRequest(),
+    fulfillment: { type: "punto_encuentro", meetingPoint: { latitude: 4.59, longitude: -74.05 } },
+  };
+  const result = await createOrder({ request, claims: customerClaims, env, db, policy: testOrderPolicy });
+  assert.equal(result.order.delivery.zoneId, "zone-near");
+  const stored = await db.read(`orders/${result.order.id}`);
+  assert.equal(stored.data.delivery.zoneAssignment.method, "nearest_polygon");
+  assert.ok(stored.data.delivery.zoneAssignment.distanceMeters > 0);
+});
+
+test("order creation is rejected when the nearest zone is outside its service hours", async () => {
+  const polygon = [
+    { latitude: 4.60, longitude: -74.10 }, { latitude: 4.70, longitude: -74.10 },
+    { latitude: 4.70, longitude: -74.00 }, { latitude: 4.60, longitude: -74.00 },
+  ];
+  const closedSchedule = {
+    enabled: true, timeZone: "America/Bogota",
+    weekly: { monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [], sunday: [] },
+  };
+  const db = new MemoryFirestore({
+    "deliveryZones/zone-closed": { name: "Zona cerrada", active: true, polygon, schedule: closedSchedule },
+  });
+  const request = {
+    ...validOrderRequest(),
+    fulfillment: { type: "punto_encuentro", meetingPoint: { latitude: 4.65, longitude: -74.05 } },
+  };
+  await assert.rejects(
+    createOrder({ request, claims: customerClaims, env, db, policy: testOrderPolicy }),
+    (error) => error.status === 422 && error.code === "ZONE_OUTSIDE_SERVICE_HOURS",
+  );
 });
