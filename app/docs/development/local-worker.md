@@ -6,18 +6,20 @@ Este flujo conecta la interfaz de Sandwichies con el Worker real del repositorio
 
 ```
 Navegador (Vite :5182)
-  ├─ Firebase Authentication (sesión existente; solo emite el ID token)
+  ├─ Firebase Authentication (proyecto sandwich-pro; emite el ID token)
+  ├─ Firestore Web SDK → Firestore Emulator (:8080)
   └─ Worker API (Wrangler :8787)
        └─ Firestore Emulator (:8080)
 ```
 
 - El Worker verifica el ID token Firebase del administrador contra el proyecto `sandwich-pro`.
-- Solo el Worker local apunta al Firestore Emulator.
-- El transporte local usa `Bearer owner` únicamente contra un host loopback y solo cuando `LOCAL_DEV=true`.
-- La pantalla de Entregas obtiene zonas, mesas, miembros y actividad a través del Worker. No consulta directamente las colecciones productivas.
-- `ORDERS_ENABLED` continúa en `false`. No se habilita checkout ni creación de pedidos.
-- No se requiere service account para guardar zonas en el emulador.
-- El resto del dashboard puede conservar sus lecturas Firebase existentes; esta configuración local aísla las operaciones de Entregas, no convierte automáticamente todas las pantallas en emuladas.
+El SDK web de Firestore y el Worker local apuntan al mismo Firestore Emulator. Las lecturas en tiempo real del panel admin tampoco consultan Firestore productivo durante Vite development.
+- Firebase Authentication permanece en el proyecto `sandwich-pro` para emitir ID tokens reales; no se conecta Auth al emulador en este flujo.
+- El transporte del Worker usa `Bearer owner` únicamente contra un host loopback y solo cuando `LOCAL_DEV=true`.
+- El Worker local falla cerrado si falta `FIRESTORE_EMULATOR_HOST`, si el host no es loopback o si el project ID no coincide con `FIREBASE_PROJECT_ID`.
+- `ORDERS_ENABLED=false` es el valor de seguridad en `wrangler.toml` y `.dev.vars.example`. No se habilita checkout ni creación de pedidos.
+- No se requiere service account de Sandwichies para guardar zonas en el emulador.
+- Los builds de producción no conectan Firestore Emulator; usan Firestore remoto. Nunca compilar producción con una variable de emulador.
 
 ## Preparación (PowerShell)
 
@@ -29,7 +31,7 @@ Ejecutar desde `D:\PALMI-D3V\projects\sandwichies-palmid3v\app`.
 npm run emulator:firestore
 ```
 
-El emulador usa el proyecto local `sandwich-pro` y escucha en `127.0.0.1:8080`. No se ejecuta ningún comando de deploy ni se escribe en Firestore remoto.
+El emulador usa el proyecto local `sandwich-pro` y escucha en `127.0.0.1:8080`. El comando importa automáticamente el último respaldo de `app/.emulator-data` y exporta los datos al detenerse con `Ctrl+C`. La primera ejecución inicia vacío; al detenerla normalmente crea el respaldo que se restaurará en el siguiente inicio. Esta carpeta está ignorada por Git. No se ejecuta ningún comando de deploy ni se escribe en Firestore remoto.
 
 ### 2. Terminal — Worker local
 
@@ -56,22 +58,24 @@ Crear el archivo solo si todavía no existe. Si ya tienes un `.env.local`, conse
 if (!(Test-Path .env.local)) {
   Copy-Item .env.local.example .env.local
 }
-# En .env.local debe quedar:
+# En .env.local deben quedar:
 # VITE_SANDWICHIES_WORKER_URL=http://127.0.0.1:8787
+# VITE_FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
 npm run dev -- --host 127.0.0.1 --port 5182
 ```
 
 Abrir `http://127.0.0.1:5182`, iniciar sesión con la cuenta administradora habitual y entrar en Administración → Entregas → Zonas.
 
-El ID token de Firebase se usa solo para autenticar al administrador ante el Worker local. La persistencia de zonas, mesas y eventos de este flujo queda en el emulador local.
+El ID token de Firebase se usa para autenticar al administrador ante el Worker local. Las lecturas directas de Firestore del dashboard y las escrituras del Worker quedan en el mismo emulador local.
 
 ## Verificación funcional
 
 1. Dibujar un polígono de al menos tres vértices.
 2. Guardar la zona.
-3. La lista debe actualizarse después del guardado (también se refresca cada 10 segundos).
-4. Reiniciar el Worker no elimina los datos mientras el emulador siga activo.
-5. Reiniciar Firestore Emulator sin export/import limpia el almacenamiento de prueba.
+3. La lista debe actualizarse después del guardado.
+4. Detener el emulador con `Ctrl+C` y volver a ejecutar `npm run emulator:firestore`; la zona debe seguir presente tras importar el respaldo.
+5. Verificar que el navegador admin lee las colecciones del emulador y no datos del Firestore productivo.
+6. Confirmar que `/health` responde con `ordersEnabled = false` en el Worker local.
 
 Los endpoints administrativos nuevos son:
 
