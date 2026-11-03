@@ -1,11 +1,20 @@
 # Sandwichies — Contexto técnico de la aplicación
 
-**Actualizado:** 31 de octubre de 2026  
+**Actualizado:** 3 de noviembre de 2026  
 **Rama principal:** `main`  
 **Estado:** desarrollo activo; release no aprobado. `main` tiene `BUSINESS.acceptingOrders = true` en `270303d`, en conflicto con los documentos de release.
-**Fase de integración prioritaria:** Sandwichies ↔ Cupboard (Fase 3).
+**Fases activas:** entrega Phase 1 (zona activa más cercana) y Phase 2 (horarios semanales por zona) implementadas en código; QA local pendiente. La integración Sandwichies ↔ Cupboard conserva sus gates propios.
 
 > Fuente de verdad: código y configuración actuales del repositorio. Las especificaciones, mockups y roadmaps describen objetivos; no prueban que una función esté implementada.
+
+## Estado de entrega — fases aprobadas 1 y 2 (2026-11-03)
+
+- La asignación geográfica prioriza el polígono activo que contiene el punto; si ninguno lo contiene, selecciona la zona activa válida con menor distancia estimada al borde. No existe límite máximo de distancia en esta etapa.
+- El pedido guarda `zoneId`, nombre de zona, método de asignación y distancia estimada.
+- La configuración administrativa de cada zona incluye horario semanal por día y zona horaria. La zona sin control de horario habilitado permanece abierta 24 horas para compatibilidad.
+- El Worker valida el horario al crear el pedido y rechaza fuera de horario con `ZONE_OUTSIDE_SERVICE_HOURS`.
+- El radio de mesa sigue siendo independiente: 50 m desde el ancla; capacidad máxima 9.
+- Los cambios de código y pruebas se publicaron en `main`; todavía requieren ejecución de QA local y revisión visual. No se declara CI/producción aprobado.
 
 ## 1. Propósito y superficies del producto
 
