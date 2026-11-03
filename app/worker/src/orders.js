@@ -8,6 +8,8 @@ import { buildTrustedOrder } from "../../shared/order-request.js";
 import { OrderValidationError } from "../../shared/pricing.js";
 import {
   findOperatingZone,
+  getZoneScheduleStatus,
+  validateZoneSchedule,
   isCompatibleVirtualTable,
   canTransitionDeliveryStatus,
   validatePolygon,
@@ -215,7 +217,10 @@ async function assignVirtualTable({ tx, orderId, uid, orderNumber, point, zone, 
     actorUid: uid,
     createdAt: now,
   });
-  return { tableId, tableReference, zoneId: zone.id, status: "waiting_customer" };
+  return {
+    tableId, tableReference, zoneId: zone.id, status: "waiting_customer",
+    zoneAssignment: zone.assignment || { method: "inside_polygon", distanceMeters: 0 },
+  };
 }
 
 // policy is injectable only at the domain boundary so tests can exercise order
@@ -266,7 +271,14 @@ export async function createOrder({ request, claims, env, db: injectedDb, policy
         id: path.split("/").at(-1),
         ...data,
       })));
-      if (!zone) throw new ApiError(422, "OUTSIDE_DELIVERY_ZONE", "El punto elegido está fuera de las zonas habilitadas.");
+      if (!zone) throw new ApiError(422, "NO_ACTIVE_DELIVERY_ZONES", "Todavía no hay zonas de entrega activas.");
+      const scheduleStatus = getZoneScheduleStatus(zone, now);
+      if (!scheduleStatus.open) {
+        const hours = scheduleStatus.intervals.length
+          ? scheduleStatus.intervals.map(({ start, end }) => `${start}–${end}`).join(", ")
+          : "Cerrado hoy";
+        throw new ApiError(422, "ZONE_OUTSIDE_SERVICE_HOURS", `${zone.name} atiende ${hours} (${scheduleStatus.timeZone}).`);
+      }
       delivery = await assignVirtualTable({
         tx,
         orderId,
@@ -281,7 +293,13 @@ export async function createOrder({ request, claims, env, db: injectedDb, policy
     const order = {
       ...trusted,
       customerUid: uid,
-      ...(delivery ? { delivery: { mode: "virtual_table", ...delivery } } : {}),
+      ...(delivery ? {
+        delivery: {
+          mode: "virtual_table",
+          ...delivery,
+          zoneName: (await tx.get(`deliveryZones/${safeDocId(delivery.zoneId)}`)).data?.name || null,
+        },
+      } : {}),
       inventory: {
         system: "cupboard",
         consumptionStatus: "pending",
@@ -585,6 +603,9 @@ export async function saveDeliveryZone({ payload, claims, env, db: injectedDb })
     || !Number.isInteger(inactivityMinutes) || inactivityMinutes < 5 || inactivityMinutes > 1440) {
     throw new ApiError(400, "invalid-argument", "Capacidad, radio o inactividad fuera de los límites.");
   }
+  let schedule;
+  try { schedule = validateZoneSchedule(payload.schedule); }
+  catch (error) { throw new ApiError(400, "invalid-argument", error.message); }
   const zoneId = payload.zoneId ? String(payload.zoneId).trim() : randomId();
   if (!/^[A-Za-z0-9_-]{1,100}$/.test(zoneId)) throw new ApiError(400, "invalid-argument", "Identificador de zona inválido.");
   const db = injectedDb || createSandwichiesDb(env);
@@ -599,6 +620,7 @@ export async function saveDeliveryZone({ payload, claims, env, db: injectedDb })
       capacity,
       groupingRadiusMeters,
       inactivityMinutes,
+      schedule,
       createdAt: existing.data?.createdAt || now,
       updatedAt: now,
       updatedBy: claims.sub,
