@@ -654,3 +654,21 @@
 .discovery-empty{display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:22px;border:1px dashed var(--border-strong);border-radius:18px;color:var(--muted);background:rgba(255,255,255,.015)}
 .discovery-empty strong{color:var(--leaf)}
 @media(max-width:620px){.discovery-search{max-width:none}.discovery-search-control{min-height:48px}}
+
+
+/* Customer meeting-point pin (storefront does not load admin.css) */
+.meeting-point-marker {
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+.meeting-point-marker::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 3px solid #f8f4e8;
+  border-radius: 50% 50% 50% 0;
+  background: #21a366;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .42);
+  transform: rotate(-45deg);
+}
