@@ -69,6 +69,64 @@ const env = {
 };
 const customerClaims = { sub: "customer-uid", email_verified: true };
 const testOrderPolicy = { acceptingOrders: true };
+
+test("local Firestore emulator requires explicit local mode and matching project", () => {
+  const localDb = createSandwichiesDb({
+    ...env,
+    LOCAL_DEV: "true",
+    FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080",
+    FIRESTORE_PROJECT_ID: "sandwich-pro",
+  });
+  assert.ok(localDb instanceof FirestoreRest);
+  assert.equal(localDb.emulatorHost, "127.0.0.1:8080");
+  assert.equal(localDb.projectId, "sandwich-pro");
+  assert.match(localDb.root, /^http:\/\/127\.0\.0\.1:8080\//);
+});
+
+test("local mode fails closed instead of falling through to remote Firestore", () => {
+  assert.throws(
+    () => createSandwichiesDb({ ...env, LOCAL_DEV: "true" }),
+    (error) => error.code === "LOCAL_EMULATOR_HOST_REQUIRED",
+  );
+});
+
+test("Firestore emulator is rejected outside explicit local mode", () => {
+  assert.throws(
+    () => createSandwichiesDb({ ...env, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" }),
+    (error) => error.code === "LOCAL_EMULATOR_NOT_ALLOWED",
+  );
+});
+
+test("Firestore emulator rejects remote hosts and project mismatches", () => {
+  assert.throws(
+    () => createSandwichiesDb({ ...env, LOCAL_DEV: "true", FIRESTORE_EMULATOR_HOST: "firestore.googleapis.com:443" }),
+    (error) => error.code === "LOCAL_EMULATOR_HOST_INVALID",
+  );
+  assert.throws(
+    () => createSandwichiesDb({ ...env, LOCAL_DEV: "true", FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080", FIRESTORE_PROJECT_ID: "another-project" }),
+    (error) => error.code === "LOCAL_EMULATOR_PROJECT_MISMATCH",
+  );
+});
+
+test("production Firestore requires a service account from the configured project", () => {
+  const productionEnv = {
+    ...env,
+    SANDWICHIES_SERVICE_ACCOUNT_JSON: JSON.stringify({
+      type: "service_account",
+      project_id: "sandwich-pro",
+      client_email: "worker@sandwich-pro.iam.gserviceaccount.com",
+      private_key: "test-private-key",
+    }),
+  };
+  const remoteDb = createSandwichiesDb(productionEnv);
+  assert.ok(remoteDb instanceof FirestoreRest);
+  assert.equal(remoteDb.emulatorHost, "");
+  assert.match(remoteDb.root, /^https:\/\/firestore\.googleapis\.com\//);
+  assert.throws(
+    () => createSandwichiesDb({ ...env, SANDWICHIES_SERVICE_ACCOUNT_JSON: "" }),
+    (error) => error.code === "BACKEND_NOT_CONFIGURED",
+  );
+});
 const adminClaims = { sub: "admin-uid", admin: true, email_verified: true };
 const validOrderRequest = () => ({
   requestId: "a9e31e77-6e23-4f3d-ae90-1b2c3d4e5f60",
