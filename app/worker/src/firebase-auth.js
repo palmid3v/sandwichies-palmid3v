@@ -21,18 +21,34 @@ function getCachedKey(projectId, kid, now) {
   return cached.keys.find((key) => key.kid === kid) || null;
 }
 
-async function loadSigningKey(projectId, kid, fetchImpl, now) {
+async function loadSigningKey(projectId, kid, fetchImpl, now, timeoutMs) {
   const cachedKey = getCachedKey(projectId, kid, now);
   if (cachedKey) return cachedKey;
 
-  const response = await fetchImpl(FIREBASE_JWKS_URL, {
-    headers: { Accept: "application/json" },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  let response;
+  let body;
+  try {
+    response = await fetchImpl(FIREBASE_JWKS_URL, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    body = await response.json();
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error("FIREBASE_JWKS_TIMEOUT");
+      timeoutError.code = "FIREBASE_JWKS_TIMEOUT";
+      console.warn("[FirebaseAuth] dependency_timeout", { stage: "FIREBASE_JWKS", timeoutMs });
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
   if (!response.ok) {
     throw new Error(`Firebase signing keys unavailable: HTTP ${response.status}`);
   }
-
-  const body = await response.json();
   const keys = Array.isArray(body.keys) ? body.keys : [];
   if (!keys.some((key) => key.kid === kid)) {
     jwksCache.delete(projectId);
@@ -53,6 +69,7 @@ export async function verifyFirebaseIdToken(token, {
   fetchImpl = fetch,
   now = Date.now(),
   clockSkewSeconds = DEFAULT_CLOCK_SKEW_SECONDS,
+  timeoutMs = 5_000,
 } = {}) {
   if (!projectId || typeof token !== "string") {
     throw new Error("Firebase project and ID token are required");
@@ -86,7 +103,7 @@ export async function verifyFirebaseIdToken(token, {
     throw new Error("Firebase token authentication time is invalid");
   }
 
-  const jwk = await loadSigningKey(projectId, header.kid, fetchImpl, now);
+  const jwk = await loadSigningKey(projectId, header.kid, fetchImpl, now, Math.max(1_000, Number(timeoutMs) || 5_000));
   const publicKey = await crypto.subtle.importKey(
     "jwk",
     jwk,
