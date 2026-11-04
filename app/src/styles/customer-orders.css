@@ -1,0 +1,30 @@
+.customer-orders-panel {
+  width: min(100% - 2rem, 980px);
+  margin: 1.5rem auto;
+  padding: clamp(1rem, 3vw, 1.75rem);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 1.25rem;
+  background: #171717;
+  color: #f7f2e9;
+}
+.customer-orders-heading, .customer-orders-actions, .customer-order-row, .customer-order-row > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+.customer-orders-heading { align-items: flex-start; flex-wrap: wrap; }
+.customer-orders-heading h2 { margin: .2rem 0; }
+.customer-orders-heading p, .customer-order-row span { color: #b9b3a8; }
+.customer-orders-list { display: grid; gap: .7rem; margin-top: 1rem; }
+.customer-order-row { padding: 1rem; border: 1px solid rgba(255,255,255,.1); border-radius: .9rem; background: rgba(255,255,255,.035); }
+.customer-order-row > div { align-items: flex-start; flex-direction: column; }
+.customer-order-row > div:last-child { align-items: flex-end; }
+.customer-orders-panel button { border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: .55rem .9rem; background: transparent; color: inherit; cursor: pointer; }
+.customer-orders-panel button:disabled { opacity: .55; cursor: wait; }
+.customer-orders-error { color: #ffaaa0; }
+.customer-orders-empty { padding: 1rem 0; color: #c7c0b5; }
+.customer-order-detail { margin-top: 1rem; padding: 1rem; border-radius: .9rem; background: rgba(255,255,255,.06); }
+.customer-order-detail h3 { margin: .25rem 0 .75rem; }
+.confirmation-actions { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
+@media (max-width: 560px) { .customer-order-row { align-items: flex-start; } .customer-order-row > div:last-child { align-items: flex-end; } }
