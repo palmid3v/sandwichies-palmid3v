@@ -78,6 +78,8 @@ export async function getCustomerCart({ claims, env, db: injectedDb, mutationId 
   const startedAt = Date.now();
   const uid = requireCustomer(claims);
   const db = injectedDb || createSandwichiesDb(env);
+  let outcome = "success";
+  let failureCode = null;
   try {
     const result = await db.read(cartPath(uid));
     const cart = snapshot(result.data, uid);
@@ -86,14 +88,15 @@ export async function getCustomerCart({ claims, env, db: injectedDb, mutationId 
       mutationApplied: Boolean(mutationId && cart.lastMutationId === mutationId),
     };
   } catch (error) {
-    console.info("[Worker] customer_cart_read", {
-      durationMs: Date.now() - startedAt,
-      outcome: "failed",
-      code: error?.code || error?.name || "UNKNOWN",
-    });
+    outcome = "failed";
+    failureCode = error?.code || error?.name || "UNKNOWN";
     throw error;
   } finally {
-    // Duration is logged on both successful and failed reads without customer identifiers.
+    console.info("[Worker] customer_cart_read", {
+      durationMs: Date.now() - startedAt,
+      outcome,
+      ...(failureCode ? { code: failureCode } : {}),
+    });
   }
 }
 
