@@ -85,11 +85,15 @@ export async function getCustomerCart({ claims, env, db: injectedDb, mutationId 
       cart,
       mutationApplied: Boolean(mutationId && cart.lastMutationId === mutationId),
     };
-  } finally {
+  } catch (error) {
     console.info("[Worker] customer_cart_read", {
       durationMs: Date.now() - startedAt,
-      outcome: "finished",
+      outcome: "failed",
+      code: error?.code || error?.name || "UNKNOWN",
     });
+    throw error;
+  } finally {
+    // Duration is logged on both successful and failed reads without customer identifiers.
   }
 }
 
@@ -110,13 +114,14 @@ export async function saveCustomerCart({ payload, claims, env, db: injectedDb })
   const db = injectedDb || createSandwichiesDb(env);
   const path = cartPath(uid);
   let result;
+  let transactionResult;
   const startedAt = Date.now();
   try {
     await db.runTransaction(async (tx) => {
       const current = await tx.get(path);
       const currentCart = snapshot(current.data, uid);
       if (currentCart.lastMutationId === mutationId) {
-        result = { cart: currentCart, replayed: true };
+        transactionResult = { cart: currentCart, replayed: true };
         return;
       }
       if (currentCart.revision !== expectedRevision) {
@@ -130,8 +135,9 @@ export async function saveCustomerCart({ payload, claims, env, db: injectedDb })
         lastMutationId: mutationId,
       };
       tx.set(path, next);
-      result = { cart: snapshot(next, uid), replayed: false };
+      transactionResult = { cart: snapshot(next, uid), replayed: false };
     });
+    result = transactionResult;
     return result;
   } finally {
     console.info("[Worker] customer_cart_write", {
