@@ -50,7 +50,6 @@ export default function OrderPage() {
   const [selectedSuggestion, setSelectedSuggestion] = useState(null);
   const [favoriteId, setFavoriteId] = useState(null);
   const [cart, setCart] = useState([]);
-  const [cartRevision, setCartRevision] = useState(0);
   const [cartReady, setCartReady] = useState(false);
   const [cartSyncState, setCartSyncState] = useState("loading");
   const [cartConflict, setCartConflict] = useState(false);
@@ -100,7 +99,6 @@ export default function OrderPage() {
         setCartReady(false);
         setCart([]);
         cartRevisionRef.current = 0;
-        setCartRevision(0);
         setCartSyncState("idle");
         return;
       }
@@ -143,7 +141,6 @@ export default function OrderPage() {
         });
         setCart(restoredItems);
         cartRevisionRef.current = savedCart.cart?.revision || 0;
-        setCartRevision(cartRevisionRef.current);
         skipInitialCartSync.current = true;
         setCartReady(true);
         setCartSyncState("synced");
@@ -184,7 +181,6 @@ export default function OrderPage() {
           })),
         });
         cartRevisionRef.current = result.cart.revision;
-        setCartRevision(result.cart.revision);
         setCartSyncState("synced");
       } catch (error) {
         if (error.code === "CART_CONFLICT") {
@@ -222,7 +218,6 @@ export default function OrderPage() {
       });
       setCart(restoredItems);
       cartRevisionRef.current = savedCart.cart?.revision || 0;
-      setCartRevision(cartRevisionRef.current);
       skipInitialCartSync.current = true;
       setCartConflict(false);
       setCartSyncState("synced");
@@ -238,7 +233,6 @@ export default function OrderPage() {
       setCart([]);
       setCartReady(false);
       cartRevisionRef.current = 0;
-      setCartRevision(0);
       setCartConflict(false);
       setCartSyncState("idle");
       setCompletedOrder(null);
