@@ -735,7 +735,18 @@ export async function getCustomerOrder({ orderId, claims, env, db: injectedDb })
   if (!snapshot.exists || snapshot.data.customerUid !== claims.sub) {
     throw new ApiError(404, "not-found", "No se encontró el pedido.");
   }
-  return { order: normalizeOrderForCustomer(snapshot.data, orderId) };
+  const order = normalizeOrderForCustomer(snapshot.data, orderId);
+  if (snapshot.data.delivery?.mode === "virtual_table") {
+    const tracking = await db.read(`customerOrderTracking/${claims.sub}/orders/${orderId}`);
+    if (tracking.exists) {
+      order.delivery = {
+        ...order.delivery,
+        status: tracking.data.deliveryStatus || order.delivery.status,
+        tableStatus: tracking.data.tableStatus || order.delivery.tableStatus,
+      };
+    }
+  }
+  return { order };
 }
 
 async function mirrorCupboardBalance({ db, orderId, orderNumber, lines, operation, balances, actorUid }) {
