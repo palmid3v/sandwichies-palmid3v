@@ -96,7 +96,10 @@ async function authenticate(request, env) {
       return { error: json({ error: "email-not-verified" }, 403) };
     }
     return { claims };
-  } catch {
+  } catch (error) {
+    console.warn("[Worker] firebase_token_verification_failed", {
+      code: error?.code || error?.name || "UNKNOWN",
+    });
     return { error: json({ error: "unauthenticated" }, 401) };
   }
 }
