@@ -74,11 +74,23 @@ function snapshot(data, uid) {
   };
 }
 
-export async function getCustomerCart({ claims, env, db: injectedDb }) {
+export async function getCustomerCart({ claims, env, db: injectedDb, mutationId = "" }) {
+  const startedAt = Date.now();
   const uid = requireCustomer(claims);
   const db = injectedDb || createSandwichiesDb(env);
-  const result = await db.read(cartPath(uid));
-  return { cart: snapshot(result.data, uid) };
+  try {
+    const result = await db.read(cartPath(uid));
+    const cart = snapshot(result.data, uid);
+    return {
+      cart,
+      mutationApplied: Boolean(mutationId && cart.lastMutationId === mutationId),
+    };
+  } finally {
+    console.info("[Worker] customer_cart_read", {
+      durationMs: Date.now() - startedAt,
+      outcome: "finished",
+    });
+  }
 }
 
 export async function saveCustomerCart({ payload, claims, env, db: injectedDb }) {
@@ -98,25 +110,33 @@ export async function saveCustomerCart({ payload, claims, env, db: injectedDb })
   const db = injectedDb || createSandwichiesDb(env);
   const path = cartPath(uid);
   let result;
-  await db.runTransaction(async (tx) => {
-    const current = await tx.get(path);
-    const currentCart = snapshot(current.data, uid);
-    if (currentCart.lastMutationId === mutationId) {
-      result = { cart: currentCart, replayed: true };
-      return;
-    }
-    if (currentCart.revision !== expectedRevision) {
-      throw new ApiError(409, "CART_CONFLICT", "El carrito cambió en otra sesión. Carga la versión más reciente antes de guardar.");
-    }
-    const next = {
-      uid,
-      revision: currentCart.revision + 1,
-      items,
-      updatedAt: new Date(),
-      lastMutationId: mutationId,
-    };
-    tx.set(path, next);
-    result = { cart: snapshot(next, uid), replayed: false };
-  });
-  return result;
+  const startedAt = Date.now();
+  try {
+    await db.runTransaction(async (tx) => {
+      const current = await tx.get(path);
+      const currentCart = snapshot(current.data, uid);
+      if (currentCart.lastMutationId === mutationId) {
+        result = { cart: currentCart, replayed: true };
+        return;
+      }
+      if (currentCart.revision !== expectedRevision) {
+        throw new ApiError(409, "CART_CONFLICT", "El carrito cambió en otra sesión. Carga la versión más reciente antes de guardar.");
+      }
+      const next = {
+        uid,
+        revision: currentCart.revision + 1,
+        items,
+        updatedAt: new Date(),
+        lastMutationId: mutationId,
+      };
+      tx.set(path, next);
+      result = { cart: snapshot(next, uid), replayed: false };
+    });
+    return result;
+  } finally {
+    console.info("[Worker] customer_cart_write", {
+      durationMs: Date.now() - startedAt,
+      outcome: result ? (result.replayed ? "replayed" : "saved") : "failed",
+    });
+  }
 }
