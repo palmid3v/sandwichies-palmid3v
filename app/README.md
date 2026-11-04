@@ -53,7 +53,7 @@ La web actual usa React y Vite. No existe todavía una aplicación nativa iOS/An
 - Se almacenan configuración, nombre, identificador de línea y cantidad. Precio/costo/preview se recalculan desde el catálogo compartido al restaurar; nunca se confía en precios enviados por el cliente.
 - Firestore Rules niega acceso directo del navegador a `customers/{uid}/cart/{cartId}`; solo el Worker accede con identidad de servicio.
 - Después de un timeout o error interno ambiguo, la UI consulta `GET /v1/customer/cart?mutationId=<id>`. Si el servidor ya aplicó esa mutación, adopta su revisión; si no y la revisión no cambió, reintenta una sola vez el mismo payload con el mismo ID idempotente. Si hay otra revisión, conserva el conflicto y exige recarga.
-- El cliente REST del Worker limita cada petición a OAuth de Google y Firestore (incluida lectura del cuerpo) a 5 segundos, y registra la etapa del timeout. El Worker registra duración/resultado de lecturas y escrituras del carrito sin incluir UID ni contenido.
+- El Worker limita a 5 segundos la descarga de claves públicas de Firebase, OAuth de Google y cada petición REST de Firestore (incluida lectura del cuerpo); registra la etapa del timeout. Ante un timeout de commit no bloquea la respuesta intentando rollback: la UI reconcilia el resultado mediante el ID idempotente. El Worker registra duración/resultado de lecturas y escrituras del carrito sin incluir UID ni contenido.
 - QA local de esta fase todavía pendiente; no declarar pruebas aprobadas por el hecho de que el código esté en `main`.
 
 ### Administración
