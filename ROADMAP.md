@@ -548,3 +548,31 @@ IMPROVE
 - [ ] Verify login, logout, verification resend and password recovery in the browser.
 
 **Boundary:** no production deployment, Auth/Firestore migration, account deletion, secret configuration, billing change, or real order is included. Legacy anonymous data is retained only when Firebase can link the credential to the same UID. Existing email accounts with a different UID require a separately authorized migration plan.
+
+
+## E — Historial privado, seguimiento y recuperación
+
+- [x] Exponer `GET /v1/customer/orders` autenticado por ID token y filtrado en backend por `customerUid === claims.sub`.
+- [x] Limitar el historial, ordenar por fecha y normalizar los pedidos para el cliente.
+- [x] Recuperar detalle por ID con control de propietario y respuesta 404 indistinguible para IDs ajenos/inexistentes.
+- [x] Rehidratar el estado privado de entrega desde `customerOrderTracking/{uid}/orders/{orderId}`.
+- [x] Añadir «Mis pedidos» al storefront para consultar historial y recuperar detalle tras login en otro navegador.
+- [x] Mantener costos y consumo de ingredientes fuera de las respuestas cliente.
+- [ ] Ejecutar pruebas Worker y revisar visualmente historial/detalle en navegador.
+- [ ] Verificar recuperación con dos sesiones de navegador y logout/login.
+
+## F — QA integral coordinado por agentes
+
+- [x] Crear coordinador secuencial `npm run qa` con agentes independientes y salida PASS/FAIL.
+- [x] Agente Worker/API: autenticación, CORS, idempotencia y endpoints.
+- [x] Agente cliente/sesión: historial privado, aislamiento UID, sanitización y recuperación.
+- [x] Agente de dominio: catálogo, precios, promociones e inventario.
+- [x] Agente de seguridad: Firestore Rules en Emulator Suite.
+- [x] Agente de integración: Cupboard, inventario, saga y mesas virtuales en proyectos demo.
+- [x] Agente frontend: lint, build, bundle budget y smoke HTTP.
+- [x] Documentar el gate manual de navegador, sesiones, recuperación y responsive en `app/docs/qa/browser-recovery.md`.
+- [ ] Ejecutar todos los agentes localmente y guardar sus resultados.
+- [ ] Completar el gate manual de navegador con dos perfiles y cuenta de prueba.
+- [ ] Verificar CI del commit probado.
+
+**Límite:** implementación en código no equivale a QA aprobado. Mantener `BUSINESS.acceptingOrders=false` y `ORDERS_ENABLED=false`; no desplegar ni escribir en proyectos reales.
