@@ -3,6 +3,7 @@ import { onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import CustomerAuth from "./CustomerAuth";
+import CustomerOrders from "../components/CustomerOrders";
 import { workerRequest } from "../api/worker";
 import { getCustomerCart, saveCustomerCart } from "../api/customer-cart";
 import Category from "../components/Category";
@@ -74,6 +75,7 @@ export default function OrderPage() {
   const [toast, setToast] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedOrder, setCompletedOrder] = useState(null);
+  const [showCustomerOrders, setShowCustomerOrders] = useState(false);
   const [readyBusy, setReadyBusy] = useState(false);
   const requestIdRef = useRef(newRequestId());
 
@@ -669,13 +671,17 @@ export default function OrderPage() {
           <p className="confirmation-total">
             Total: {formatMoney(completedOrder.total)}
           </p>
-          <button
-            type="button"
-            className="primary-button motion-feedback"
-            onClick={() => setCompletedOrder(null)}
-          >
-            Crear otro pedido
-          </button>
+          <div className="confirmation-actions">
+            <button type="button" className="secondary-button motion-feedback" onClick={() => setShowCustomerOrders((current) => !current)}>
+              {showCustomerOrders ? "Ocultar mis pedidos" : "Ver mis pedidos"}
+            </button>
+            <button type="button" className="primary-button motion-feedback" onClick={() => setCompletedOrder(null)}>
+              Volver al menú
+            </button>
+          </div>
+          {showCustomerOrders && (
+            <CustomerOrders onClose={() => setShowCustomerOrders(false)} onRecover={setCompletedOrder} />
+          )}
         </section>
       </main>
     );
@@ -712,6 +718,7 @@ export default function OrderPage() {
           {BUSINESS.acceptingOrders ? "Recibiendo pedidos" : "Pedidos cerrados"}
         </div>
         <a className="customer-profile-link" href="/perfil">Mi perfil</a>
+        <button type="button" className="customer-profile-link" onClick={() => setShowCustomerOrders((current) => !current)}>Mis pedidos</button>
         <button
           type="button"
           className="customer-signout-button"
@@ -720,6 +727,10 @@ export default function OrderPage() {
           Cerrar sesión
         </button>
       </header>
+
+      {showCustomerOrders && (
+        <CustomerOrders onClose={() => setShowCustomerOrders(false)} onRecover={setCompletedOrder} />
+      )}
 
       <div id="nuestro-menu" className="catalog-anchor">
       <DiscoverySection
