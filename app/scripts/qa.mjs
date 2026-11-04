@@ -1,52 +1,45 @@
 import { spawnSync } from "node:child_process";
 import process from "node:process";
 
-const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+const node = process.execPath;
 const skipAudit = process.argv.includes("--skip-audit");
-
-const steps = [
-  ...(!skipAudit ? [{ name: "Dependency audit", args: ["run", "audit"] }] : []),
-  { name: "Lint", args: ["run", "lint"] },
-  { name: "Cloudflare Worker tests", args: ["run", "worker:test"] },
-  { name: "Domain/unit tests", args: ["test"] },
-  { name: "Firestore rules emulator tests", args: ["run", "security:test"] },
-  { name: "Cupboard/integration emulator tests", args: ["run", "integration:test"] },
-  { name: "Production build", args: ["run", "build"] },
-  { name: "Bundle budget", args: ["run", "performance:check"] },
-  { name: "Local HTTP smoke", args: ["run", "smoke"] },
+const agents = [
+  ...(!skipAudit ? [{ name: "Dependency audit", command: "npm", args: ["run", "audit"] }] : []),
+  ...["worker", "customer", "domain", "security", "integration", "frontend"].map((agent) => ({
+    name: agent + " QA agent", command: node,
+    args: ["scripts/qa-agent.mjs", "--agent=" + agent],
+  })),
 ];
 
-const results = [];
-console.log("Sandwichies QA — safe local suite");
-console.log("No deploys, billing changes, or production writes are performed by this runner.");
+console.log("Sandwichies QA — coordinated specialist agents");
+console.log("Firebase integration agents are constrained to demo projects/emulators.");
+console.log("No deploys, billing changes, production secrets, or production writes are performed.");
 
-for (const step of steps) {
-  console.log("\n=== " + step.name + " ===");
-  const result = spawnSync(npmCommand, step.args, {
-    cwd: process.cwd(),
-    stdio: "inherit",
-    shell: process.platform === "win32",
+const results = [];
+for (const agent of agents) {
+  console.log("\n=== " + agent.name + " ===");
+  const result = spawnSync(agent.command, agent.args, {
+    cwd: process.cwd(), stdio: "inherit",
+    shell: process.platform === "win32" && agent.command === "npm",
     env: process.env,
   });
-
   const exitCode = result.error ? 1 : (result.status ?? 1);
-  const status = exitCode === 0 ? "PASS" : "FAIL";
-  results.push({ stage: step.name, status, exitCode });
-
+  results.push({ name: agent.name, status: exitCode === 0 ? "PASS" : "FAIL", exitCode });
   if (exitCode !== 0) {
     if (result.error) console.error(result.error);
-    console.error("\nQA stopped at " + step.name + " (exit " + exitCode + ").");
+    console.error("\nQA stopped at " + agent.name + ".");
     break;
   }
 }
 
-console.log("\n=== QA summary ===");
+console.log("\n=== QA coordinator report ===");
 for (const result of results) {
-  console.log(result.status.padEnd(5) + " | " + result.stage + " | exit " + result.exitCode);
+  console.log(result.status.padEnd(5) + " | " + result.name + " | exit " + result.exitCode);
 }
-
-if (results.length !== steps.length || results.some((result) => result.status !== "PASS")) {
+if (results.length !== agents.length || results.some((item) => item.status !== "PASS")) {
+  console.log("\nQA AUTOMATIZADO NO APROBADO — resolve the failed agent before release.");
   process.exitCode = 1;
 } else {
-  console.log("\nQA LOCAL APROBADO — every configured stage passed.");
+  console.log("\nQA AUTOMATIZADO APROBADO — all configured agents passed.");
+  console.log("Browser/device session walkthrough remains a separate manual release gate.");
 }
