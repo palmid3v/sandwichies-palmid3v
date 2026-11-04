@@ -55,6 +55,8 @@ export default function OrderPage() {
   const [cartSyncState, setCartSyncState] = useState("loading");
   const [cartConflict, setCartConflict] = useState(false);
   const cartSyncTimer = useRef(null);
+  const cartRevisionRef = useRef(0);
+  const skipInitialCartSync = useRef(true);
 
   const [clientName, setClientName] = useState("");
   const [phone, setPhone] = useState("");
@@ -97,6 +99,7 @@ export default function OrderPage() {
         setAuthReady(false);
         setCartReady(false);
         setCart([]);
+        cartRevisionRef.current = 0;
         setCartRevision(0);
         setCartSyncState("idle");
         return;
@@ -139,7 +142,9 @@ export default function OrderPage() {
           }
         });
         setCart(restoredItems);
-        setCartRevision(savedCart.cart?.revision || 0);
+        cartRevisionRef.current = savedCart.cart?.revision || 0;
+        setCartRevision(cartRevisionRef.current);
+        skipInitialCartSync.current = true;
         setCartReady(true);
         setCartSyncState("synced");
         setCartConflict(false);
@@ -163,17 +168,22 @@ export default function OrderPage() {
 
   useEffect(() => {
     if (!cartReady || !authReady || !auth.currentUser || cartConflict) return undefined;
+    if (skipInitialCartSync.current) {
+      skipInitialCartSync.current = false;
+      return undefined;
+    }
     if (cartSyncTimer.current) window.clearTimeout(cartSyncTimer.current);
     cartSyncTimer.current = window.setTimeout(async () => {
       setCartSyncState("syncing");
       try {
         const result = await saveCustomerCart({
-          expectedRevision: cartRevision,
+          expectedRevision: cartRevisionRef.current,
           mutationId: globalThis.crypto.randomUUID(),
           items: cart.map(({ lineId, name, configuration, quantity }) => ({
             lineId, name, configuration, quantity: quantity || 1,
           })),
         });
+        cartRevisionRef.current = result.cart.revision;
         setCartRevision(result.cart.revision);
         setCartSyncState("synced");
       } catch (error) {
@@ -190,7 +200,7 @@ export default function OrderPage() {
     return () => {
       if (cartSyncTimer.current) window.clearTimeout(cartSyncTimer.current);
     };
-  }, [cart, cartReady, authReady, cartRevision, cartConflict]);
+  }, [cart, cartReady, authReady, cartConflict]);
 
   const reloadCustomerCart = async () => {
     try {
@@ -211,7 +221,9 @@ export default function OrderPage() {
         } catch { return []; }
       });
       setCart(restoredItems);
-      setCartRevision(savedCart.cart?.revision || 0);
+      cartRevisionRef.current = savedCart.cart?.revision || 0;
+      setCartRevision(cartRevisionRef.current);
+      skipInitialCartSync.current = true;
       setCartConflict(false);
       setCartSyncState("synced");
     } catch (error) {
@@ -225,6 +237,7 @@ export default function OrderPage() {
       await signOut(auth);
       setCart([]);
       setCartReady(false);
+      cartRevisionRef.current = 0;
       setCartRevision(0);
       setCartConflict(false);
       setCartSyncState("idle");
