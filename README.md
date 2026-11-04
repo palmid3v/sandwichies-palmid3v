@@ -13,7 +13,7 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 - Catálogo, búsqueda, filtros, recetas y carrito persistente por UID con sincronización, control de conflictos y reconciliación idempotente tras timeouts.
 - Recogida/domicilio, datos de contacto y ubicación/punto de encuentro.
 - Firebase Anonymous Auth para sesiones de cliente; identidad administrativa separada.
-- Consulta privada del pedido y seguimiento logístico.
+- Historial privado de pedidos por UID, detalle recuperable y seguimiento logístico tras cerrar sesión o cambiar de navegador.
 - Perfil persistente y direcciones guardadas, aislados por UID de Firebase.
 ### Administración
 - Firebase Auth con custom claim `admin: true`.
