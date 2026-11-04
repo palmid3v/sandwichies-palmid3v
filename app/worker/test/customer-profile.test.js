@@ -90,13 +90,16 @@ test("addresses are scoped to the authenticated UID and default address is uniqu
   const db = new MemoryFirestore();
   const first = await saveCustomerAddress({ payload: addressInput, claims, db });
   const second = await saveCustomerAddress({
-    payload: { ...addressInput, label: "Trabajo", line1: "Carrera 70 # 1-2" },
+    // A new address must not become default unless the customer explicitly
+    // selects it; otherwise the previous default is correctly unset.
+    payload: { ...addressInput, label: "Trabajo", line1: "Carrera 70 # 1-2", isDefault: false },
     claims,
     db,
   });
   const addresses = await listCustomerAddresses({ claims, db });
   assert.equal(addresses.addresses.length, 2);
   assert.equal(addresses.addresses.find((item) => item.id === first.address.id).isDefault, true);
+  assert.equal(addresses.addresses.find((item) => item.id === second.address.id).isDefault, false);
   await saveCustomerAddress({
     addressId: second.address.id,
     payload: { ...addressInput, label: "Trabajo", line1: "Carrera 70 # 1-2", isDefault: true },
