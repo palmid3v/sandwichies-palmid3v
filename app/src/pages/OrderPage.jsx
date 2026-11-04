@@ -179,14 +179,36 @@ export default function OrderPage() {
     if (cartSyncTimer.current) window.clearTimeout(cartSyncTimer.current);
     cartSyncTimer.current = window.setTimeout(async () => {
       setCartSyncState("syncing");
+      const payload = {
+        expectedRevision: cartRevisionRef.current,
+        mutationId: globalThis.crypto.randomUUID(),
+        items: cart.map(({ lineId, name, configuration, quantity }) => ({
+          lineId, name, configuration, quantity: quantity || 1,
+        })),
+      };
       try {
-        const result = await saveCustomerCart({
-          expectedRevision: cartRevisionRef.current,
-          mutationId: globalThis.crypto.randomUUID(),
-          items: cart.map(({ lineId, name, configuration, quantity }) => ({
-            lineId, name, configuration, quantity: quantity || 1,
-          })),
-        });
+        let result;
+        try {
+          result = await saveCustomerCart(payload);
+        } catch (error) {
+          if (error.code === "CART_CONFLICT") throw error;
+
+          // A timeout or server-side failure can leave the commit outcome unknown.
+          // Reconcile with the same mutation ID before attempting any retry.
+          if (error.code !== "worker-request-timeout" && error.code !== "internal") throw error;
+
+          const remote = await getCustomerCart(payload.mutationId);
+          if (remote.mutationApplied) {
+            result = { cart: remote.cart, replayed: true };
+          } else if (remote.cart.revision === payload.expectedRevision) {
+            // Retry the exact same payload and mutation ID: the Worker treats it idempotently.
+            result = await saveCustomerCart(payload);
+          } else {
+            setCartConflict(true);
+            setCartSyncState("conflict");
+            return;
+          }
+        }
         cartRevisionRef.current = result.cart.revision;
         setCartSyncState("synced");
       } catch (error) {
