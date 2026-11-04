@@ -165,7 +165,7 @@ test("admin must confirm an order before marking payment as paid", async () => {
 });
 
 
-test("customer profiles and saved addresses cannot be accessed directly from the browser", async () => {
+test("customer profiles, addresses and carts cannot be accessed directly from the browser", async () => {
   const ownDb = env.authenticatedContext("user-1", { email_verified: true }).firestore();
   await assertFails(getDoc(doc(ownDb, "customers/user-1")));
   await assertFails(setDoc(doc(ownDb, "customers/user-1"), { name: "Cambio directo" }));
@@ -177,7 +177,10 @@ test("customer profiles and saved addresses cannot be accessed directly from the
   const otherDb = env.authenticatedContext("user-2", { email_verified: true }).firestore();
   await assertFails(getDoc(doc(otherDb, "customers/user-1")));
   await assertFails(getDoc(doc(otherDb, "customers/user-1/addresses/home")));
+  await assertFails(getDoc(doc(otherDb, "customers/user-1/cart/current")));
+  await assertFails(setDoc(doc(otherDb, "customers/user-1/cart/current"), { revision: 99, items: [] }));
 
   const adminDb = env.authenticatedContext("admin-1", { admin: true, email_verified: true }).firestore();
   await assertFails(getDoc(doc(adminDb, "customers/user-1")));
+  await assertFails(getDoc(doc(adminDb, "customers/user-1/cart/current")));
 });
