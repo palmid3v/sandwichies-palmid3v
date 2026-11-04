@@ -85,6 +85,18 @@ test("rejects invalid line quantities and forged recipe configurations", async (
   );
 });
 
+test("rejects a cart whose total unit count exceeds the checkout limit", async () => {
+  const db = new MemoryFirestore();
+  const secondLine = { ...line, lineId: "line-87654321", quantity: 1 };
+  await assert.rejects(
+    saveCustomerCart({
+      payload: { ...payload, items: [{ ...line, quantity: 20 }, secondLine] },
+      claims, db,
+    }),
+    (error) => error.code === "INVALID_CART_TOTAL",
+  );
+});
+
 test("an empty cart is persisted as a revisioned clear operation", async () => {
   const db = new MemoryFirestore();
   await saveCustomerCart({ payload, claims, db });
