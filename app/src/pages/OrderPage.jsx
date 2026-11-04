@@ -571,6 +571,7 @@ export default function OrderPage() {
           <span />
           {BUSINESS.acceptingOrders ? "Recibiendo pedidos" : "Pedidos cerrados"}
         </div>
+        <a className="customer-profile-link" href="/perfil">Mi perfil</a>
         <button
           type="button"
           className="customer-signout-button"
