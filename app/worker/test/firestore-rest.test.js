@@ -204,3 +204,43 @@ test("Firestore REST preserves the global fetch receiver in Worker runtimes", as
   assert.equal(receiver, globalThis);
 });
 
+
+
+test("Firestore REST dependency requests abort at the configured timeout", async () => {
+  const db = new FirestoreRest({
+    projectId: "sandwich-pro",
+    emulatorHost: "127.0.0.1:8080",
+    timeoutMs: 1_000,
+    fetchImpl: (_url, init = {}) => new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        const error = new Error("aborted");
+        error.name = "AbortError";
+        reject(error);
+      }, { once: true });
+    }),
+  });
+  await assert.rejects(
+    db.read("customers/customer-a/cart/current"),
+    (error) => error.code === "FIRESTORE_REQUEST_TIMEOUT" && error.stage === "FIRESTORE_REQUEST",
+  );
+});
+
+test("Google OAuth token requests abort at the configured timeout", async () => {
+  clearGoogleTokenCacheForTests();
+  const db = new FirestoreRest({
+    projectId: "sandwich-pro",
+    serviceAccountJson: serviceAccount,
+    timeoutMs: 1_000,
+    fetchImpl: (_url, init = {}) => new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        const error = new Error("aborted");
+        error.name = "AbortError";
+        reject(error);
+      }, { once: true });
+    }),
+  });
+  await assert.rejects(
+    db.read("customers/customer-a/cart/current"),
+    (error) => error.code === "GOOGLE_OAUTH_TIMEOUT" && error.stage === "GOOGLE_OAUTH",
+  );
+});
