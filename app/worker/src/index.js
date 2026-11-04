@@ -160,7 +160,8 @@ async function route(request, env) {
   if (path === "/v1/customer/cart" && request.method === "GET") {
     const auth = await authenticate(request, env);
     if (auth.error) return auth.error;
-    return json(await getCustomerCart({ claims: auth.claims, env }));
+    const mutationId = new URL(request.url).searchParams.get("mutationId") || "";
+    return json(await getCustomerCart({ claims: auth.claims, env, mutationId }));
   }
 
   if (path === "/v1/customer/cart" && request.method === "POST") {
