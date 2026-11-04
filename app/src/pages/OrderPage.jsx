@@ -4,6 +4,7 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import CustomerAuth from "./CustomerAuth";
 import { workerRequest } from "../api/worker";
+import { getCustomerCart, saveCustomerCart } from "../api/customer-cart";
 import Category from "../components/Category";
 import { generateName } from "../utils/generateName";
 import { INGREDIENTS } from "../data/ingredients";
@@ -49,6 +50,11 @@ export default function OrderPage() {
   const [selectedSuggestion, setSelectedSuggestion] = useState(null);
   const [favoriteId, setFavoriteId] = useState(null);
   const [cart, setCart] = useState([]);
+  const [cartRevision, setCartRevision] = useState(0);
+  const [cartReady, setCartReady] = useState(false);
+  const [cartSyncState, setCartSyncState] = useState("loading");
+  const [cartConflict, setCartConflict] = useState(false);
+  const cartSyncTimer = useRef(null);
 
   const [clientName, setClientName] = useState("");
   const [phone, setPhone] = useState("");
@@ -89,9 +95,14 @@ export default function OrderPage() {
       if (!mounted) return;
       if (!user) {
         setAuthReady(false);
+        setCartReady(false);
+        setCart([]);
+        setCartRevision(0);
+        setCartSyncState("idle");
         return;
       }
       if (user.isAnonymous) {
+        setCartReady(false);
         setAuthReady(false);
         setAuthError("Tienes una sesión temporal. Registra una cuenta para vincularla y conservar su identificador.");
         return;
@@ -103,13 +114,44 @@ export default function OrderPage() {
           setAuthError("Verifica tu correo para continuar. Revisa tu bandeja de entrada.");
           return;
         }
+        const savedCart = await getCustomerCart();
+        const restoredItems = (savedCart.cart?.items || []).flatMap((item) => {
+          try {
+            const preview = calculateLineItem(item.configuration);
+            return [{
+              lineId: item.lineId,
+              name: item.name,
+              size: preview.size,
+              configuration: {
+                size: preview.size,
+                favoriteId: preview.favoriteId,
+                proteins: preview.proteins,
+                toppings: preview.toppings,
+                extras: preview.extras,
+                base: preview.base,
+              },
+              preview,
+              quantity: item.quantity,
+            }];
+          } catch (error) {
+            console.warn("Se omitió una línea de carrito incompatible:", error);
+            return [];
+          }
+        });
+        setCart(restoredItems);
+        setCartRevision(savedCart.cart?.revision || 0);
+        setCartReady(true);
+        setCartSyncState("synced");
+        setCartConflict(false);
         setClientName(user.displayName || "");
         setAuthError("");
         setAuthReady(true);
       } catch (error) {
-        console.error("No se pudo validar la sesión del cliente:", error);
+        console.error("No se pudo preparar la sesión o sincronizar el carrito:", error);
+        setCartReady(false);
+        setCartSyncState("error");
         setAuthReady(false);
-        setAuthError("No pudimos validar tu sesión. Inicia sesión de nuevo.");
+        setAuthError(error?.message || "No pudimos sincronizar tu carrito. Comprueba la conexión e inténtalo de nuevo.");
       }
     });
 
@@ -119,10 +161,73 @@ export default function OrderPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!cartReady || !authReady || !auth.currentUser || cartConflict) return undefined;
+    if (cartSyncTimer.current) window.clearTimeout(cartSyncTimer.current);
+    cartSyncTimer.current = window.setTimeout(async () => {
+      setCartSyncState("syncing");
+      try {
+        const result = await saveCustomerCart({
+          expectedRevision: cartRevision,
+          mutationId: globalThis.crypto.randomUUID(),
+          items: cart.map(({ lineId, name, configuration, quantity }) => ({
+            lineId, name, configuration, quantity: quantity || 1,
+          })),
+        });
+        setCartRevision(result.cart.revision);
+        setCartSyncState("synced");
+      } catch (error) {
+        if (error.code === "CART_CONFLICT") {
+          setCartConflict(true);
+          setCartSyncState("conflict");
+          showToast("Tu carrito cambió en otra sesión. Recarga la versión más reciente para continuar.", "error");
+          return;
+        }
+        console.error("No se pudo sincronizar el carrito:", error);
+        setCartSyncState("error");
+      }
+    }, 700);
+    return () => {
+      if (cartSyncTimer.current) window.clearTimeout(cartSyncTimer.current);
+    };
+  }, [cart, cartReady, authReady, cartRevision, cartConflict]);
+
+  const reloadCustomerCart = async () => {
+    try {
+      setCartSyncState("loading");
+      const savedCart = await getCustomerCart();
+      const restoredItems = (savedCart.cart?.items || []).flatMap((item) => {
+        try {
+          const preview = calculateLineItem(item.configuration);
+          return [{
+            lineId: item.lineId, name: item.name, size: preview.size,
+            configuration: {
+              size: preview.size, favoriteId: preview.favoriteId,
+              proteins: preview.proteins, toppings: preview.toppings,
+              extras: preview.extras, base: preview.base,
+            },
+            preview, quantity: item.quantity,
+          }];
+        } catch { return []; }
+      });
+      setCart(restoredItems);
+      setCartRevision(savedCart.cart?.revision || 0);
+      setCartConflict(false);
+      setCartSyncState("synced");
+    } catch (error) {
+      setCartSyncState("error");
+      showToast(error.message || "No pudimos cargar el carrito remoto.", "error");
+    }
+  };
+
   const handleCustomerSignOut = async () => {
     try {
       await signOut(auth);
       setCart([]);
+      setCartReady(false);
+      setCartRevision(0);
+      setCartConflict(false);
+      setCartSyncState("idle");
       setCompletedOrder(null);
       setClientName("");
       setPhone("");
@@ -775,6 +880,13 @@ export default function OrderPage() {
             <div>
               <p className="eyebrow">Tu pedido</p>
               <h2>{cartUnits} producto{cartUnits === 1 ? "" : "s"}</h2>
+              <small className="checkout-help" role="status">
+                {cartSyncState === "syncing" ? "Sincronizando carrito…" :
+                  cartSyncState === "synced" ? "Carrito guardado en tu cuenta" :
+                    cartSyncState === "conflict" ? "Conflicto entre sesiones" :
+                      cartSyncState === "error" ? "No se pudo sincronizar" : "Cargando carrito…"}
+              </small>
+              {cartConflict && <button type="button" className="cart-clear-button" onClick={reloadCustomerCart}>Recargar carrito sincronizado</button>}
             </div>
           </div>
 
