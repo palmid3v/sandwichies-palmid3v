@@ -54,6 +54,10 @@ CORS is restricted to exact origins listed in `ALLOWED_ORIGINS`; methods are `GE
 - `POST /v1/customer/cart` accepts `expectedRevision`, a UUID-like `mutationId`, up to 20 distinct cart lines and 20 units total. The Worker recalculates/validates each recipe against `app/shared/pricing.js`; it stores configuration and quantity, not client prices or previews.
 - A successful write increments the revision. Repeating the same mutation ID is idempotent. A stale revision returns HTTP 409 `CART_CONFLICT`; the client stops autosaving and asks the customer to reload the latest server cart rather than silently overwrite another session.
 - The storefront restores the cart after verified sign-in and debounces updates by 700 ms. Signing out clears in-memory cart state; it does not delete the account's saved cart.
+- `GET /v1/customer/cart?mutationId=<id>` returns `mutationApplied`, true only when that ID is the cart's last committed mutation. The client uses this after an ambiguous timeout before retrying.
+- An ambiguous save is reconciled by reading the cart with the same mutation ID. If already committed, the client adopts the server revision; if not committed and the revision is unchanged, it retries the exact same payload and mutation ID once. A newer revision remains a conflict.
+- The Firestore REST adapter bounds each Google OAuth and Firestore HTTP request to 5 seconds, including response-body reads. Timeouts are tagged by dependency stage (for example `GOOGLE_OAUTH_TIMEOUT` or `FIRESTORE_REQUEST_TIMEOUT`) and logged without customer IDs or credentials. Transaction commit outcomes can still be ambiguous, so mutation reconciliation remains required.
+- Cart read/write duration is logged by the Worker for latency diagnosis. These logs contain duration and outcome only, not cart contents or UID.
 - Cart synchronization is not order acceptance. `BUSINESS.acceptingOrders=false` and `ORDERS_ENABLED=false` remain unchanged.
 
 The cart uses the same Worker-only data boundary as customer profiles. Service-account access bypasses Firestore Security Rules, so keep Worker credentials private and review project-level IAM before production.
