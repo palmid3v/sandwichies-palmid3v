@@ -44,7 +44,38 @@ async function signServiceAssertion(serviceAccount, nowSeconds) {
   return signingInput + "." + base64Url(new Uint8Array(signature));
 }
 
-export async function getGoogleAccessToken(serviceAccountJson, { fetchImpl = fetch, now = Date.now() } = {}) {
+async function fetchTextWithTimeout(fetchImpl, url, options, { timeoutMs, stage }) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const startedAt = Date.now();
+  try {
+    const response = await fetchImpl(url, { ...options, signal: controller.signal });
+    const text = await response.text();
+    return { response, text };
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error(stage + "_TIMEOUT");
+      timeoutError.code = stage + "_TIMEOUT";
+      timeoutError.stage = stage;
+      timeoutError.durationMs = Date.now() - startedAt;
+      console.warn("[FirestoreRest] dependency_timeout", {
+        stage,
+        durationMs: timeoutError.durationMs,
+        timeoutMs,
+      });
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export async function getGoogleAccessToken(serviceAccountJson, {
+  fetchImpl = fetch,
+  now = Date.now(),
+  timeoutMs = 5_000,
+} = {}) {
   if (!serviceAccountJson) throw new Error("SERVICE_ACCOUNT_JSON_MISSING");
   let account;
   try {
@@ -60,15 +91,16 @@ export async function getGoogleAccessToken(serviceAccountJson, { fetchImpl = fet
   if (cached && cached.expiresAt > now + 60_000) return cached.accessToken;
 
   const assertion = await signServiceAssertion(account, Math.floor(now / 1000));
-  const response = await fetchImpl(TOKEN_URL, {
+  const { response, text } = await fetchTextWithTimeout(fetchImpl, TOKEN_URL, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
       assertion,
     }),
-  });
-  const body = await response.json().catch(() => ({}));
+  }, { timeoutMs, stage: "GOOGLE_OAUTH" });
+  let body = {};
+  try { body = JSON.parse(text || "{}"); } catch { /* handled as OAuth failure */ }
   if (!response.ok || typeof body.access_token !== "string") {
     throw new Error("GOOGLE_OAUTH_FAILED_" + response.status);
   }
@@ -125,7 +157,7 @@ export class FirestoreRestError extends Error {
 }
 
 export class FirestoreRest {
-  constructor({ projectId, serviceAccountJson, emulatorHost, fetchImpl = fetch }) {
+  constructor({ projectId, serviceAccountJson, emulatorHost, fetchImpl = fetch, timeoutMs = 5_000 }) {
     if (!projectId) throw new Error("FIRESTORE_PROJECT_ID_MISSING");
     const localHost = String(emulatorHost || "").trim();
     if (localHost && !/^(localhost|127[.]0[.]0[.]1):[0-9]{2,5}$/.test(localHost)) {
@@ -134,6 +166,7 @@ export class FirestoreRest {
     this.projectId = projectId;
     this.serviceAccountJson = serviceAccountJson;
     this.emulatorHost = localHost;
+    this.timeoutMs = Math.max(1_000, Number(timeoutMs) || 5_000);
     // Cloudflare's global fetch requires its original global receiver; do not invoke it as a class method.
     this.fetchImpl = fetchImpl.bind(globalThis);
     const apiRoot = localHost ? "http://" + localHost : "https://firestore.googleapis.com";
@@ -150,17 +183,20 @@ export class FirestoreRest {
   async request(url, { method = "GET", body, transaction, accessToken } = {}) {
     const token = accessToken || (this.emulatorHost
       ? "owner"
-      : await getGoogleAccessToken(this.serviceAccountJson, { fetchImpl: this.fetchImpl }));
+      : await getGoogleAccessToken(this.serviceAccountJson, {
+        fetchImpl: this.fetchImpl, timeoutMs: this.timeoutMs,
+      }));
     const payload = body ? { ...body, ...(transaction ? { transaction } : {}) } : undefined;
-    const response = await this.fetchImpl(url, {
+    const { response, text } = await fetchTextWithTimeout(this.fetchImpl, url, {
       method,
       headers: {
         authorization: "Bearer " + token,
         ...(payload ? { "content-type": "application/json" } : {}),
       },
       ...(payload ? { body: JSON.stringify(payload) } : {}),
-    });
-    const result = await response.json().catch(() => ({}));
+    }, { timeoutMs: this.timeoutMs, stage: "FIRESTORE_REQUEST" });
+    let result = {};
+    try { result = JSON.parse(text || "{}"); } catch { throw new Error("FIRESTORE_RESPONSE_INVALID"); }
     if (!response.ok) {
       const error = result.error || {};
       throw new FirestoreRestError(response.status, error.status, error.message);
@@ -207,13 +243,14 @@ export class FirestoreRest {
     if (!Array.isArray(paths) || paths.length === 0) return [];
     // Firestore batchGet expects resource names, not REST URLs.
     const names = paths.map((path) => this.documentName(path).replace(/^https?:\/\/[^/]+\/v1\//, ""));
-    const token = this.emulatorHost ? "owner" : await getGoogleAccessToken(this.serviceAccountJson, { fetchImpl: this.fetchImpl });
-    const response = await this.fetchImpl(this.root + ":batchGet", {
+    const token = this.emulatorHost ? "owner" : await getGoogleAccessToken(this.serviceAccountJson, {
+      fetchImpl: this.fetchImpl, timeoutMs: this.timeoutMs,
+    });
+    const { response, text: raw } = await fetchTextWithTimeout(this.fetchImpl, this.root + ":batchGet", {
       method: "POST",
       headers: { authorization: "Bearer " + token, "content-type": "application/json" },
       body: JSON.stringify({ documents: names, ...(transaction ? { transaction } : {}) }),
-    });
-    const raw = await response.text();
+    }, { timeoutMs: this.timeoutMs, stage: "FIRESTORE_BATCH_GET" });
     let items = [];
     if (raw.trim()) {
       try {
