@@ -73,6 +73,15 @@ export async function getCustomerProfile({ claims, env, db: injectedDb }) {
   return db.runTransaction(async (tx) => {
     const current = await tx.get(path);
     if (current.exists) return { profile: current.data };
+    const initial = {
+      uid,
+      email: clean(claims.email, 254).toLowerCase(),
+      name: clean(claims.name, 80),
+      phone: "",
+      preferences: { preferredFulfillment: "recoger", deliveryNotes: "" },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
     tx.create(path, initial);
     return { profile: initial };
   });
