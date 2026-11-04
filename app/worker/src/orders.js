@@ -323,6 +323,411 @@ export async function createOrder({ request, claims, env, db: injectedDb, policy
   return { order: responseOrder };
 }
 
+function orderTimestamp(value) {
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "string") return Date.parse(value) || 0;
+  if (typeof value?.toDate === "function") return value.toDate().getTime();
+  if (typeof value?._seconds === "number") return value._seconds * 1000;
+  return 0;
+}
+
+export async function listCustomerOrders({ claims, env, db: injectedDb, limit = 100 }) {
+  if (!claims?.sub) throw new ApiError(401, "unauthenticated", "Inicia sesión para consultar tu historial.");
+  const db = injectedDb || createSandwichiesDb(env);
+  const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 100, 1), 100);
+  const snapshots = await db.query("orders", {
+    field: "customerUid",
+    op: "EQUAL",
+    value: claims.sub,
+    limit: 500,
+  });
+  const orders = snapshots
+    .filter(({ data }) => data.customerUid === claims.sub)
+    .sort((a, b) => orderTimestamp(b.data.createdAt) - orderTimestamp(a.data.createdAt))
+    .slice(0, safeLimit);
+  const normalized = await Promise.all(orders.map(async ({ path, data }) => {
+    const orderId = path.split("/").at(-1);
+    const order = normalizeOrderForCustomer(data, orderId);
+    if (data.delivery?.mode === "virtual_table") {
+      const tracking = await db.read(`customerOrderTracking/${claims.sub}/orders/${orderId}`);
+      if (tracking.exists) {
+        order.delivery = {
+          ...order.delivery,
+          status: tracking.data.deliveryStatus || order.delivery.status,
+          tableStatus: tracking.data.tableStatus || order.delivery.tableStatus,
+        };
+      }
+    }
+    return order;
+  }));
+  return { orders: normalized, count: normalized.length, limit: safeLimit };
+}
+
+port {
+  BUSINESS,
+  ORDER_STATUSES,
+  canTransitionOrderStatus,
+} from "../../shared/business.js";
+import { buildOrderConsumption, normalizeInventoryTransaction, InventoryValidationError } from "../../shared/inventory.js";
+import { buildTrustedOrder } from "../../shared/order-request.js";
+import { OrderValidationError } from "../../shared/pricing.js";
+import {
+  findOperatingZone,
+  getZoneScheduleStatus,
+  validateZoneSchedule,
+  isCompatibleVirtualTable,
+  canTransitionDeliveryStatus,
+  validatePolygon,
+  VIRTUAL_TABLE_DEFAULTS,
+} from "../../shared/virtual-tables.js";
+import { FirestoreRest, FirestoreRestError } from "./firestore-rest.js";
+import { applyCupboardOrderMovement, applyCupboardManualMovement, CupboardWorkerError, readCupboardConfig } from "./cupboard.js";
+
+const nowDate = () => new Date();
+const isoWindowId = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
+};
+const randomId = () => crypto.randomUUID();
+const validRequestId = (value) => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+const safeDocId = (value) => encodeURIComponent(String(value)).replaceAll("/", "%2F");
+
+export class ApiError extends Error {
+  constructor(status, code, message) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+export function createSandwichiesDb(env) {
+  const emulatorHost = String(env.FIRESTORE_EMULATOR_HOST || "").trim();
+  if (env.LOCAL_DEV === "true" && !emulatorHost) {
+    throw new ApiError(503, "LOCAL_EMULATOR_HOST_REQUIRED", "El modo local requiere FIRESTORE_EMULATOR_HOST; no se permite caer a Firestore remoto.");
+  }
+  if (emulatorHost) {
+    if (env.LOCAL_DEV !== "true") {
+      throw new ApiError(503, "LOCAL_EMULATOR_NOT_ALLOWED", "El emulador Firestore solo puede usarse en modo local explícito.");
+    }
+    if (!/^(localhost|127[.]0[.]0[.]1):([0-9]{2,5})$/.test(emulatorHost)) {
+      throw new ApiError(503, "LOCAL_EMULATOR_HOST_INVALID", "El emulador Firestore debe usar localhost o 127.0.0.1.");
+    }
+    const emulatorProjectId = String(env.FIRESTORE_PROJECT_ID || env.FIREBASE_PROJECT_ID || "").trim();
+    if (!emulatorProjectId || emulatorProjectId !== env.FIREBASE_PROJECT_ID) {
+      throw new ApiError(503, "LOCAL_EMULATOR_PROJECT_MISMATCH", "El proyecto del emulador debe coincidir con FIREBASE_PROJECT_ID.");
+    }
+    return new FirestoreRest({
+      projectId: emulatorProjectId,
+      emulatorHost,
+    });
+  }
+
+  if (!env.FIREBASE_PROJECT_ID || !env.SANDWICHIES_SERVICE_ACCOUNT_JSON) {
+    throw new ApiError(503, "BACKEND_NOT_CONFIGURED", "El backend de pedidos no tiene credenciales configuradas.");
+  }
+  let serviceAccount;
+  try {
+    serviceAccount = JSON.parse(env.SANDWICHIES_SERVICE_ACCOUNT_JSON);
+  } catch {
+    throw new ApiError(503, "BACKEND_CREDENTIALS_INVALID", "La credencial del backend no contiene JSON válido.");
+  }
+  if (serviceAccount.type !== "service_account"
+    || serviceAccount.project_id !== env.FIREBASE_PROJECT_ID
+    || !serviceAccount.client_email
+    || !serviceAccount.private_key) {
+    throw new ApiError(503, "BACKEND_CREDENTIALS_PROJECT_MISMATCH", "La credencial del backend no pertenece al proyecto Sandwichies.");
+  }
+  return new FirestoreRest({
+    projectId: env.FIREBASE_PROJECT_ID,
+    serviceAccountJson: env.SANDWICHIES_SERVICE_ACCOUNT_JSON,
+  });
+}
+
+function requireAdmin(claims) {
+  if (claims?.admin !== true || claims?.email_verified !== true) throw new ApiError(403, "permission-denied", "Se requiere una cuenta administradora con correo verificado.");
+}
+
+function requireCupboard(env) {
+  try {
+    return readCupboardConfig(env);
+  } catch (error) {
+    if (error instanceof CupboardWorkerError) throw new ApiError(503, error.code, error.message);
+    throw error;
+  }
+}
+
+function normalizeOrderForCustomer(order, orderId) {
+  const items = (Array.isArray(order.items) ? order.items : []).map((item) => {
+    const customerItem = { ...item };
+    delete customerItem.cost;
+    delete customerItem.ingredientUsage;
+    return customerItem;
+  });
+  return {
+    id: orderId,
+    orderNumber: order.orderNumber,
+    status: order.status,
+    customer: order.customer,
+    items,
+    fulfillment: order.fulfillment,
+    payment: order.payment,
+    subtotal: order.subtotal,
+    deliveryFee: order.deliveryFee,
+    total: order.total,
+    notes: order.notes,
+    delivery: order.delivery || null,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+  };
+}
+
+async function findZones(tx) {
+  return tx.query("deliveryZones", { field: "active", op: "EQUAL", value: true, limit: 200 });
+}
+
+async function assignVirtualTable({ tx, orderId, uid, orderNumber, point, zone, now }) {
+  const config = {
+    groupingRadiusMeters: Math.min(
+      Math.max(1, Number(zone.groupingRadiusMeters) || VIRTUAL_TABLE_DEFAULTS.groupingRadiusMeters),
+      VIRTUAL_TABLE_DEFAULTS.groupingRadiusMeters,
+    ),
+    capacity: Math.min(
+      Math.max(1, Number(zone.capacity) || VIRTUAL_TABLE_DEFAULTS.capacity),
+      VIRTUAL_TABLE_DEFAULTS.capacity,
+    ),
+    inactivityMinutes: Math.min(
+      Math.max(5, Number(zone.inactivityMinutes) || VIRTUAL_TABLE_DEFAULTS.inactivityMinutes),
+      1440,
+    ),
+  };
+  const windowId = isoWindowId(now);
+  const tables = await tx.query("virtualTables", {
+    field: "zoneId",
+    op: "EQUAL",
+    value: zone.id,
+    limit: 200,
+  });
+  const candidate = tables.find(({ data }) => isCompatibleVirtualTable({
+    table: data,
+    point,
+    zoneId: zone.id,
+    windowId,
+    now: now.getTime(),
+    config,
+  }));
+  const tableId = candidate ? candidate.path.split("/").at(-1) : `vt_${randomId()}`;
+  const tablePath = `virtualTables/${tableId}`;
+  const memberPath = `${tablePath}/members/${orderId}`;
+  const trackingPath = `customerOrderTracking/${uid}/orders/${orderId}`;
+  const [member, tracking] = await tx.getMany([memberPath, trackingPath]);
+  if (member.exists || tracking.exists) throw new ApiError(409, "ORDER_ALREADY_ASSIGNED", "El pedido ya pertenece a una mesa virtual.");
+
+  const table = candidate?.data || {
+    tableId,
+    zoneId: zone.id,
+    windowId,
+    status: "open",
+    center: { latitude: point.latitude, longitude: point.longitude },
+    capacity: config.capacity,
+    groupingRadiusMeters: config.groupingRadiusMeters,
+    inactivityMinutes: config.inactivityMinutes,
+    activeOrderCount: 0,
+    createdAt: now,
+  };
+  const activeCount = Number(table.activeOrderCount) || 0;
+  if (table.status !== "open" || activeCount >= config.capacity) {
+    throw new ApiError(409, "VIRTUAL_TABLE_FULL", "La mesa se llenó. Intenta nuevamente.");
+  }
+  const tableReference = `V-${tableId.slice(0, 6).toUpperCase()}`;
+  const expiresAt = new Date(now.getTime() + config.inactivityMinutes * 60_000);
+  const nextTable = {
+    ...table,
+    tableId,
+    zoneId: zone.id,
+    windowId,
+    status: "open",
+    capacity: config.capacity,
+    groupingRadiusMeters: config.groupingRadiusMeters,
+    inactivityMinutes: config.inactivityMinutes,
+    activeOrderCount: activeCount + 1,
+    lastActivityAt: now,
+    expiresAt,
+  };
+  if (candidate) tx.set(tablePath, nextTable);
+  else tx.create(tablePath, nextTable);
+  tx.create(memberPath, {
+    orderId,
+    customerUid: uid,
+    joinedAt: now,
+    deliveryStatus: "waiting_customer",
+    meetingPoint: point,
+  });
+  tx.create(trackingPath, {
+    orderId,
+    orderNumber,
+    tableReference,
+    deliveryStatus: "waiting_customer",
+    tableStatus: "open",
+    meetingPoint: {
+      latitude: point.latitude,
+      longitude: point.longitude,
+      label: point.label || "Punto de encuentro",
+    },
+    updatedAt: now,
+  });
+  tx.create(`deliveryEvents/${randomId()}`, {
+    tableId,
+    orderId,
+    type: candidate ? "order_joined" : "table_created",
+    actorUid: uid,
+    createdAt: now,
+  });
+  return {
+    tableId, tableReference, zoneId: zone.id, zoneName: zone.name || null, status: "waiting_customer",
+    zoneAssignment: zone.assignment || { method: "inside_polygon", distanceMeters: 0 },
+  };
+}
+
+// policy is injectable only at the domain boundary so tests can exercise order
+// validation/idempotency while the production BUSINESS.acceptingOrders gate stays closed.
+export async function createOrder({ request, claims, env, db: injectedDb, policy = BUSINESS }) {
+  if (!claims?.sub) throw new ApiError(401, "unauthenticated", "Inicia sesión para realizar tu pedido.");
+  if (env.ORDERS_ENABLED !== "true") throw new ApiError(503, "ORDERS_DISABLED", "Los pedidos están deshabilitados mientras se completa la validación.");
+  if (policy.acceptingOrders !== true) throw new ApiError(503, "ORDERS_DISABLED", "El negocio no está aceptando pedidos.");
+  requireCupboard(env);
+  const db = injectedDb || createSandwichiesDb(env);
+  const requestId = typeof request.requestId === "string" ? request.requestId.trim() : "";
+  if (!validRequestId(requestId)) throw new ApiError(400, "invalid-argument", "Identificador de solicitud inválido.");
+
+  const uid = claims.sub;
+  const idempotencyPath = `orderRequests/${safeDocId(uid)}_${requestId}`;
+  let responseOrder;
+  await db.runTransaction(async (tx) => {
+    const previous = await tx.get(idempotencyPath);
+    if (previous.exists) {
+      const orderId = previous.data.orderId;
+      const saved = await tx.get(`orders/${orderId}`);
+      if (!saved.exists || saved.data.customerUid !== uid) {
+        throw new ApiError(409, "IDEMPOTENCY_RECORD_INVALID", "No fue posible recuperar el pedido asociado a esta solicitud.");
+      }
+      responseOrder = normalizeOrderForCustomer(saved.data, orderId);
+      return;
+    }
+
+    const counterPath = "counters/orders";
+    const counter = await tx.get(counterPath);
+    const orderNumber = (Number(counter.data?.value) || 0) + 1;
+    let trusted;
+    try {
+      trusted = buildTrustedOrder(request, orderNumber);
+    } catch (error) {
+      if (error instanceof OrderValidationError) throw new ApiError(400, "invalid-argument", error.message);
+      throw error;
+    }
+
+    const now = nowDate();
+    const orderId = randomId();
+    const orderPath = `orders/${orderId}`;
+    let delivery = null;
+    if (trusted.fulfillment.type === "punto_encuentro") {
+      const point = trusted.fulfillment.meetingPoint;
+      const zones = await findZones(tx);
+      const zone = findOperatingZone(point, zones.map(({ path, data }) => ({
+        id: path.split("/").at(-1),
+        ...data,
+      })));
+      if (!zone) throw new ApiError(422, "NO_ACTIVE_DELIVERY_ZONES", "Todavía no hay zonas de entrega activas.");
+      const scheduleStatus = getZoneScheduleStatus(zone, now);
+      if (!scheduleStatus.open) {
+        const hours = scheduleStatus.intervals.length
+          ? scheduleStatus.intervals.map(({ start, end }) => `${start}–${end}`).join(", ")
+          : "Cerrado hoy";
+        throw new ApiError(422, "ZONE_OUTSIDE_SERVICE_HOURS", `${zone.name} atiende ${hours} (${scheduleStatus.timeZone}).`);
+      }
+      delivery = await assignVirtualTable({
+        tx,
+        orderId,
+        uid,
+        orderNumber,
+        point,
+        zone,
+        now,
+      });
+    }
+
+    const order = {
+      ...trusted,
+      customerUid: uid,
+      ...(delivery ? {
+        delivery: {
+          mode: "virtual_table",
+          ...delivery,
+          zoneName: delivery.zoneName,
+        },
+      } : {}),
+      inventory: {
+        system: "cupboard",
+        consumptionStatus: "pending",
+        cupboardConsumptionStatus: "pending",
+      },
+      createdAt: now,
+      updatedAt: now,
+    };
+    tx.create(orderPath, order);
+    tx.set(counterPath, { value: orderNumber, updatedAt: now });
+    tx.create(idempotencyPath, { orderId, uid, createdAt: now });
+    responseOrder = normalizeOrderForCustomer(order, orderId);
+  });
+  return { order: responseOrder };
+}
+
+function orderTimestamp(value) {
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "string") return Date.parse(value) || 0;
+  if (typeof value?.toDate === "function") return value.toDate().getTime();
+  if (typeof value?._seconds === "number") return value._seconds * 1000;
+  return 0;
+}
+
+export async function listCustomerOrders({ claims, env, db: injectedDb, limit = 100 }) {
+  if (!claims?.sub) throw new ApiError(401, "unauthenticated", "Inicia sesión para consultar tu historial.");
+  const db = injectedDb || createSandwichiesDb(env);
+  const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 100, 1), 100);
+  const snapshots = await db.query("orders", {
+    field: "customerUid",
+    op: "EQUAL",
+    value: claims.sub,
+    limit: 500,
+  });
+  const orders = snapshots
+    .filter(({ data }) => data.customerUid === claims.sub)
+    .sort((a, b) => orderTimestamp(b.data.createdAt) - orderTimestamp(a.data.createdAt))
+    .slice(0, safeLimit);
+  const normalized = await Promise.all(orders.map(async ({ path, data }) => {
+    const orderId = path.split("/").at(-1);
+    const order = normalizeOrderForCustomer(data, orderId);
+    if (data.delivery?.mode === "virtual_table") {
+      const tracking = await db.read(`customerOrderTracking/${claims.sub}/orders/${orderId}`);
+      if (tracking.exists) {
+        order.delivery = {
+          ...order.delivery,
+          status: tracking.data.deliveryStatus || order.delivery.status,
+          tableStatus: tracking.data.tableStatus || order.delivery.tableStatus,
+        };
+      }
+    }
+    return order;
+  }));
+  return { orders: normalized, count: normalized.length, limit: safeLimit };
+}
+
 export async function getCustomerOrder({ orderId, claims, env, db: injectedDb }) {
   if (!claims?.sub) throw new ApiError(401, "unauthenticated", "Inicia sesión para consultar tu pedido.");
   const db = injectedDb || createSandwichiesDb(env);
