@@ -366,7 +366,11 @@ export class FirestoreRest {
         else await this.rollback(transaction);
         return result;
       } catch (error) {
-        await this.rollback(transaction);
+        // A timed-out commit has an unknown outcome. Do not spend another request
+        // trying to roll back; the caller reconciles using its idempotency key.
+        if (!String(error?.code || "").endsWith("_TIMEOUT")) {
+          await this.rollback(transaction);
+        }
         lastError = error;
         if (!(error instanceof FirestoreRestError) || error.status !== 409 || attempt === attempts - 1) {
           throw error;
