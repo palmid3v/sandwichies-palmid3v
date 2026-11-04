@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 const App = lazy(() => import("./App"));
 const OrderPage = lazy(() => import("./pages/OrderPage"));
+const CustomerProfile = lazy(() => import("./pages/CustomerProfile"));
 
 export default function AppRoutes() {
   return (
@@ -16,6 +17,7 @@ export default function AppRoutes() {
       >
         <Routes>
           <Route path="/" element={<OrderPage />} />
+          <Route path="/perfil" element={<CustomerProfile />} />
           <Route path="/admin" element={<App />} />
         </Routes>
       </Suspense>
