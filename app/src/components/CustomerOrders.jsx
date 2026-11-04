@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { auth } from "../firebase";
 import { getCustomerOrder, listCustomerOrders } from "../api/customer-orders";
 import { formatMoney } from "../config/business";
+import "../styles/customer-orders.css";
 
 const STATUS_LABELS = {
   pendiente: "Pendiente",
