@@ -1,5 +1,6 @@
 import { hasVerifiedEmail, readBearerToken, verifyFirebaseIdToken } from "./firebase-auth.js";
 import { readCupboardInventory } from "./cupboard-diagnostics.js";
+import { getCustomerCart, saveCustomerCart } from "./customer-cart.js";
 import {
   getCustomerProfile,
   saveCustomerProfile,
@@ -154,6 +155,19 @@ async function route(request, env) {
     if (auth.error) return auth.error;
     if (auth.claims.admin !== true) return json({ error: "permission-denied" }, 403);
     return json({ uid: auth.claims.sub, admin: true });
+  }
+
+  if (path === "/v1/customer/cart" && request.method === "GET") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    return json(await getCustomerCart({ claims: auth.claims, env }));
+  }
+
+  if (path === "/v1/customer/cart" && request.method === "POST") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    const payload = await readJson(request);
+    return json(await saveCustomerCart({ payload, claims: auth.claims, env }));
   }
 
   if (path === "/v1/customer/profile" && request.method === "GET") {
