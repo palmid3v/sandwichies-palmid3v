@@ -107,3 +107,14 @@ test("an empty cart is persisted as a revisioned clear operation", async () => {
   assert.equal(cleared.cart.revision, 2);
   assert.deepEqual(cleared.cart.items, []);
 });
+
+
+test("cart read confirms whether a mutation ID was already committed", async () => {
+  const db = new MemoryFirestore();
+  await saveCustomerCart({ payload, claims, db });
+  const applied = await getCustomerCart({ claims, db, mutationId: payload.mutationId });
+  const notApplied = await getCustomerCart({ claims, db, mutationId: "mutation-not-applied" });
+  assert.equal(applied.mutationApplied, true);
+  assert.equal(notApplied.mutationApplied, false);
+  assert.equal(applied.cart.revision, 1);
+});
