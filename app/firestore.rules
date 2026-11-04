@@ -108,6 +108,15 @@ service cloud.firestore {
       }
     }
 
+    // Customer profiles and saved addresses are accessed only through the
+    // authenticated Worker. The Worker derives the UID from the verified token.
+    match /customers/{uid} {
+      allow read, write: if false;
+      match /addresses/{addressId} {
+        allow read, write: if false;
+      }
+    }
+
     match /customerOrderTracking/{uid}/orders/{orderId} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow write: if false;
