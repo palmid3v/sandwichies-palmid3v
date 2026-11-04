@@ -73,23 +73,6 @@ export async function getCustomerProfile({ claims, env, db: injectedDb }) {
   return db.runTransaction(async (tx) => {
     const current = await tx.get(path);
     if (current.exists) return { profile: current.data };
-    const profile = normalizeCustomerProfile({
-      name: claims.name || "",
-      phone: "",
-      preferences: {},
-    }, { ...claims, sub: uid }, {});
-    // A verified account may not yet have supplied a phone/name. Create a minimal
-    // identity document first; the customer completes required fields in the UI.
-    const initial = {
-      uid,
-      email: clean(claims.email, 254).toLowerCase(),
-      name: clean(claims.name, 80),
-      phone: "",
-      preferences: { preferredFulfillment: "recoger", deliveryNotes: "" },
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    void profile;
     tx.create(path, initial);
     return { profile: initial };
   });
