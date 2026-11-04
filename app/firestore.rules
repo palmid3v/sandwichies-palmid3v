@@ -115,6 +115,10 @@ service cloud.firestore {
       match /addresses/{addressId} {
         allow read, write: if false;
       }
+      // The Worker owns cart reads/writes and derives the document path from the verified UID.
+      match /cart/{cartId} {
+        allow read, write: if false;
+      }
     }
 
     match /customerOrderTracking/{uid}/orders/{orderId} {
