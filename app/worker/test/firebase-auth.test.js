@@ -95,3 +95,20 @@ test("verified-email policy accepts only the explicit true claim", () => {
   assert.equal(hasVerifiedEmail({}), false);
   assert.equal(hasVerifiedEmail(null), false);
 });
+
+
+test("Firebase signing-key lookup aborts at its configured timeout", async () => {
+  clearFirebaseKeyCacheForTests();
+  const { token } = await createSignedToken();
+  const fetchImpl = (_url, init = {}) => new Promise((_resolve, reject) => {
+    init.signal.addEventListener("abort", () => {
+      const error = new Error("aborted");
+      error.name = "AbortError";
+      reject(error);
+    }, { once: true });
+  });
+  await assert.rejects(
+    verifyFirebaseIdToken(token, { projectId, fetchImpl, now, timeoutMs: 1_000 }),
+    (error) => error.code === "FIREBASE_JWKS_TIMEOUT",
+  );
+});
