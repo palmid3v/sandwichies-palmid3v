@@ -12,7 +12,7 @@ const customerPath = (uid) => "customers/" + encodeURIComponent(uid);
 const addressPath = (uid, id) => customerPath(uid) + "/addresses/" + id;
 
 function customerUid(claims) {
-  if (!claims?.sub || typeof claims.sub !== "string" || claims.sub.length > 128) {
+  if (!claims?.sub || typeof claims.sub !== "string" || claims.sub.length > 128 || claims.email_verified !== true) {
     throw new ApiError(401, "unauthenticated", "Inicia sesión para consultar tu perfil.");
   }
   return claims.sub;
