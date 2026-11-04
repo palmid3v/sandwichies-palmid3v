@@ -35,6 +35,14 @@ La asignación/revocación se realiza con `npm run provision:admin` bajo credenc
 
 La contraseña y el claim son independientes. Un cambio/restablecimiento de contraseña no elimina el claim; tras cualquier cambio de claim hay que obtener un nuevo ID token.
 
+## Perfil del cliente y operaciones autorizadas
+
+El Worker crea `customers/{uid}` en el primer `GET /v1/customer/profile`. El documento conserva `uid`, `email` (tomado de los claims verificados), `name`, `phone`, `preferences.preferredFulfillment`, `preferences.deliveryNotes`, `createdAt` y `updatedAt`. Las direcciones se guardan en `customers/{uid}/addresses/{addressId}` e incluyen etiqueta, destinatario, teléfono, dirección, barrio, referencia, ciudad/departamento, país y marca `isDefault`. Se permiten hasta 10 direcciones por cliente y una sola predeterminada.
+
+Operaciones disponibles: leer/actualizar el propio perfil; listar, crear, actualizar y eliminar las propias direcciones. El Worker deriva el UID exclusivamente de `sub` del Firebase ID token verificado: ignora cualquier UID enviado por el navegador. Los campos email/UID no son editables por el cliente; la contraseña permanece exclusivamente en Firebase Authentication. Las Firestore Rules deniegan el acceso directo del navegador a `customers`; las operaciones pasan por el Worker autenticado. Un administrador tampoco obtiene lectura de estos documentos por acceso directo desde el navegador.
+
+Rutas: `GET/POST /v1/customer/profile`, `GET/POST /v1/customer/addresses` y `POST /v1/customer/addresses/:id/delete`.
+
 ## Reinicio y continuidad de clientes
 
 La vinculación de una sesión anónima heredada conserva el UID; no es una migración entre dos cuentas. Los datos que no estén asociados a ese UID no se reclaman automáticamente. No ejecutar borrados masivos de Auth o Firestore.
