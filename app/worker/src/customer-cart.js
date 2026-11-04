@@ -19,7 +19,7 @@ function normalizeItems(items) {
     throw new ApiError(400, "INVALID_CART", "El carrito admite hasta 20 referencias de producto.");
   }
   const ids = new Set();
-  return items.map((item) => {
+  const normalized = items.map((item) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) {
       throw new ApiError(400, "INVALID_CART", "Una línea del carrito no es válida.");
     }
@@ -57,6 +57,11 @@ function normalizeItems(items) {
       quantity,
     };
   });
+  const totalUnits = normalized.reduce((total, item) => total + item.quantity, 0);
+  if (totalUnits > 20) {
+    throw new ApiError(400, "INVALID_CART_TOTAL", "El carrito admite hasta 20 unidades en total.");
+  }
+  return normalized;
 }
 
 function snapshot(data, uid) {
