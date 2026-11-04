@@ -9,7 +9,7 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 
 ## ✨ Capacidades y base técnica
 ### Cliente
-- Catálogo, búsqueda, filtros, recetas, cantidades y carrito.
+- Catálogo, búsqueda, filtros, recetas y carrito persistente por UID con sincronización y control de conflictos.
 - Recogida/domicilio, datos de contacto y ubicación/punto de encuentro.
 - Firebase Anonymous Auth para sesiones de cliente; identidad administrativa separada.
 - Consulta privada del pedido y seguimiento logístico.
@@ -32,11 +32,11 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 | Área | Estado |
 |---|---|
 | Catálogo, recetas y precios confiables | Implementado en dominio compartido |
-| Storefront y carrito | Implementado; persistencia de cuenta por completar |
+| Storefront y carrito | Persistencia por UID, revisiones y control de conflictos implementados en código; QA local pendiente |
 | Pedidos y Worker | Recepción desactivada; `BUSINESS.acceptingOrders=false` y `ORDERS_ENABLED=false` |
 | Zonas y mesas virtuales | Implementación y prueba local confirmadas; ampliar reglas |
 | Cupboard | Puente idempotente en código; configuración/QA cruzado pendiente |
-| Registro, perfil y direcciones persistentes | Perfil y direcciones implementados en código; QA local pendiente |
+| Registro, perfil y direcciones persistentes | Perfil, direcciones y carrito persistente implementados en código; QA local pendiente |
 | DayFlow / Financial-D3v | Contratos futuros; no declarar integración operativa |
 | Producción | No validada; sin autorización de despliegue |
 
