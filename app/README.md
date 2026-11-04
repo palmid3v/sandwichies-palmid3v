@@ -33,7 +33,8 @@ La web actual usa React y Vite. No existe todavía una aplicación nativa iOS/An
 ### Cliente
 - Catálogo y descubrimiento de recetas existentes.
 - Búsqueda y filtros del catálogo.
-- Carrito con cantidades, eliminación y cálculo de totales.
+- Carrito persistente por UID autenticado, restauración al iniciar sesión, sincronización con debounce y control optimista de conflictos entre sesiones.
+- El Worker valida las configuraciones contra el catálogo compartido; el navegador no escribe el carrito directamente en Firestore.
 - Selección de recogida o domicilio y captura de datos de contacto.
 - Identidad de cliente con Firebase Email/Password, verificación de correo y recuperación de contraseña.
 - Compatibilidad de vinculación de una sesión anónima heredada mediante `linkWithCredential`, conservando el UID; no crea nuevas sesiones anónimas.
@@ -42,6 +43,16 @@ La web actual usa React y Vite. No existe todavía una aplicación nativa iOS/An
 - Ruta `/perfil` para consultar y editar datos personales y direcciones.
 - Validación de solicitudes y reconstrucción confiable de pedidos en backend.
 - El flujo está sujeto a `BUSINESS.acceptingOrders = false`; el storefront muestra los pedidos como cerrados y el dominio rechaza nuevas órdenes.
+
+### Carrito — fase D
+
+- Documento canónico: `customers/{uid}/cart/current`.
+- API Worker: `GET/POST /v1/customer/cart`; requiere ID token Firebase válido y correo verificado.
+- Cada escritura requiere `expectedRevision` y `mutationId`; la revisión aumenta transaccionalmente y los reintentos del mismo mutation ID son idempotentes.
+- Una revisión desactualizada produce `409 CART_CONFLICT`. La UI detiene el autosave y ofrece recargar la versión remota; no hace merge automático ni sobrescritura silenciosa.
+- Se almacenan configuración, nombre, identificador de línea y cantidad. Precio/costo/preview se recalculan desde el catálogo compartido al restaurar; nunca se confía en precios enviados por el cliente.
+- Firestore Rules niega acceso directo del navegador a `customers/{uid}/cart/{cartId}`; solo el Worker accede con identidad de servicio.
+- QA local de esta fase todavía pendiente; no declarar pruebas aprobadas por el hecho de que el código esté en `main`.
 
 ### Administración
 - Firebase Authentication y custom claim `admin: true`.
