@@ -171,6 +171,8 @@ test("customer profiles and saved addresses cannot be accessed directly from the
   await assertFails(setDoc(doc(ownDb, "customers/user-1"), { name: "Cambio directo" }));
   await assertFails(getDoc(doc(ownDb, "customers/user-1/addresses/home")));
   await assertFails(deleteDoc(doc(ownDb, "customers/user-1/addresses/home")));
+  await assertFails(getDoc(doc(ownDb, "customers/user-1/cart/current")));
+  await assertFails(setDoc(doc(ownDb, "customers/user-1/cart/current"), { revision: 1, items: [] }));
 
   const otherDb = env.authenticatedContext("user-2", { email_verified: true }).firestore();
   await assertFails(getDoc(doc(otherDb, "customers/user-1")));
