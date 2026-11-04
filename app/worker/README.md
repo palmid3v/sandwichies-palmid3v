@@ -24,6 +24,11 @@ All protected routes require `Authorization: Bearer <Firebase ID token>`. Admin 
 |---|---|---|---|
 | GET | `/health` | Public | Worker health and order-enabled flag |
 | GET | `/v1/session` | Signed in | Verify customer/admin session |
+| GET | `/v1/customer/profile` | Verified customer | Create on first access and read the caller's profile |
+| POST | `/v1/customer/profile` | Verified customer | Update own name, phone and delivery preferences |
+| GET | `/v1/customer/addresses` | Verified customer | List own saved addresses |
+| POST | `/v1/customer/addresses` | Verified customer | Create/update own address (maximum 10) |
+| POST | `/v1/customer/addresses/:id/delete` | Verified customer | Delete own saved address |
 | GET | `/v1/admin/session` | Admin | Verify admin claim |
 | GET | `/v1/admin/delivery-operations` | Verified admin | Read zones, active/expired tables and recent events |
 | GET | `/v1/admin/virtual-tables/:id/members` | Verified admin | Read sanitized members for one table |
