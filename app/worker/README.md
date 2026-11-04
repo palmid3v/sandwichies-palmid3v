@@ -194,3 +194,19 @@ npx wrangler deploy --config app/worker/wrangler.toml
 ```
 
 Cloudflare Git builds remain disabled until their root directory and build/deploy configuration are explicitly reviewed. Do not enable Firebase Blaze or add paid services to solve backend hosting.
+
+
+## Historial privado de pedidos — Fase E
+
+- `GET /v1/customer/orders?limit=100` autentica con Firebase ID token verificado y consulta únicamente documentos con `customerUid === claims.sub`.
+- El límite solicitado se acota entre 1 y 100; la respuesta se normaliza con el mismo contrato cliente de detalle.
+- `GET /v1/orders/:id` devuelve 404 tanto para pedido inexistente como para pedido ajeno, evitando revelar su existencia.
+- Para pedidos con mesa virtual, el Worker incorpora `deliveryStatus` y `tableStatus` desde `customerOrderTracking/{uid}/orders/{orderId}`.
+- La normalización elimina `cost` e `ingredientUsage`; los datos internos de inventario nunca forman parte de la respuesta cliente.
+- El frontend consulta el historial y el detalle mediante Worker; Firestore Rules continúa bloqueando lectura directa de pedidos y limita tracking al UID propietario/admin.
+
+## QA especializado — Fase F
+
+El coordinador `npm run qa` ejecuta secuencialmente los agentes Worker, cliente/sesión, dominio, seguridad Firestore, integración Cupboard y frontend. Cada agente se ejecuta en proceso separado, conserva el código de salida y el coordinador se detiene en el primer fallo.
+
+La prueba de navegador de dos sesiones, logout/login, pérdida de red, recuperación y responsive requiere evidencia manual con entorno demo. Checklist: `app/docs/qa/browser-recovery.md`. Ningún agente despliega, cambia billing, escribe en Firebase real ni habilita pedidos.
