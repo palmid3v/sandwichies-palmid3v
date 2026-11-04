@@ -12,7 +12,7 @@ import {
   ApiError,
   checkDeliveryCoverage,
   createOrder,
-  getCustomerOrder,
+  getCustomerOrder,\n  listCustomerOrders,
   saveDeliveryZone,
   transitionOrder,
   markCustomerReady,
@@ -221,6 +221,13 @@ async function route(request, env) {
     if (auth.error) return auth.error;
     const payload = await readJson(request);
     return json(await createOrder({ request: payload, claims: auth.claims, env }), 201);
+  }
+
+  if (request.method === "GET" && path === "/v1/customer/orders") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    const limit = new URL(request.url).searchParams.get("limit") || "100";
+    return json(await listCustomerOrders({ claims: auth.claims, env, limit }));
   }
 
   const customerOrderMatch = path.match(new RegExp("^/v1/orders/([A-Za-z0-9_-]{1,150})$"));
