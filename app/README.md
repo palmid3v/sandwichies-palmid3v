@@ -37,6 +37,9 @@ La web actual usa React y Vite. No existe todavía una aplicación nativa iOS/An
 - Selección de recogida o domicilio y captura de datos de contacto.
 - Identidad de cliente con Firebase Email/Password, verificación de correo y recuperación de contraseña.
 - Compatibilidad de vinculación de una sesión anónima heredada mediante `linkWithCredential`, conservando el UID; no crea nuevas sesiones anónimas.
+- Perfil persistente `customers/{uid}` con nombre, teléfono, correo derivado del token y preferencias de entrega.
+- Gestión de hasta 10 direcciones propias en `customers/{uid}/addresses/{addressId}`, con dirección predeterminada única.
+- Ruta `/perfil` para consultar y editar datos personales y direcciones.
 - Validación de solicitudes y reconstrucción confiable de pedidos en backend.
 - El flujo está sujeto a `BUSINESS.acceptingOrders = false`; el storefront muestra los pedidos como cerrados y el dominio rechaza nuevas órdenes.
 
