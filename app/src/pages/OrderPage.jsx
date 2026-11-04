@@ -104,6 +104,9 @@ export default function OrderPage() {
       }
       if (user.isAnonymous) {
         setCartReady(false);
+        setCart([]);
+        cartRevisionRef.current = 0;
+        setCartSyncState("idle");
         setAuthReady(false);
         setAuthError("Tienes una sesión temporal. Registra una cuenta para vincularla y conservar su identificador.");
         return;
@@ -111,6 +114,10 @@ export default function OrderPage() {
       try {
         const token = await user.getIdTokenResult(true);
         if (user.emailVerified !== true || token.claims.email_verified !== true) {
+          setCartReady(false);
+          setCart([]);
+          cartRevisionRef.current = 0;
+          setCartSyncState("idle");
           setAuthReady(false);
           setAuthError("Verifica tu correo para continuar. Revisa tu bandeja de entrada.");
           return;
@@ -186,7 +193,6 @@ export default function OrderPage() {
         if (error.code === "CART_CONFLICT") {
           setCartConflict(true);
           setCartSyncState("conflict");
-          showToast("Tu carrito cambió en otra sesión. Recarga la versión más reciente para continuar.", "error");
           return;
         }
         console.error("No se pudo sincronizar el carrito:", error);
