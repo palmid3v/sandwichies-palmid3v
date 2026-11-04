@@ -395,3 +395,30 @@ Se preparó un modo local de la API Worker con Wrangler + Firestore Emulator par
 - `ORDERS_ENABLED=false` permanece intacto. Este modo no configura Cupboard, pedidos reales, Cloudflare remoto ni credenciales productivas.
 
 Guía de arranque: [docs/development/local-worker.md](docs/development/local-worker.md). Variables de ejemplo: `.env.local.example` y `worker/.dev.vars.example`; los archivos reales quedan ignorados por Git.
+
+
+## Fase E — Historial privado, seguimiento y recuperación
+
+- Endpoint `GET /v1/customer/orders?limit=100`: el Worker deriva el propietario desde el `sub` del ID token verificado; no acepta UID del navegador.
+- El historial queda limitado a los pedidos de `customerUid` del usuario autenticado y devuelve una vista cliente sanitizada.
+- Endpoint `GET /v1/orders/:id` mantiene el control de propiedad y combina el pedido con el tracking privado `customerOrderTracking/{uid}/orders/{orderId}`.
+- El storefront incorpora «Mis pedidos», listado, detalle y recuperación del seguimiento al volver a iniciar sesión o usar otro navegador.
+- Recuperar un pedido no crea otro pedido ni altera el carrito o el inventario.
+- Las reglas mantienen lectura del tracking limitada al propietario y administración; el historial de pedidos no se consulta directamente desde el navegador.
+
+## Fase F — QA integral con agentes especializados
+
+`npm run qa` ejecuta un coordinador secuencial que detiene el proceso ante el primer agente fallido:
+
+| Agente | Responsabilidad |
+|---|---|
+| Worker/API | autenticación, CORS, endpoints, idempotencia y lógica de pedidos |
+| Cliente/sesión | historial privado, aislamiento UID, sanitización y recuperación |
+| Dominio | catálogo, precios, promociones e inventario |
+| Seguridad | Firestore Rules con Emulator Suite |
+| Integración | Cupboard, inventario, saga y mesas virtuales en proyectos demo |
+| Frontend | lint, build, bundle budget y smoke HTTP |
+
+El recorrido real de navegador, cierre de sesión, dos perfiles de navegador, recuperación y responsive se registra por separado en `docs/qa/browser-recovery.md`. El runner automatizado no sustituye esta evidencia manual ni declara el QA de navegador aprobado.
+
+**Estado de validación de E/F:** implementación en `main`; pruebas locales, CI y recorrido de navegador deben ejecutarse contra el commit actual antes de declarar QA aprobado. No se ha desplegado ni habilitado recepción de pedidos.
