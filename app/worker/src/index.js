@@ -1,6 +1,13 @@
 import { hasVerifiedEmail, readBearerToken, verifyFirebaseIdToken } from "./firebase-auth.js";
 import { readCupboardInventory } from "./cupboard-diagnostics.js";
 import {
+  getCustomerProfile,
+  saveCustomerProfile,
+  listCustomerAddresses,
+  saveCustomerAddress,
+  deleteCustomerAddress,
+} from "./customer-profile.js";
+import {
   ApiError,
   checkDeliveryCoverage,
   createOrder,
@@ -147,6 +154,48 @@ async function route(request, env) {
     if (auth.error) return auth.error;
     if (auth.claims.admin !== true) return json({ error: "permission-denied" }, 403);
     return json({ uid: auth.claims.sub, admin: true });
+  }
+
+  if (path === "/v1/customer/profile" && request.method === "GET") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    return json(await getCustomerProfile({ claims: auth.claims, env }));
+  }
+
+  if (path === "/v1/customer/profile" && request.method === "POST") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    const payload = await readJson(request);
+    return json(await saveCustomerProfile({ payload, claims: auth.claims, env }));
+  }
+
+  if (path === "/v1/customer/addresses" && request.method === "GET") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    return json(await listCustomerAddresses({ claims: auth.claims, env }));
+  }
+
+  if (path === "/v1/customer/addresses" && request.method === "POST") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    const payload = await readJson(request);
+    return json(await saveCustomerAddress({
+      addressId: payload.id || null,
+      payload,
+      claims: auth.claims,
+      env,
+    }), payload.id ? 200 : 201);
+  }
+
+  const customerAddressDelete = path.match(new RegExp("^/v1/customer/addresses/([A-Za-z0-9_-]{1,80})/delete$"));
+  if (customerAddressDelete && request.method === "POST") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    return json(await deleteCustomerAddress({
+      addressId: customerAddressDelete[1],
+      claims: auth.claims,
+      env,
+    }));
   }
 
   if (path === "/v1/orders" && request.method === "POST") {
