@@ -13,6 +13,7 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 - Recogida/domicilio, datos de contacto y ubicación/punto de encuentro.
 - Firebase Anonymous Auth para sesiones de cliente; identidad administrativa separada.
 - Consulta privada del pedido y seguimiento logístico.
+- Perfil persistente y direcciones guardadas, aislados por UID de Firebase.
 ### Administración
 - Firebase Auth con custom claim `admin: true`.
 - Gestión de pedidos, pagos, inventario operativo, compras y ajustes.
@@ -35,7 +36,7 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 | Pedidos y Worker | Recepción desactivada; `BUSINESS.acceptingOrders=false` y `ORDERS_ENABLED=false` |
 | Zonas y mesas virtuales | Implementación y prueba local confirmadas; ampliar reglas |
 | Cupboard | Puente idempotente en código; configuración/QA cruzado pendiente |
-| Registro, perfil y direcciones persistentes | Pendiente de completar |
+| Registro, perfil y direcciones persistentes | Perfil y direcciones implementados en código; QA local pendiente |
 | DayFlow / Financial-D3v | Contratos futuros; no declarar integración operativa |
 | Producción | No validada; sin autorización de despliegue |
 
