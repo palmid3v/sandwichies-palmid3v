@@ -164,3 +164,80 @@ select:focus-visible {
     display: none;
   }
 }
+
+
+/* Route-level loading and recoverable lazy-import failures. */
+.route-loading,
+.route-error {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--ink);
+  background: var(--surface-0);
+  text-align: center;
+}
+.route-loading p,
+.route-error p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+.route-loading-mark {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  color: #142014;
+  background: var(--lime);
+  font-weight: 950;
+}
+.route-error > div {
+  width: min(440px, 100%);
+}
+.route-error h1 {
+  margin: 8px 0;
+  font-size: clamp(1.7rem, 7vw, 2.3rem);
+}
+.route-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+.route-error-actions a,
+.route-error-actions button,
+.route-error > div > a {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  color: var(--ink);
+  background: var(--surface-2);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+.route-error-actions button {
+  color: #142014;
+  background: var(--lime);
+}
+.route-error-eyebrow {
+  color: var(--lime) !important;
+  font-size: .75rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+@media (max-width: 480px) {
+  .route-error-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
