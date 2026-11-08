@@ -982,3 +982,87 @@
     transform: none;
   }
 }
+
+
+/* Customer authentication is rendered on the storefront route, not the admin bundle. */
+.customer-auth-page {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 80% 0%, rgba(33, 163, 102, .12), transparent 34%),
+    var(--surface-0);
+}
+.customer-auth-card {
+  width: min(430px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-lg);
+}
+.customer-auth-card h1,
+.customer-auth-card > p {
+  margin: 0;
+}
+.customer-auth-card > p:not(.admin-eyebrow) {
+  color: var(--muted);
+  line-height: 1.5;
+}
+.customer-auth-card label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink);
+  font-size: .82rem;
+  font-weight: 800;
+}
+.customer-auth-card input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 11px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  color: var(--ink);
+  background: var(--surface-2);
+  font: inherit;
+  font-size: 16px;
+}
+.customer-auth-card > button[type="submit"] {
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  color: #142014;
+  background: var(--lime);
+  font-weight: 900;
+}
+.customer-auth-card .text-button {
+  min-height: 40px;
+  padding: 6px 0;
+  border: 0;
+  color: var(--lime);
+  background: transparent;
+  text-align: left;
+  font-size: .82rem;
+  font-weight: 800;
+}
+.customer-auth-footnote {
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.5;
+}
+@media (max-width: 480px) {
+  .customer-auth-page {
+    align-items: start;
+    padding: 14px 10px calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+  .customer-auth-card {
+    gap: 12px;
+    padding: 19px 16px;
+    border-radius: 18px;
+  }
+}
