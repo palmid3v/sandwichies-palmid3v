@@ -25,6 +25,16 @@ El SDK web de Firestore y el Worker local apuntan al mismo Firestore Emulator. L
 
 Ejecutar desde `D:\PALMI-D3V\projects\sandwichies-palmid3v\app`.
 
+### 0. Preflight seguro (una sola vez por cambio de entorno)
+
+```powershell
+npm run local:preflight
+```
+
+El preflight crea `worker/.dev.vars` y `.env.local` desde sus plantillas solo si no existen; nunca sobrescribe archivos locales. Comprueba los dos bloqueos de pedidos, el proyecto Firebase esperado, que frontend y Worker apunten a loopback, y que estén disponibles las dependencias, Firebase CLI y Java. Si detecta una URL remota, un emulador mal configurado o un flag de pedidos distinto de `false`, se detiene.
+
+Si el preflight falla, corrige el archivo local indicado y vuelve a ejecutarlo. No copies secretos de producción ni cambies los flags para hacerlo pasar.
+
 ### 1. Terminal — Firestore Emulator
 
 ```powershell
