@@ -71,7 +71,7 @@ const ensureLocalFile = async (target, example) => {
 };
 
 console.log("Sandwichies — preflight de desarrollo local");
-console.log("No despliega, no modifica Cloudflare y no escribe en Firebase remoto.\n");
+console.log("No despliega ni modifica Cloudflare; Firestore usa el emulador local. Firebase Auth sigue conectado a sandwich-pro para emitir ID tokens.\n");
 
 const business = await readText("shared/business.js");
 const wrangler = await readText("worker/wrangler.toml");
