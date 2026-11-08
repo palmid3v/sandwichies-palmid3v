@@ -25,7 +25,8 @@
     "worker:test": "npm --prefix worker test",
     "worker:dev": "npx --yes wrangler@4 dev --config worker/wrangler.toml --ip 127.0.0.1 --port 8787",
     "emulator:firestore": "node scripts/start-firestore-emulator.mjs",
-    "qa": "node scripts/qa.mjs"
+    "qa": "node scripts/qa.mjs",
+    "local:preflight": "node scripts/local-preflight.mjs"
   },
   "dependencies": {
     "@google-cloud/storage": "8.4.0",
