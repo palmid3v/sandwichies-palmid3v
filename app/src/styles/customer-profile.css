@@ -85,3 +85,27 @@
     display: grid;
   }
 }
+
+
+/* Profile route is independent from the admin stylesheet bundle. */
+.customer-profile-page .admin-eyebrow {
+  margin: 0 0 4px;
+  color: var(--tropical);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.customer-profile-page h1,
+.customer-profile-page h2,
+.customer-profile-page h3 {
+  color: var(--ink);
+}
+.customer-profile-page input:focus-visible,
+.customer-profile-page select:focus-visible,
+.customer-profile-page textarea:focus-visible,
+.customer-profile-page button:focus-visible,
+.customer-profile-page a:focus-visible {
+  outline: 3px solid rgba(198, 245, 107, .55);
+  outline-offset: 2px;
+}
