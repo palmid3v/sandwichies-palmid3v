@@ -1,29 +1,3 @@
-import React, { Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-
-const App = lazy(() => import("./App"));
-const OrderPage = lazy(() => import("./pages/OrderPage"));
-const CustomerProfile = lazy(() => import("./pages/CustomerProfile"));
-
-export default function AppRoutes() {
-  return (
-    <BrowserRouter>
-      <Suspense
-        fallback={
-          <main className="route-loading" role="status" aria-live="polite">
-            Cargando Sandwichies…
-          </main>
-        }
-      >
-        <Routes>
-          <Route path="/" element={<OrderPage />} />
-          <Route path="/perfil" element={<CustomerProfile />} />
-          <Route path="/admin" element={<App />} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
-  );
-}
 import React, { Component, Suspense, lazy } from "react";
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 
