@@ -89,7 +89,7 @@ Adaptadores de interfaz
         ↓
 Dominio compartido (shared/)
         ↓
-Backend confiable (Functions en código; alternativa $0 pendiente de decisión)
+Cloudflare Worker (API confiable en implementación)
         ↓
 Firestore / integración Cupboard
 ```
@@ -100,7 +100,7 @@ El navegador es un entorno no confiable. No aceptar desde el cliente precios, to
 
 ### Migración backend a Cloudflare Workers — implementación en código
 
-Se implementó `app/worker/` como backend alternativo bajo el objetivo de presupuesto $0. El Worker aún no está desplegado ni conectado a credenciales reales.
+Se implementó `app/worker/` como backend API bajo el objetivo de presupuesto $0. Cloudflare registra una versión desplegada, pero el hostname probado devuelve 404 en `/health` y la configuración consultada no reporta bindings. Por ello no se considera un backend remoto funcional ni conectado a credenciales reales.
 
 **Backend implementado en el repositorio:**
 - Verificación Firebase ID token RS256 con JWK oficial; valida firma, issuer, audience, subject, `iat`, `auth_time` y `exp`.
@@ -213,7 +213,7 @@ npm run check
 ### Presupuesto $0 y tecnologías evaluadas
 
 - **Firebase Spark:** plan vigente objetivo para Authentication y Firestore dentro de sus cuotas y límites gratuitos.
-- **Cloudflare Workers Free:** alternativa candidata para alojar endpoints backend sin Blaze. A 31-oct-2026, la documentación oficial indica 100.000 solicitudes/día y 10 ms de CPU por invocación en Free. Antes de adoptarlo hay que validar autenticación Firebase, acceso seguro a Firestore, transacciones, integración Cupboard, límites, cron y comportamiento al agotar cuota. No está añadido al repositorio ni desplegado.
+- **Cloudflare Workers Free:** destino de ejecución elegido para el backend Worker del repositorio, con un registro de despliegue existente pero sin health check remoto exitoso a 08-nov-2026. Antes de considerarlo operativo hay que validar publicación del módulo, bindings/variables, autenticación Firebase, acceso seguro a Firestore, transacciones, integración Cupboard, límites, cron y comportamiento al agotar cuota.
 - **Vercel Free:** mantener el frontend dentro de las condiciones y cuotas del plan gratuito.
 - No se autoriza facturación automática, upgrade a planes pagos, ni servicios que puedan generar cargos sin una decisión explícita del propietario.
 
@@ -300,7 +300,7 @@ No migrar el frontend actual ni duplicar reglas de negocio antes de una decisió
 - La autenticación administrativa usa Firebase Auth y custom claim `admin: true`.
 - El cliente usa una instancia Firebase separada para sesiones anónimas.
 - Firestore Rules deben continuar restrictivas y negar cualquier operación no declarada.
-- Las escrituras privilegiadas deben pasar por Cloud Functions con validación y autorización.
+- Las escrituras privilegiadas deben pasar por el backend confiable vigente (Worker) con validación y autorización; las pruebas locales deben usar emuladores. Las Cloud Functions heredadas no se consideran endpoints productivos disponibles.
 - No desplegar Functions/Rules, activar facturación ni procesar pedidos reales sin autorización explícita.
 - No cambiar proveedores, métodos, comisiones o políticas de pago; Tap to Pay está fuera de alcance.
 
