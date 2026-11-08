@@ -1,1 +1,111 @@
 .customer-profile-page{width:min(980px,calc(100% - 28px));margin:28px auto 64px;color:var(--text,#f5f5ed)}.customer-profile-header,.customer-profile-actions,.customer-address-item{display:flex;align-items:center;justify-content:space-between;gap:16px}.customer-profile-header{margin-bottom:24px}.customer-profile-header h1{margin:4px 0}.customer-profile-header p,.customer-profile-muted{color:var(--muted,#a5aa9e)}.customer-profile-actions{flex-wrap:wrap}.customer-profile-actions a{color:inherit}.customer-profile-card{margin:18px 0;padding:24px;border:1px solid var(--border,rgba(255,255,255,.12));border-radius:20px;background:var(--surface-raised,#20251f)}.customer-profile-card h2{margin-top:0}.customer-profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.customer-profile-grid label{display:grid;gap:7px;font-weight:650}.customer-profile-grid input,.customer-profile-grid select,.customer-profile-grid textarea{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--border,rgba(255,255,255,.16));border-radius:10px;background:var(--surface-3,#171c18);color:inherit;font:inherit}.customer-profile-grid textarea{min-height:88px;resize:vertical}.customer-profile-wide{grid-column:1/-1}.customer-profile-check{display:flex!important;align-items:center;gap:10px}.customer-profile-check input{width:auto;min-height:auto}.customer-profile-card>button,.customer-address-form button,.customer-address-item button,.customer-profile-actions button{min-height:40px;padding:8px 14px;border:1px solid var(--border,rgba(255,255,255,.18));border-radius:10px;background:var(--surface-3,#171c18);color:inherit;font:inherit;cursor:pointer}.customer-profile-card>button{margin-top:18px;background:var(--tropical,#16884d);color:white}.customer-address-item{padding:14px 0;border-bottom:1px solid var(--border,rgba(255,255,255,.12))}.customer-address-item p{margin:5px 0}.customer-address-item small{color:var(--muted,#a5aa9e)}.customer-address-item>div:last-child{display:flex;gap:8px}.customer-address-form{margin-top:22px;padding-top:16px;border-top:1px solid var(--border,rgba(255,255,255,.12))}.customer-address-form h3{margin-top:0}.customer-address-form .customer-profile-actions{justify-content:flex-start;margin-top:16px}.customer-profile-message{padding:12px 14px;border-radius:10px;background:rgba(22,136,77,.16)}.customer-profile-message.error{background:rgba(201,75,63,.16)}@media(max-width:620px){.customer-profile-header,.customer-address-item{align-items:flex-start;flex-direction:column}.customer-profile-grid{grid-template-columns:1fr}.customer-profile-wide{grid-column:auto}.customer-profile-card{padding:18px}}
+
+
+/* Mobile audit — profile and saved-address forms. */
+.customer-profile-page {
+  width: min(980px, calc(100% - 32px));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+.customer-profile-card,
+.customer-profile-grid,
+.customer-address-item,
+.customer-address-item > div {
+  min-width: 0;
+}
+.customer-profile-grid input,
+.customer-profile-grid select,
+.customer-profile-grid textarea {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 46px;
+  font-size: 16px;
+}
+.customer-profile-actions a,
+.customer-profile-actions button,
+.customer-address-item button,
+.customer-address-form button,
+.customer-profile-card > button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.customer-address-item > div:first-child {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 620px) {
+  .customer-profile-page {
+    width: calc(100% - 20px);
+    margin: 12px auto 28px;
+  }
+  .customer-profile-header {
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .customer-profile-header h1 {
+    font-size: clamp(1.8rem, 8vw, 2.3rem);
+  }
+  .customer-profile-header p {
+    overflow-wrap: anywhere;
+  }
+  .customer-profile-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .customer-profile-actions a,
+  .customer-profile-actions button {
+    width: 100%;
+    text-align: center;
+  }
+  .customer-profile-card {
+    margin: 12px 0;
+    padding: 15px;
+    border-radius: 16px;
+  }
+  .customer-profile-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .customer-profile-wide {
+    grid-column: auto;
+  }
+  .customer-address-item {
+    align-items: stretch;
+    gap: 10px;
+  }
+  .customer-address-item > div:last-child {
+    width: 100%;
+  }
+  .customer-address-item button {
+    flex: 1 1 0;
+  }
+  .customer-address-form .customer-profile-actions {
+    display: grid;
+  }
+}
+
+
+/* Profile route is independent from the admin stylesheet bundle. */
+.customer-profile-page .admin-eyebrow {
+  margin: 0 0 4px;
+  color: var(--tropical);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.customer-profile-page h1,
+.customer-profile-page h2,
+.customer-profile-page h3 {
+  color: var(--ink);
+}
+.customer-profile-page input:focus-visible,
+.customer-profile-page select:focus-visible,
+.customer-profile-page textarea:focus-visible,
+.customer-profile-page button:focus-visible,
+.customer-profile-page a:focus-visible {
+  outline: 3px solid rgba(198, 245, 107, .55);
+  outline-offset: 2px;
+}
