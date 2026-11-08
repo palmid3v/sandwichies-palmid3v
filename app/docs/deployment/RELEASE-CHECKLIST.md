@@ -4,7 +4,7 @@
 
 acceptingOrders = false se mantiene hasta que todos los bloqueos de release tengan evidencia real.
 
-**Discrepancia vigente (2026-10-30):** `main` en `270303d` tiene `BUSINESS.acceptingOrders = true`, aunque no hay evidencia de aprobación ni despliegue que complete esta checklist. El release queda bloqueado. No publicar una versión habilitante ni crear pedidos reales para probarla; resolver la discrepancia antes del release.
+**Estado vigente (2026-11-08):** `main` mantiene `BUSINESS.acceptingOrders = false` y `ORDERS_ENABLED = false`. El release sigue bloqueado hasta completar los gates de esta checklist. No habilitar pedidos para probar ni enviar solicitudes POST de prueba a producción.
 
 ## Pre-release técnico
 
@@ -15,16 +15,20 @@ acceptingOrders = false se mantiene hasta que todos los bloqueos de release teng
 - [ ] Ejecutar npm run security:test
 - [ ] Ejecutar npm run build
 - [ ] Ejecutar npm run smoke
-- [ ] Ejecutar npm run release:verify contra la URL objetivo
+- [ ] Ejecutar npm run release:verify con `RELEASE_BASE_URL`, `RELEASE_WORKER_URL` y `RELEASE_FIREBASE_PROJECT_ID` configurados. El script solo consulta páginas, `/health` y una sesión no autenticada; no crea pedidos.
 
-## Firebase / producción
+## Firebase, Cloudflare Worker y producción
 
 - [ ] Confirmar proyecto objetivo: sandwich-pro
 - [ ] Confirmar configuración de producción y dominio
 - [ ] Desplegar Rules sólo con aprobación explícita
-- [ ] Desplegar Functions sólo con aprobación explícita
-- [ ] Verificar createOrder responde sin crear pedidos mientras acceptingOrders=false
-- [ ] Verificar syncCompletedSaleInventory desplegada
+- [ ] Verificar que Firebase Auth emite ID tokens para el proyecto esperado
+- [ ] Verificar Firestore Emulator en pruebas; no ejecutar escrituras reales durante QA
+- [ ] Configurar credenciales de servicio independientes para Sandwichies y Cupboard en el almacén seguro de Cloudflare
+- [ ] Revisar permisos IAM mínimos, CORS y variables del Worker antes de cualquier despliegue
+- [ ] Verificar `GET /health` y `GET /v1/session` sin token (401) en el Worker publicado
+- [ ] Verificar `ordersEnabled=false` en el Worker publicado
+- [ ] Confirmar que el endpoint de creación rechaza pedidos mientras ambos gates siguen en false; solo mediante prueba aislada/emulador, nunca con POST de prueba en producción
 - [ ] Verificar claim admin=true en la cuenta administrativa existente
 - [ ] Iniciar sesión en /admin con la cuenta administrativa
 - [ ] Confirmar lectura de pedidos
@@ -56,6 +60,6 @@ acceptingOrders = false se mantiene hasta que todos los bloqueos de release teng
 
 ## Evidencia
 
-Registrar fecha/hora de cada comando, resultado, URL/proyecto objetivo, commit SHA, screenshots de cliente/admin, resultado de Rules Emulator, resultado de smoke y resultado de la verificación de función.
+Registrar fecha/hora de cada comando, resultado, URL/proyecto objetivo, commit SHA, screenshots de cliente/admin, resultado de Rules Emulator, resultado de smoke y respuesta de health del Worker. No almacenar tokens, secretos ni datos personales.
 
 No almacenar secretos en el repositorio.
