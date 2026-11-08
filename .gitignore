@@ -187,3 +187,6 @@ temp/
 # Firestore Emulator persistent local export
 .emulator-data/
 app/.emulator-data/
+
+# Firebase exports/backups are local data and must not be committed.
+**/firebase-export-*/
