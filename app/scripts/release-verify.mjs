@@ -1,20 +1,22 @@
-import { readFile } from "node:fs/promises";
 import process from "node:process";
 
 const baseUrl = process.env.RELEASE_BASE_URL?.replace(/\/$/, "");
+const workerUrl = process.env.RELEASE_WORKER_URL?.replace(/\/$/, "");
 const projectId = process.env.RELEASE_FIREBASE_PROJECT_ID || "sandwich-pro";
-const functionRegion = process.env.RELEASE_FUNCTION_REGION || "us-central1";
 
 if (!baseUrl) {
   console.error("RELEASE_BASE_URL is required. Example: https://your-production-domain.example");
   process.exit(1);
 }
 
-const fetchText = async (url) => {
-  const response = await fetch(url, { redirect: "follow" });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} for ${url}`);
-  }
+if (!workerUrl) {
+  console.error("RELEASE_WORKER_URL is required. Use the verified Cloudflare Worker base URL.");
+  process.exit(1);
+}
+
+const fetchOkText = async (url) => {
+  const response = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(10_000) });
+  if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
   return response.text();
 };
 
@@ -24,70 +26,55 @@ const assertRootMarker = (html, route) => {
   }
 };
 
-const rootHtml = await fetchText(`${baseUrl}/`);
+const rootHtml = await fetchOkText(`${baseUrl}/`);
 assertRootMarker(rootHtml, "/");
 
-const adminHtml = await fetchText(`${baseUrl}/admin`);
+const adminHtml = await fetchOkText(`${baseUrl}/admin`);
 assertRootMarker(adminHtml, "/admin");
 
 const scriptSources = [...rootHtml.matchAll(/<script[^>]+src="([^"]+)"/g)]
-  .map((match) => match[1])
-  .map((src) => new URL(src, baseUrl).href);
+  .map((match) => new URL(match[1], baseUrl).href);
+
+if (!scriptSources.length) throw new Error("No frontend JavaScript bundle was found.");
 
 const bundles = [];
-for (const src of scriptSources) {
-  bundles.push(await fetchText(src));
+for (const src of scriptSources) bundles.push(await fetchOkText(src));
+
+if (!bundles.join("\n").includes(projectId)) {
+  throw new Error(`Expected Firebase project "${projectId}" was not found in the production client bundle.`);
 }
 
-const bundleText = bundles.join("\n");
-if (!bundleText.includes(projectId)) {
-  throw new Error(
-    `Expected Firebase project "${projectId}" was not found in the production client bundle.`,
-  );
-}
-
-const functionUrl =
-  process.env.RELEASE_CREATE_ORDER_URL ||
-  `https://${functionRegion}-${projectId}.cloudfunctions.net/createOrder`;
-
-const functionResponse = await fetch(functionUrl, {
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify({ data: {} }),
+const healthResponse = await fetch(`${workerUrl}/health`, {
+  method: "GET",
+  redirect: "follow",
+  cache: "no-store",
+  signal: AbortSignal.timeout(10_000),
 });
-
-let functionBody = "";
-try {
-  functionBody = await functionResponse.text();
-} catch {
-  functionBody = "";
+if (!healthResponse.ok) {
+  throw new Error(`Worker health endpoint returned HTTP ${healthResponse.status} at ${workerUrl}/health`);
 }
 
-if (functionResponse.status === 404) {
-  throw new Error(`createOrder is not deployed at ${functionUrl}`);
+const health = await healthResponse.json();
+if (health.service !== "sandwichies-worker" || health.status !== "ok") {
+  throw new Error("Worker health response does not identify a healthy Sandwichies Worker.");
+}
+if (health.ordersEnabled !== false) {
+  throw new Error("Order creation must remain disabled: Worker ordersEnabled is not false.");
 }
 
-console.log(`Production entrypoints OK: ${baseUrl}/ and ${baseUrl}/admin`);
+const sessionResponse = await fetch(`${workerUrl}/v1/session`, {
+  method: "GET",
+  redirect: "follow",
+  cache: "no-store",
+  signal: AbortSignal.timeout(10_000),
+});
+if (sessionResponse.status !== 401) {
+  throw new Error(`Unauthenticated Worker session should return HTTP 401, got ${sessionResponse.status}.`);
+}
+
+console.log(`Frontend entrypoints OK: ${baseUrl}/ and ${baseUrl}/admin`);
 console.log(`Firebase client project OK: ${projectId}`);
-console.log(
-  `createOrder endpoint responded with HTTP ${functionResponse.status} (expected a non-success response when acceptingOrders=false).`,
-);
-
-if (functionResponse.status >= 500) {
-  console.error(functionBody);
-  throw new Error("createOrder returned a server error.");
-}
-
-if (!functionBody.includes("Los pedidos no están disponibles.")) {
-  console.error(functionBody);
-  throw new Error(
-    "createOrder did not prove the production ordering gate is still closed.",
-  );
-}
-
-const firebaseJson = JSON.parse(await readFile(new URL("../firebase.json", import.meta.url), "utf8"));
-if (firebaseJson.functions?.runtime !== "nodejs22") {
-  throw new Error("Production functions runtime differs from the repository contract.");
-}
-
-console.log("Release verification preconditions OK.");
+console.log(`Worker health OK: ${workerUrl}/health`);
+console.log("Worker authentication gate OK: unauthenticated session returns HTTP 401.");
+console.log("Order gate OK: ordersEnabled=false. No order or inventory mutation was attempted.");
+console.log("Release verification preconditions OK; this does not deploy or authorize order activation.");
