@@ -171,6 +171,20 @@ test("orders remain disabled unless an explicit Worker environment flag enables 
   );
 });
 
+test("closed business policy blocks orders even when the Worker environment flag is true", async () => {
+  const enabledEnv = { ...env, ORDERS_ENABLED: "true" };
+  await assert.rejects(
+    createOrder({
+      request: validOrderRequest(),
+      claims: customerClaims,
+      env: enabledEnv,
+      db: new MemoryFirestore(),
+      policy: { acceptingOrders: false },
+    }),
+    (error) => error.status === 503 && error.code === "ORDERS_DISABLED",
+  );
+});
+
 const orderId = "order-transition-1";
 const orderPath = `orders/${orderId}`;
 const cupboardInventoryPath = "households/household-a/workspaces/sandwichies/inventory/N-2000007";
