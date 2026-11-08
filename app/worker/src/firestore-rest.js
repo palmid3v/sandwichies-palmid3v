@@ -20,7 +20,11 @@ const pemBytes = (pem) => {
 };
 
 async function signServiceAssertion(serviceAccount, nowSeconds) {
-  const header = base64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const header = base64Url(JSON.stringify({
+  alg: "RS256",
+  typ: "JWT",
+  kid: serviceAccount.private_key_id,
+}));
   const claims = base64Url(JSON.stringify({
     iss: serviceAccount.client_email,
     scope: FIRESTORE_SCOPE,
@@ -102,8 +106,14 @@ export async function getGoogleAccessToken(serviceAccountJson, {
   let body = {};
   try { body = JSON.parse(text || "{}"); } catch { /* handled as OAuth failure */ }
   if (!response.ok || typeof body.access_token !== "string") {
-    throw new Error("GOOGLE_OAUTH_FAILED_" + response.status);
-  }
+  console.error("[FirestoreRest] Google OAuth rejected", {
+    status: response.status,
+    error: body.error || "unknown",
+    errorDescription: body.error_description || "No description",
+  });
+
+  throw new Error("GOOGLE_OAUTH_FAILED_" + response.status);
+}
   tokenCache.set(account.client_email, {
     accessToken: body.access_token,
     expiresAt: now + Number(body.expires_in || 3600) * 1000,
