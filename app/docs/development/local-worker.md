@@ -45,10 +45,9 @@ El emulador usa el proyecto local `sandwich-pro` y escucha en `127.0.0.1:8080`. 
 
 ### 2. Terminal — Worker local
 
-Copiar la configuración local de ejemplo una sola vez:
+El preflight ya crea `worker/.dev.vars` desde la plantilla si no existía. Iniciar el Worker:
 
 ```powershell
-Copy-Item worker/.dev.vars.example worker/.dev.vars
 npm run worker:dev
 ```
 
@@ -62,15 +61,9 @@ La respuesta debe indicar `status = ok` y `ordersEnabled = false`.
 
 ### 3. Terminal — frontend
 
-Crear el archivo solo si todavía no existe. Si ya tienes un `.env.local`, conserva sus otras variables y agrega o actualiza únicamente la URL del Worker:
+El preflight crea `.env.local` desde la plantilla si no existe y comprueba que sus destinos sean loopback. Iniciar el frontend:
 
 ```powershell
-if (!(Test-Path .env.local)) {
-  Copy-Item .env.local.example .env.local
-}
-# En .env.local deben quedar:
-# VITE_SANDWICHIES_WORKER_URL=http://127.0.0.1:8787
-# VITE_FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
 npm run dev -- --host 127.0.0.1 --port 5182
 ```
 
