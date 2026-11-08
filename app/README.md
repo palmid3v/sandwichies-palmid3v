@@ -126,7 +126,7 @@ Se implementó `app/worker/` como backend alternativo bajo el objetivo de presup
 - `ORDERS_ENABLED=false` en Wrangler y `BUSINESS.acceptingOrders=false` en el dominio compartido; ambos controles mantienen desactivada la recepción de pedidos.
 - En Vite development, Firestore Web SDK y Worker usan el emulador local; Firebase Auth conserva el proyecto configurado para emitir tokens. El emulador exporta/importa datos desde `app/.emulator-data` al reiniciar.
 - `SANDWICHIES_SERVICE_ACCOUNT_JSON`, `CUPBOARD_SERVICE_ACCOUNT_JSON`, `CUPBOARD_PROJECT_ID`, `CUPBOARD_HOUSEHOLD_ID` y el mapeo completo de ingredientes aún no están configurados con valores reales.
-- El frontend espera `VITE_SANDWICHIES_WORKER_URL`; `.env.example` lo deja vacío deliberadamente.
+- El frontend espera `VITE_SANDWICHIES_WORKER_URL`; `.env.example` y `.env.local.example` apuntan al Worker loopback para desarrollo local. La URL remota solo debe configurarse en un entorno de hosting después de verificar el Worker.
 - Se añadieron pruebas Worker para autenticación, CORS, Firestore REST, idempotencia, consumo, insuficiencia de stock y reversión. **Todavía deben ejecutarse** en local/CI; no afirmar que pasan hasta tener resultados.
 - El cron de expiración está declarado en Wrangler, pero no está validado en un Worker desplegado.
 - No se ha desplegado el Worker, habilitado Cloudflare Builds, cambiado la configuración productiva de Vercel, creado credenciales ni modificado datos reales.
@@ -134,6 +134,7 @@ Se implementó `app/worker/` como backend alternativo bajo el objetivo de presup
 La configuración y los gates se documentan en `app/worker/README.md`. Comandos desde `app/`:
 
 ```bash
+npm run local:preflight
 npm run worker:test
 npm run check
 ```
@@ -294,8 +295,8 @@ No migrar el frontend actual ni duplicar reglas de negocio antes de una decisió
 
 ## 9. Firebase, seguridad y release
 
-- `app/shared/business.js` tiene `BUSINESS.acceptingOrders = true` en `main` desde `270303d`, tras instrucción previa del propietario de conservar ese cambio.
-- `MASTERPROMPT.md`, los requisitos de storefront y la checklist de release requieren `false` hasta completar el release. La configuración local y la política documentada están en conflicto. No sobreescribir el commit del propietario sin instrucción directa; no hacer push/despliegue ni aceptar pedidos hasta resolverlo.
+- El estado actual de `main` mantiene `BUSINESS.acceptingOrders = false` en `app/shared/business.js` y `ORDERS_ENABLED = "false"` en `app/worker/wrangler.toml`. El Worker también exige ambos gates para crear una orden; no habilitar ninguno durante desarrollo.
+- La cuenta Cloudflare muestra un registro de despliegue del Worker, pero `GET /health` en el hostname probado devolvió HTTP 404. La configuración de la versión consultada reportó `bindings: []` y `compatibility_date = 2026-10-23`, distinta de la fecha local. Por tanto, el backend remoto no está validado como API funcional; no afirmar que está operativo ni intentar pedidos reales. El desarrollo local debe usar Wrangler + Firestore Emulator.
 - La autenticación administrativa usa Firebase Auth y custom claim `admin: true`.
 - El cliente usa una instancia Firebase separada para sesiones anónimas.
 - Firestore Rules deben continuar restrictivas y negar cualquier operación no declarada.
@@ -320,6 +321,7 @@ Scripts definidos en `package.json`:
 | `npm run smoke` | Smoke de entrada |
 | `npm run check` | Gate combinado |
 | `npm run release:verify` | Verificaciones previas de release |
+| `npm run local:preflight` | Valida entorno local, loopback, emulador y flags de pedidos cerrados |
 | `npm run cupboard:preflight` | Revisión de configuración de integración |
 | `npm run cupboard:catalog-sync` | Sincronización del catálogo compartido |
 
