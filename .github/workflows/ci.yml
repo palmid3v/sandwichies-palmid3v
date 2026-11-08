@@ -31,6 +31,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Validate local and release scripts syntax
+        run: node --check scripts/local-preflight.mjs && node --check scripts/release-verify.mjs
+
       - name: Unit and domain tests
         run: npm test
 
