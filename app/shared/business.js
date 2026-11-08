@@ -5,9 +5,9 @@ export const BUSINESS = {
   currency: "COP",
   locale: "es-CO",
   acceptingOrders: true,
-  deliveryFee: 5000,
-  estimatedPickupMinutes: 25,
-  estimatedDeliveryMinutes: 45,
+  deliveryFee: 500,
+  estimatedPickupMinutes: 15,
+  estimatedDeliveryMinutes: 25,
 };
 
 export const PAYMENT_METHODS = [
