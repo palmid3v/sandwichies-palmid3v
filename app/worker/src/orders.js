@@ -490,6 +490,9 @@ export async function transitionOrder({ orderId, status, claims, env, db: inject
     });
     lockAcquired = true;
     const currentStatus = order.status || "pendiente";
+    if (status === "entregado" && order.delivery?.mode === "virtual_table") {
+      throw new ApiError(409, "DELIVERY_MUST_COMPLETE_IN_LOGISTICS", "Los pedidos de mesa virtual se completan desde la sección Entregas.");
+    }
     if (currentStatus !== status && !canTransitionOrderStatus(currentStatus, status)) {
       throw new ApiError(409, "INVALID_STATUS_TRANSITION", `No se permite pasar de ${currentStatus} a ${status}.`);
     }
