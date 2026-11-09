@@ -1,5 +1,5 @@
 import { hasVerifiedEmail, readBearerToken, verifyFirebaseIdToken } from "./firebase-auth.js";
-import { readCupboardInventory } from "./cupboard-diagnostics.js";
+import { readCupboardInventory, readCupboardMovements } from "./cupboard-diagnostics.js";
 import { getCustomerCart, saveCustomerCart } from "./customer-cart.js";
 import {
   getCustomerProfile,
@@ -150,6 +150,22 @@ async function route(request, env) {
       return json({
         error: error.code || "CUPBOARD_READ_FAILED",
         message: "No fue posible consultar el inventario comercial de Cupboard.",
+      }, 503);
+    }
+  }
+
+  if (request.method === "GET" && path === "/v1/admin/cupboard/movements") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    if (auth.claims.admin !== true) return json({ error: "permission-denied" }, 403);
+    try {
+      const limit = new URL(request.url).searchParams.get("limit") || "100";
+      return json(await readCupboardMovements({ env, limit }));
+    } catch (error) {
+      console.error("Cupboard movement history failed", error);
+      return json({
+        error: error.code || "CUPBOARD_MOVEMENTS_READ_FAILED",
+        message: "No fue posible consultar los movimientos comerciales de Cupboard.",
       }, 503);
     }
   }
