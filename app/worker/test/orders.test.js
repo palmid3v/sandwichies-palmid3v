@@ -573,6 +573,29 @@ test("delivering a ready virtual-table order atomically closes its commercial st
 });
 
 
+test("pickup and home delivery complete through the independent delivery operation", async () => {
+  const pickupId = "pickup-order";
+  const homeId = "home-order";
+  const db = new MemoryFirestore({
+    [`orders/${pickupId}`]: { ...orderDoc("listo", "posted"), fulfillment: { type: "recoger" }, delivery: { mode: "recoger", status: "waiting_preparation" } },
+    [`orders/${homeId}`]: { ...orderDoc("listo", "posted"), fulfillment: { type: "domicilio", address: "Calle 10 # 20-30" }, delivery: { mode: "domicilio", status: "waiting_preparation" } },
+    "customerOrderTracking/customer-uid/orders/pickup-order": { orderId: pickupId, orderStatus: "listo", paymentStatus: "pendiente", deliveryStatus: "waiting_preparation" },
+    "customerOrderTracking/customer-uid/orders/home-order": { orderId: homeId, orderStatus: "listo", paymentStatus: "pendiente", deliveryStatus: "waiting_preparation" },
+  });
+  await updateVirtualDelivery({ orderId: pickupId, status: "delivered", claims: adminClaims, env, db });
+  assert.equal((await db.read(`orders/${pickupId}`)).data.status, "entregado");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${pickupId}`)).data.deliveryStatus, "delivered");
+  await updateVirtualDelivery({ orderId: homeId, status: "en_route", claims: adminClaims, env, db });
+  assert.equal((await db.read(`orders/${homeId}`)).data.delivery.status, "en_route");
+  assert.equal((await db.read(`orders/${homeId}`)).data.status, "listo");
+  await updateVirtualDelivery({ orderId: homeId, status: "delivered", claims: adminClaims, env, db });
+  assert.equal((await db.read(`orders/${homeId}`)).data.status, "entregado");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${homeId}`)).data.orderStatus, "entregado");
+  assert.equal((await db.query("orderEvents")).length, 2);
+  await updateVirtualDelivery({ orderId: homeId, status: "delivered", claims: adminClaims, env, db });
+  assert.equal((await db.query("orderEvents")).length, 2);
+});
+
 test("admin payment confirmation is centralized and updates the customer projection and audit log", async () => {
   const db = new MemoryFirestore({
     [`orders/${orderId}`]: orderDoc("confirmado", "posted"),
