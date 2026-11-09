@@ -302,13 +302,14 @@ export async function createOrder({ request, claims, env, db: injectedDb, policy
     const order = {
       ...trusted,
       customerUid: uid,
-      ...(delivery ? {
-        delivery: {
-          mode: "virtual_table",
-          ...delivery,
-          zoneName: delivery.zoneName,
-        },
-      } : {}),
+      delivery: delivery ? {
+        mode: "virtual_table",
+        ...delivery,
+        zoneName: delivery.zoneName,
+      } : {
+        mode: trusted.fulfillment.type,
+        status: "waiting_preparation",
+      },
       inventory: {
         system: "cupboard",
         consumptionStatus: "pending",
@@ -320,7 +321,7 @@ export async function createOrder({ request, claims, env, db: injectedDb, policy
     tx.create(orderPath, order);
     if (!delivery) tx.create(`customerOrderTracking/${uid}/orders/${orderId}`, {
       orderId, orderNumber, orderStatus: "pendiente", paymentStatus: "pendiente",
-      deliveryStatus: null, tableStatus: null, updatedAt: now,
+      deliveryStatus: "waiting_preparation", tableStatus: null, updatedAt: now,
     });
     tx.set(counterPath, { value: orderNumber, updatedAt: now });
     tx.create(idempotencyPath, { orderId, uid, createdAt: now });
@@ -898,7 +899,57 @@ export async function updateVirtualDelivery({ orderId, status, claims, env, db: 
       throw new ApiError(404, "not-found", "No existe una entrega activa para este pedido.");
     }
     const tableId = order.data.delivery?.tableId;
-    if (!tableId) throw new ApiError(409, "NO_VIRTUAL_TABLE", "El pedido no pertenece a una mesa virtual.");
+    if (!tableId) {
+      const fulfillmentType = order.data.fulfillment?.type;
+      if (!["recoger", "domicilio"].includes(fulfillmentType)) {
+        throw new ApiError(409, "DELIVERY_MODE_UNSUPPORTED", "El pedido no tiene un flujo logístico administrable.");
+      }
+      const allowed = fulfillmentType === "recoger" ? ["delivered"] : ["en_route", "delivered"];
+      if (!allowed.includes(status)) {
+        throw new ApiError(409, "INVALID_DELIVERY_TRANSITION", "El estado no corresponde al tipo de entrega.");
+      }
+      const current = order.data.delivery?.status || "waiting_preparation";
+      if (current === status) return;
+      if (order.data.status !== "listo") {
+        throw new ApiError(409, "ORDER_NOT_READY_FOR_DELIVERY", "El pedido debe estar listo antes de iniciar o completar la entrega.");
+      }
+      const valid = fulfillmentType === "recoger"
+        ? current === "waiting_preparation" && status === "delivered"
+        : (current === "waiting_preparation" && status === "en_route")
+          || (current === "en_route" && status === "delivered");
+      if (!valid) throw new ApiError(409, "INVALID_DELIVERY_TRANSITION", "La transición logística no está permitida.");
+      const now = nowDate();
+      const delivery = {
+        ...(order.data.delivery || {}), mode: fulfillmentType, status,
+        ...(status === "en_route" ? { dispatchedAt: now } : {}),
+        ...(status === "delivered" ? { deliveredAt: now } : {}),
+      };
+      const trackingPath = `customerOrderTracking/${order.data.customerUid}/orders/${orderId}`;
+      const tracking = await tx.get(trackingPath);
+      tx.update(`orders/${orderId}`, {
+        delivery,
+        ...(status === "delivered" ? { status: "entregado", statusChangedAt: now, deliveredAt: now } : {}),
+        updatedAt: now,
+      });
+      tx.set(trackingPath, {
+        ...(tracking.data || {}), orderId, orderNumber: order.data.orderNumber,
+        orderStatus: status === "delivered" ? "entregado" : order.data.status,
+        paymentStatus: order.data.payment?.status || "pendiente",
+        deliveryStatus: status, updatedAt: now,
+      });
+      tx.create(`deliveryEvents/${randomId()}`, {
+        orderId, type: status === "delivered" ? "delivery_delivered" : "delivery_en_route",
+        fulfillmentType, actorUid: claims.sub, createdAt: now,
+      });
+      if (status === "delivered") {
+        tx.create(`orderEvents/${randomId()}`, {
+          orderId, type: "order_delivered", fromStatus: order.data.status,
+          toStatus: "entregado", actorUid: claims.sub, createdAt: now,
+        });
+      }
+      return;
+    }
+
     const tablePath = `virtualTables/${tableId}`;
     const memberPath = `${tablePath}/members/${orderId}`;
     const trackingPath = `customerOrderTracking/${order.data.customerUid}/orders/${orderId}`;
@@ -906,7 +957,6 @@ export async function updateVirtualDelivery({ orderId, status, claims, env, db: 
     if (!member.exists || !table.exists) {
       throw new ApiError(409, "INVALID_DELIVERY_TRANSITION", "La transición logística no está permitida.");
     }
-    // Retries after a network timeout are idempotent: never decrement table capacity twice.
     if (member.data.deliveryStatus === status) return;
     if (!canTransitionDeliveryStatus(member.data.deliveryStatus, status)) {
       throw new ApiError(409, "INVALID_DELIVERY_TRANSITION", "La transición logística no está permitida.");
@@ -934,8 +984,7 @@ export async function updateVirtualDelivery({ orderId, status, claims, env, db: 
       });
     }
     tx.update(tablePath, {
-      activeOrderCount: count,
-      lastActivityAt: now,
+      activeOrderCount: count, lastActivityAt: now,
       expiresAt: new Date(now.getTime() + (Number(table.data.inactivityMinutes) || VIRTUAL_TABLE_DEFAULTS.inactivityMinutes) * 60_000),
       ...(count === 0 ? { status: "released", releasedAt: now } : {}),
     });
