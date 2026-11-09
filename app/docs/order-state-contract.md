@@ -101,3 +101,18 @@ Older records are not retroactively assigned events that were never recorded. Th
 - Historical projection backfill/reconciliation and synthetic legacy timeline entries are intentionally not automatic; they require a dry-run report and explicit review before mutating live records.
 - Admin navigation separates Pedidos (commercial/payment management) from Entregas (virtual tables, pickup and home delivery). Entregas exposes only operationally ready or dispatched orders; commercial and payment controls remain in Pedidos.
 - Event history is bounded to the latest 200 records per source before merge; cursor pagination is future work.
+
+## Phase 6 — regression and closure matrix
+
+The Worker domain suite now covers the following end-to-end invariants using isolated in-memory Firestore and injected inventory adapters:
+
+- **Synchronization:** customer arrival and delivery transitions are mirrored to the virtual-table member, canonical order and customer tracking projection.
+- **Cancellation:** an unpaid order can be cancelled; Cupboard consumption is reversed idempotently, its member becomes cancelled, and its active table count is decremented once. A paid order is rejected before cancellation and its transition lock is released.
+- **Partial delivery:** delivering one member completes only that order; sibling orders remain active and the table is released only when the final active member is delivered.
+- **Multiple orders per table:** two orders can share one table; cancelling one preserves the other member and table capacity.
+- **Payments:** confirmation is idempotent, updates the customer projection and emits one audit event. Cancelled and unconfirmed orders cannot be marked paid.
+- **Manual completion:** all supported fulfillment modes reject commercial completion outside Admin / Entregas.
+- **Historical reconciliation:** a legacy commercial completion can receive its missing logistics completion without generating a duplicate commercial completion event.
+
+These are automated domain-level regression tests. They do not replace browser-based concurrent-user testing or a controlled Firebase Emulator end-to-end session with the actual frontend. No production data is migrated or modified by the test suite.
+
