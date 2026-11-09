@@ -694,3 +694,26 @@ test("commercial delivery completion is rejected for every fulfillment mode and 
   }
   assert.equal((await db.query("orderEvents")).length, 0);
 });
+
+
+test("logistics can reconcile a legacy delivered order without duplicating commercial completion", async () => {
+  const legacyId = "legacy-delivered-home";
+  const db = new MemoryFirestore({
+    [`orders/${legacyId}`]: {
+      ...orderDoc("entregado", "posted"),
+      fulfillment: { type: "domicilio", address: "Calle 10 # 20-30" },
+      delivery: { mode: "domicilio", status: "en_route" },
+    },
+    [`customerOrderTracking/customer-uid/orders/${legacyId}`]: {
+      orderId: legacyId, orderStatus: "entregado", paymentStatus: "pendiente", deliveryStatus: "en_route",
+    },
+    "orderEvents/legacy-manual-completion": {
+      orderId: legacyId, type: "order_status_changed", fromStatus: "listo", toStatus: "entregado",
+    },
+  });
+  await updateVirtualDelivery({ orderId: legacyId, status: "delivered", claims: adminClaims, env, db });
+  assert.equal((await db.read(`orders/${legacyId}`)).data.status, "entregado");
+  assert.equal((await db.read(`orders/${legacyId}`)).data.delivery.status, "delivered");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${legacyId}`)).data.deliveryStatus, "delivered");
+  assert.equal((await db.query("orderEvents")).length, 1);
+});
