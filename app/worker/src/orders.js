@@ -668,10 +668,10 @@ export async function updateOrderPayment({ orderId, status, claims, env, db: inj
     if (current !== "pendiente" || ["pendiente", "cancelado"].includes(order.data.status)) {
       throw new ApiError(409, "INVALID_PAYMENT_TRANSITION", "El pago solo puede confirmarse después de confirmar el pedido y antes de cancelarlo.");
     }
-    const now = nowDate();
-    tx.update(`orders/${orderId}`, { payment: { ...(order.data.payment || {}), status, paidAt: now, paidBy: claims.sub }, updatedAt: now });
     const trackingPath = `customerOrderTracking/${order.data.customerUid}/orders/${orderId}`;
     const tracking = await tx.get(trackingPath);
+    const now = nowDate();
+    tx.update(`orders/${orderId}`, { payment: { ...(order.data.payment || {}), status, paidAt: now, paidBy: claims.sub }, updatedAt: now });
     tx.set(trackingPath, { ...(tracking.data || {}), orderId, orderNumber: order.data.orderNumber, orderStatus: order.data.status || "pendiente", paymentStatus: status, updatedAt: now });
     tx.create(`orderEvents/${randomId()}`, { orderId, type: "payment_status_changed", fromStatus: current, toStatus: status, actorUid: claims.sub, createdAt: now });
   });
