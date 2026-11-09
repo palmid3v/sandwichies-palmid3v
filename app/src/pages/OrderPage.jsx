@@ -81,6 +81,7 @@ export default function OrderPage() {
         ...current, status: tracking.orderStatus || current.status,
         payment: { ...current.payment, status: tracking.paymentStatus || current.payment?.status },
         delivery: current.delivery || tracking.deliveryStatus ? { ...(current.delivery || {}), status: tracking.deliveryStatus || current.delivery?.status, tableStatus: tracking.tableStatus || current.delivery?.tableStatus } : null,
+        trackingUpdatedAt: tracking.updatedAt || current.trackingUpdatedAt,
       } : current);
     });
   }, [completedOrder?.id, completedOrder?.fulfillment?.type]);
@@ -540,8 +541,8 @@ export default function OrderPage() {
     }
   };
 
-  const markArrival = async () => {
-    if (!completedOrder?.id || readyBusy) return;
+  const markArrival = async (orderId = completedOrder?.id) => {
+    if (!orderId || readyBusy) return;
     setReadyBusy(true);
     try {
       await workerRequest(
