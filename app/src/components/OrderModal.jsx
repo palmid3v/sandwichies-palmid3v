@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth } from "../firebase";
 import { workerRequest } from "../api/worker";
 import {
   canTransitionOrderStatus,
@@ -57,6 +56,10 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
       : "Recoger en el local";
 
   const updateOrder = async (updates) => {
+    if (updates.status === "entregado" && selectedOrder.delivery?.mode === "virtual_table") {
+      setFeedback({ type: "error", message: "Completa la entrega de esta mesa desde la sección Entregas." });
+      return;
+    }
     if (updates.status && !canTransitionOrderStatus(selectedOrder.status, updates.status)) {
       return;
     }
@@ -82,10 +85,10 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
           },
         );
       } else {
-        await updateDoc(doc(db, "orders", selectedOrder.id), {
-          ...updates,
-          updatedAt: serverTimestamp(),
-        });
+        await workerRequest(
+          `/v1/admin/orders/${encodeURIComponent(selectedOrder.id)}/payment`,
+          { auth, method: "POST", body: { status: updates["payment.status"] } },
+        );
       }
 
       setSelectedOrder((current) => {

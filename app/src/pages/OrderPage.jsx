@@ -81,13 +81,14 @@ export default function OrderPage() {
 
   useEffect(() => {
     const uid = auth.currentUser?.uid;
-    if (!completedOrder?.id || !uid || completedOrder.fulfillment?.type !== "punto_encuentro") return undefined;
+    if (!completedOrder?.id || !uid) return undefined;
     return onSnapshot(doc(db, "customerOrderTracking", uid, "orders", completedOrder.id), (snapshot) => {
       if (!snapshot.exists()) return;
       const tracking = snapshot.data();
       setCompletedOrder((current) => current ? {
-        ...current,
-        delivery: { ...current.delivery, status: tracking.deliveryStatus, tableStatus: tracking.tableStatus },
+        ...current, status: tracking.orderStatus || current.status,
+        payment: { ...current.payment, status: tracking.paymentStatus || current.payment?.status },
+        delivery: current.delivery || tracking.deliveryStatus ? { ...(current.delivery || {}), status: tracking.deliveryStatus || current.delivery?.status, tableStatus: tracking.tableStatus || current.delivery?.tableStatus } : null,
       } : current);
     });
   }, [completedOrder?.id, completedOrder?.fulfillment?.type]);
