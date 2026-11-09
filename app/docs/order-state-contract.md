@@ -20,7 +20,7 @@ Status: phases 2–4 implemented on `main`. Admin Pedidos and Entregas are separ
 
 Cancellation is allowed only from the states permitted by the domain transition policy and the existing unpaid-order rule. `entregado` and `cancelado` are terminal.
 
-For virtual-table orders, the Worker rejects manual commercial completion. The admin completes delivery once in Admin / Entregas. The Worker accepts logistics completion only when the order is `listo`; the transition to `delivered` atomically updates the member, customer projection, table capacity/status and canonical order to `entregado`.
+For all fulfillment modes, the Worker rejects manual commercial completion. The admin completes delivery once in Admin / Entregas. The Worker accepts logistics completion only when the order is `listo`; the transition to `delivered` atomically updates the logistics record, customer projection and canonical order to `entregado`. For virtual-table orders, it also releases table capacity.
 
 ## Pickup and home-delivery lifecycle
 
@@ -60,7 +60,7 @@ New orders create `customerOrderTracking/{uid}/orders/{orderId}` for every fulfi
 ## Activity records and visibility
 
 - `order_status_changed`: commercial transition, from/to states and admin actor.
-- `order_delivered`: automatic commercial completion caused by virtual-table delivery.
+- `order_delivered`: automatic commercial completion caused by logistics delivery for any fulfillment mode.
 - `payment_status_changed`: payment transition, from/to states and admin actor.
 - `deliveryEvents`: table assignment, customer-ready, dispatch, arrival, completion, cancellation, expiry and zone activity.
 - Admin order detail exposes a unified chronological view from both event collections. The Worker filters by order ID and requires admin claims.
