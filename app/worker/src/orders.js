@@ -630,6 +630,11 @@ export async function transitionOrder({ orderId, status, claims, env, db: inject
       throw new ApiError(statusCode, error.code, error.message);
     }
     if (error instanceof FirestoreRestError) {
+      console.error("[Order transition] Firestore error", {
+  status: error.status,
+  code: error.code,
+  message: error.message,
+});
       throw new ApiError(error.status >= 500 ? 503 : error.status, error.code, "No fue posible completar la operación de Firestore.");
     }
     console.error("Order transition failed", error);
