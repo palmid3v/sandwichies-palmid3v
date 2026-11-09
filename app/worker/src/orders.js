@@ -921,7 +921,7 @@ export async function updateVirtualDelivery({ orderId, status, claims, env, db: 
       }
       const current = order.data.delivery?.status || "waiting_preparation";
       if (current === status) return;
-      if (order.data.status !== "listo") {
+      if (!["listo", "entregado"].includes(order.data.status)) {
         throw new ApiError(409, "ORDER_NOT_READY_FOR_DELIVERY", "El pedido debe estar listo antes de iniciar o completar la entrega.");
       }
       const valid = fulfillmentType === "recoger"
@@ -972,7 +972,7 @@ export async function updateVirtualDelivery({ orderId, status, claims, env, db: 
     if (!canTransitionDeliveryStatus(member.data.deliveryStatus, status)) {
       throw new ApiError(409, "INVALID_DELIVERY_TRANSITION", "La transición logística no está permitida.");
     }
-    if (status === "delivered" && order.data.status !== "listo") {
+    if (status === "delivered" && !["listo", "entregado"].includes(order.data.status)) {
       throw new ApiError(409, "ORDER_NOT_READY_FOR_DELIVERY", "El pedido debe estar listo antes de completar la entrega.");
     }
     const now = nowDate();
