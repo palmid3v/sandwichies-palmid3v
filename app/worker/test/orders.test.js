@@ -730,6 +730,7 @@ test("partial virtual-table delivery keeps sibling orders active until the final
     },
     [`orders/${secondId}`]: {
       ...orderDoc("listo", "posted"),
+      customerUid: "customer-two",
       delivery: { mode: "virtual_table", tableId, status: "arrived" },
     },
     [`virtualTables/${tableId}`]: { status: "open", activeOrderCount: 2, inactivityMinutes: 60 },
