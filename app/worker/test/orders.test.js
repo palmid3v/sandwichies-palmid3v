@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CATALOG } from "../../shared/catalog.js";
-import { createOrder, transitionOrder, updateOrderPayment, updateVirtualDelivery, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers, listOrderActivity, createSandwichiesDb } from "../src/orders.js";
+import { createOrder, transitionOrder, updateOrderPayment, updateVirtualDelivery, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers, listOrderActivity, markCustomerReady, createSandwichiesDb } from "../src/orders.js";
 import { FirestoreRest } from "../src/firestore-rest.js";
 import { findOperatingZone, getZoneScheduleStatus, validateZoneSchedule } from "../../shared/virtual-tables.js";
 
@@ -572,6 +572,30 @@ test("delivering a ready virtual-table order atomically closes its commercial st
   assert.equal((await db.query("orderEvents")).length, 1);
 });
 
+
+
+test("customer arrival is mirrored to the canonical order for admin realtime visibility", async () => {
+  const tableId = "table-customer-ready";
+  const readyOrderId = "customer-ready-order";
+  const db = new MemoryFirestore({
+    [`orders/${readyOrderId}`]: {
+      ...orderDoc("listo", "posted"),
+      delivery: { mode: "virtual_table", tableId, status: "waiting_customer" },
+    },
+    [`virtualTables/${tableId}`]: { status: "open", activeOrderCount: 1, inactivityMinutes: 60 },
+    [`virtualTables/${tableId}/members/${readyOrderId}`]: {
+      orderId: readyOrderId, customerUid: customerClaims.sub, deliveryStatus: "waiting_customer",
+    },
+    [`customerOrderTracking/${customerClaims.sub}/orders/${readyOrderId}`]: {
+      orderId: readyOrderId, orderStatus: "listo", deliveryStatus: "waiting_customer",
+    },
+  });
+  const result = await markCustomerReady({ orderId: readyOrderId, claims: customerClaims, env, db });
+  assert.equal(result.deliveryStatus, "customer_ready");
+  assert.equal((await db.read(`orders/${readyOrderId}`)).data.delivery.status, "customer_ready");
+  assert.equal((await db.read(`virtualTables/${tableId}/members/${readyOrderId}`)).data.deliveryStatus, "customer_ready");
+  assert.equal((await db.read(`customerOrderTracking/${customerClaims.sub}/orders/${readyOrderId}`)).data.deliveryStatus, "customer_ready");
+});
 
 test("pickup and home delivery complete through the independent delivery operation", async () => {
   const pickupId = "pickup-order";
