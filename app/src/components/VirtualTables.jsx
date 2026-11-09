@@ -245,8 +245,8 @@ export default function VirtualTables({ orders = [] }) {
           <h3>Cola de recogida y domicilio</h3>
           <p>Operación logística independiente. Los estados comerciales y de pago se administran en Pedidos.</p>
           {orders.filter((order) => ["recoger", "domicilio"].includes(order.fulfillment?.type)
-            && order.status !== "cancelado" && order.status !== "entregado"
-            && (order.status === "listo" || order.delivery?.status === "en_route"))
+            && order.status !== "cancelado"
+            && (["listo", "entregado"].includes(order.status) || order.delivery?.status === "en_route"))
             .sort((a, b) => timestampMillis(b.createdAt) - timestampMillis(a.createdAt))
             .map((order) => {
               const pickup = order.fulfillment.type === "recoger";
@@ -269,8 +269,8 @@ export default function VirtualTables({ orders = [] }) {
               </article>;
             })}
           {!orders.some((order) => ["recoger", "domicilio"].includes(order.fulfillment?.type)
-            && order.status !== "cancelado" && order.status !== "entregado"
-            && (order.status === "listo" || order.delivery?.status === "en_route"))
+            && order.status !== "cancelado"
+            && (["listo", "entregado"].includes(order.status) || order.delivery?.status === "en_route"))
             && <p className="empty-state">No hay pedidos listos pendientes de recogida o despacho.</p>}
         </>}
 
