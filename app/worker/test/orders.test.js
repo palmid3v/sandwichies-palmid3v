@@ -567,6 +567,9 @@ test("delivering a ready virtual-table order atomically closes its commercial st
   assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${orderId}`)).data.deliveryStatus, "delivered");
   assert.equal((await db.read(`virtualTables/${tableId}`)).data.status, "released");
   assert.equal((await db.query("orderEvents")).length, 1);
+  await updateVirtualDelivery({ orderId, status: "delivered", claims: adminClaims, env, db });
+  assert.equal((await db.read(`virtualTables/${tableId}`)).data.activeOrderCount, 0);
+  assert.equal((await db.query("orderEvents")).length, 1);
 });
 
 
