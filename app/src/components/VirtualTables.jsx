@@ -251,7 +251,7 @@ export default function VirtualTables({ orders = [] }) {
             .map((order) => {
               const pickup = order.fulfillment.type === "recoger";
               const state = order.delivery?.status || "waiting_preparation";
-              const dispatch = !pickup && order.status === "listo" && state === "waiting_preparation";
+              const dispatch = !pickup && ["listo", "entregado"].includes(order.status) && state === "waiting_preparation";
               const complete = ["listo", "entregado"].includes(order.status) && (pickup ? state === "waiting_preparation" : state === "en_route");
               return <article className="virtual-member-card" key={order.id}>
                 <div className="virtual-member-heading"><strong>Pedido #{order.orderNumber || order.id.slice(0, 7)}</strong><span>{pickup ? "Recogida" : "Domicilio"}</span></div>
