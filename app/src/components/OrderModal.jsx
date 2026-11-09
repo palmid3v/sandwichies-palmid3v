@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth } from "../firebase";
 import { workerRequest } from "../api/worker";
 import {
   canTransitionOrderStatus,
@@ -82,10 +81,10 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
           },
         );
       } else {
-        await updateDoc(doc(db, "orders", selectedOrder.id), {
-          ...updates,
-          updatedAt: serverTimestamp(),
-        });
+        await workerRequest(
+          `/v1/admin/orders/${encodeURIComponent(selectedOrder.id)}/payment`,
+          { auth, method: "POST", body: { status: updates["payment.status"] } },
+        );
       }
 
       setSelectedOrder((current) => {

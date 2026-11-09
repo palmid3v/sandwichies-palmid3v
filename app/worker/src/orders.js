@@ -208,6 +208,8 @@ async function assignVirtualTable({ tx, orderId, uid, orderNumber, point, zone, 
     orderId,
     orderNumber,
     tableReference,
+    orderStatus: "pendiente",
+    paymentStatus: "pendiente",
     deliveryStatus: "waiting_customer",
     tableStatus: "open",
     meetingPoint: {
@@ -316,6 +318,10 @@ export async function createOrder({ request, claims, env, db: injectedDb, policy
       updatedAt: now,
     };
     tx.create(orderPath, order);
+    if (!delivery) tx.create(`customerOrderTracking/${uid}/orders/${orderId}`, {
+      orderId, orderNumber, orderStatus: "pendiente", paymentStatus: "pendiente",
+      deliveryStatus: null, tableStatus: null, updatedAt: now,
+    });
     tx.set(counterPath, { value: orderNumber, updatedAt: now });
     tx.create(idempotencyPath, { orderId, uid, createdAt: now });
     responseOrder = normalizeOrderForCustomer(order, orderId);
@@ -574,6 +580,8 @@ export async function transitionOrder({ orderId, status, claims, env, db: inject
         cancellation = { tablePath, memberPath, trackingPath, table, member, tracking };
       }
 
+      const trackingPath = `customerOrderTracking/${latest.data.customerUid}/orders/${orderId}`;
+      const trackingSnapshot = await tx.get(trackingPath);
       const inventory = {
         ...(latest.data.inventory || {}),
         system: isCupboardOrder ? "cupboard" : (latest.data.inventory?.system || "legacy"),
@@ -583,7 +591,16 @@ export async function transitionOrder({ orderId, status, claims, env, db: inject
       };
       delete inventory.transitionLock;
       const now = nowDate();
-      tx.update(orderPath, { status, inventory, updatedAt: now });
+      tx.update(orderPath, { status, inventory, updatedAt: now, statusChangedAt: now });
+      if (trackingSnapshot.exists) tx.set(trackingPath, {
+        ...trackingSnapshot.data, orderStatus: status,
+        paymentStatus: latest.data.payment?.status || "pendiente",
+        ...(status === "cancelado" ? { deliveryStatus: "cancelled" } : {}), updatedAt: now,
+      });
+      tx.create(`orderEvents/${randomId()}`, {
+        orderId, type: "order_status_changed", fromStatus: currentStatus,
+        toStatus: status, actorUid: claims.sub, createdAt: now,
+      });
 
       if (cancellation?.member.exists
         && !["delivered", "cancelled"].includes(cancellation.member.data.deliveryStatus)) {
@@ -635,6 +652,30 @@ export async function transitionOrder({ orderId, status, claims, env, db: inject
     console.error("Order transition failed", error);
     throw new ApiError(500, "ORDER_TRANSITION_FAILED", "No fue posible cambiar el estado del pedido. Reintenta la misma operación para reconciliar el inventario.");
   }
+}
+
+export async function updateOrderPayment({ orderId, status, claims, env, db: injectedDb }) {
+  requireAdmin(claims);
+  if (!/^[A-Za-z0-9_-]{1,150}$/.test(orderId || "") || status !== "pagado") {
+    throw new ApiError(400, "invalid-argument", "Pedido o estado de pago inválido.");
+  }
+  const db = injectedDb || createSandwichiesDb(env);
+  await db.runTransaction(async (tx) => {
+    const order = await tx.get(`orders/${orderId}`);
+    if (!order.exists) throw new ApiError(404, "not-found", "El pedido no existe.");
+    const current = order.data.payment?.status || "pendiente";
+    if (current === status) return;
+    if (current !== "pendiente" || ["pendiente", "cancelado"].includes(order.data.status)) {
+      throw new ApiError(409, "INVALID_PAYMENT_TRANSITION", "El pago solo puede confirmarse después de confirmar el pedido y antes de cancelarlo.");
+    }
+    const now = nowDate();
+    tx.update(`orders/${orderId}`, { payment: { ...(order.data.payment || {}), status, paidAt: now, paidBy: claims.sub }, updatedAt: now });
+    const trackingPath = `customerOrderTracking/${order.data.customerUid}/orders/${orderId}`;
+    const tracking = await tx.get(trackingPath);
+    tx.set(trackingPath, { ...(tracking.data || {}), orderId, orderNumber: order.data.orderNumber, orderStatus: order.data.status || "pendiente", paymentStatus: status, updatedAt: now });
+    tx.create(`orderEvents/${randomId()}`, { orderId, type: "payment_status_changed", fromStatus: current, toStatus: status, actorUid: claims.sub, createdAt: now });
+  });
+  return { orderId, paymentStatus: status };
 }
 
 export async function checkDeliveryCoverage({ point, env }) {
@@ -828,13 +869,28 @@ export async function updateVirtualDelivery({ orderId, status, claims, env, db: 
       throw new ApiError(409, "INVALID_DELIVERY_TRANSITION", "La transición logística no está permitida.");
     }
     if (member.data.deliveryStatus === status) return;
+    if (status === "delivered" && order.data.status !== "listo") {
+      throw new ApiError(409, "ORDER_NOT_READY_FOR_DELIVERY", "El pedido debe estar listo antes de completar la entrega.");
+    }
     const now = nowDate();
     const count = status === "delivered"
       ? Math.max(0, Number(table.data.activeOrderCount || 0) - 1)
       : Number(table.data.activeOrderCount || 0);
     const tableStatus = count === 0 ? "released" : table.data.status;
     tx.update(memberPath, { deliveryStatus: status, ...(status === "delivered" ? { deliveredAt: now } : {}) });
-    tx.set(trackingPath, { deliveryStatus: status, tableStatus, updatedAt: now });
+    tx.set(trackingPath, {
+      orderId, orderNumber: order.data.orderNumber,
+      orderStatus: status === "delivered" ? "entregado" : order.data.status || "pendiente",
+      paymentStatus: order.data.payment?.status || "pendiente",
+      deliveryStatus: status, tableStatus, updatedAt: now,
+    });
+    if (status === "delivered") {
+      tx.update(`orders/${orderId}`, { status: "entregado", statusChangedAt: now, deliveredAt: now, updatedAt: now });
+      tx.create(`orderEvents/${randomId()}`, {
+        orderId, type: "order_delivered", fromStatus: order.data.status || "listo",
+        toStatus: "entregado", actorUid: claims.sub, createdAt: now,
+      });
+    }
     tx.update(tablePath, {
       activeOrderCount: count,
       lastActivityAt: now,

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { auth } from "../firebase";
+import { collection, onSnapshot } from "firebase/firestore";
+import { auth, db } from "../firebase";
 import { getCustomerOrder, listCustomerOrders } from "../api/customer-orders";
 import { formatMoney } from "../config/business";
 import "../styles/customer-orders.css";
@@ -50,6 +51,23 @@ export default function CustomerOrders({ onClose, onRecover }) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return undefined;
+    return onSnapshot(collection(db, "customerOrderTracking", uid, "orders"), (snapshot) => {
+      const projections = new Map(snapshot.docs.map((item) => [item.id, item.data()]));
+      const apply = (order) => {
+        const tracking = projections.get(order.id);
+        if (!tracking) return order;
+        return { ...order, status: tracking.orderStatus || order.status,
+          payment: { ...order.payment, status: tracking.paymentStatus || order.payment?.status },
+          delivery: order.delivery || tracking.deliveryStatus ? { ...(order.delivery || {}), status: tracking.deliveryStatus || order.delivery?.status, tableStatus: tracking.tableStatus || order.delivery?.tableStatus } : null };
+      };
+      setOrders((current) => current.map(apply));
+      setSelected((current) => current ? apply(current) : current);
+    }, (cause) => setError(cause.message || "No se pudo sincronizar el seguimiento."));
+  }, []);
 
   const openOrder = async (orderId) => {
     setBusyId(orderId);
