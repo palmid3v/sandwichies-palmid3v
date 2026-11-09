@@ -1,6 +1,6 @@
 # Order, payment, delivery and virtual-table contract
 
-Status: phases 2–4 implemented on `main`. Admin Pedidos and Entregas are separate workspaces. The Worker owns commercial, payment and logistics transitions for virtual-table, pickup and home-delivery orders.
+Status: phases 2–5 implemented on `main`. Admin Pedidos and Entregas are separate workspaces. Customer tracking consumes the same Worker-owned projection used by order history. The Worker owns commercial, payment and logistics transitions for virtual-table, pickup and home-delivery orders.
 
 ## Canonical ownership
 
@@ -56,6 +56,19 @@ A table can contain multiple orders. Completing one member decrements capacity o
 ## Customer projection
 
 New orders create `customerOrderTracking/{uid}/orders/{orderId}` for every fulfillment mode. The projection contains identifiers, order number, commercial status, payment status, optional delivery/table status and update time. Customer history and order-detail API responses hydrate commercial/payment/delivery state from this projection; the customer UI also subscribes to its own projection for live updates. Customers may read only their own projection; only the Worker may write it.
+
+
+## Customer live tracking
+
+- The customer confirmation screen and account order history use the same `CustomerOrderTracking` view.
+- The view reads the authenticated customer's order response and subscribes only to `customerOrderTracking/{uid}/orders/{orderId}`; it does not query admin event collections or write order state directly.
+- Commercial progress, payment state and delivery progress are rendered from the canonical order fields hydrated by the Worker and the customer's read-only projection.
+- Delivery progress adapts to fulfillment mode:
+  - Pickup: preparation → handoff completed.
+  - Home delivery: preparation → en route → delivered.
+  - Virtual table: point assigned → customer arrival → en route → arrived → delivered.
+- The customer may register arrival only for their own virtual-table order while it is in `waiting_customer`. The Worker validates ownership and updates the canonical member and projection.
+- Projection updates are live; order history and the confirmation screen reconcile from the same projection. The client never mutates commercial, payment or delivery status directly.
 
 ## Activity records and visibility
 
