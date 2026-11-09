@@ -592,10 +592,14 @@ export async function transitionOrder({ orderId, status, claims, env, db: inject
       delete inventory.transitionLock;
       const now = nowDate();
       tx.update(orderPath, { status, inventory, updatedAt: now, statusChangedAt: now });
-      if (trackingSnapshot.exists) tx.set(trackingPath, {
-        ...trackingSnapshot.data, orderStatus: status,
+      tx.set(trackingPath, {
+        ...(trackingSnapshot.data || {}),
+        orderId,
+        orderNumber: latest.data.orderNumber,
+        orderStatus: status,
         paymentStatus: latest.data.payment?.status || "pendiente",
-        ...(status === "cancelado" ? { deliveryStatus: "cancelled" } : {}), updatedAt: now,
+        ...(status === "cancelado" && latest.data.delivery?.mode === "virtual_table" ? { deliveryStatus: "cancelled" } : {}),
+        updatedAt: now,
       });
       tx.create(`orderEvents/${randomId()}`, {
         orderId, type: "order_status_changed", fromStatus: currentStatus,
