@@ -903,10 +903,14 @@ export async function updateVirtualDelivery({ orderId, status, claims, env, db: 
     const memberPath = `${tablePath}/members/${orderId}`;
     const trackingPath = `customerOrderTracking/${order.data.customerUid}/orders/${orderId}`;
     const [member, table] = await tx.getMany([memberPath, tablePath]);
-    if (!member.exists || !table.exists || !canTransitionDeliveryStatus(member.data.deliveryStatus, status)) {
+    if (!member.exists || !table.exists) {
       throw new ApiError(409, "INVALID_DELIVERY_TRANSITION", "La transición logística no está permitida.");
     }
+    // Retries after a network timeout are idempotent: never decrement table capacity twice.
     if (member.data.deliveryStatus === status) return;
+    if (!canTransitionDeliveryStatus(member.data.deliveryStatus, status)) {
+      throw new ApiError(409, "INVALID_DELIVERY_TRANSITION", "La transición logística no está permitida.");
+    }
     if (status === "delivered" && order.data.status !== "listo") {
       throw new ApiError(409, "ORDER_NOT_READY_FOR_DELIVERY", "El pedido debe estar listo antes de completar la entrega.");
     }
