@@ -10,6 +10,23 @@ import {
 
 const ACTIVE_STATUSES = ["pendiente", "confirmado", "preparando", "listo"];
 
+const DELIVERY_STATUS_LABELS = {
+  waiting_preparation: "Esperando preparación",
+  waiting_customer: "Esperando al cliente",
+  customer_ready: "Cliente en el punto",
+  en_route: "En camino",
+  arrived: "Llegó al punto",
+  delivered: "Entregado",
+  cancelled: "Cancelado",
+};
+
+const getDeliveryStatusLabel = (order) => {
+  const mode = order.delivery?.mode || order.fulfillment?.type;
+  const status = order.delivery?.status || (mode === "virtual_table" ? "waiting_customer" : "waiting_preparation");
+  return DELIVERY_STATUS_LABELS[status] || status;
+};
+
+
 export default function OrdersHistory({ orders, setSelectedOrder, initialFilters, loading = false }) {
   const [statusFilter, setStatusFilter] = useState(initialFilters?.status || "activos");
   const [search, setSearch] = useState("");
@@ -211,6 +228,7 @@ export default function OrdersHistory({ orders, setSelectedOrder, initialFilters
                 <strong>{formatMoney(getOrderTotal(order))}</strong>
               </div>
               <div className="order-card-meta">
+                <span className="order-logistics-status">Logística: {getDeliveryStatusLabel(order)}</span>
                 <span className={paymentPaid ? "paid" : paymentPending ? "pending" : "neutral"}>
                   {paymentPaid ? "Pago confirmado" : paymentPending ? "Pago pendiente" : "Pago no aplicable"}
                 </span>
