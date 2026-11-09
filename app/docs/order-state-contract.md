@@ -9,7 +9,7 @@ Status: phases 2–5 implemented on `main`. Admin Pedidos and Entregas are separ
 - `orders/{orderId}.payment.status` owns the payment lifecycle.
 - `virtualTables/{tableId}` owns the shared meeting-point table lifecycle and capacity.
 - `virtualTables/{tableId}/members/{orderId}.deliveryStatus` owns the individual logistics lifecycle for a meeting-point order.
-- `orders/{orderId}.delivery` owns the logistics lifecycle for pickup and home-delivery orders.
+- `orders/{orderId}.delivery` is the canonical logistics snapshot for all fulfillment modes. For virtual-table orders, the individual member document remains the operational source for table capacity and per-member delivery transitions; every transition is mirrored to this canonical order snapshot and the customer projection.
 - `customerOrderTracking/{uid}/orders/{orderId}` is a customer-safe, read-only projection, never an independent source of truth.
 - `orderEvents/{eventId}` records commercial and payment transitions.
 - `deliveryEvents/{eventId}` records logistics, table and zone activity.
@@ -28,6 +28,14 @@ For all fulfillment modes, the Worker rejects manual commercial completion. The 
 - Home delivery (`domicilio`): `waiting_preparation -> en_route -> delivered`. The admin dispatches and confirms completion from Entregas once the order is `listo`.
 - Each logistics transition updates the canonical order's delivery object and the customer's tracking projection. Final delivery atomically changes commercial status to `entregado` and records logistics and commercial events.
 - Repeating a completed transition is idempotent and cannot create a second completion event.
+
+## Administrative state consistency
+
+- Admin / Pedidos displays the commercial state and a separate logistics state from the canonical `orders/{orderId}.delivery.status` snapshot.
+- Every customer-arrival and admin logistics transition for a virtual-table order updates the virtual-table member, canonical order snapshot and customer projection in the same Firestore transaction. The Admin order listener therefore receives the same logistics progress as the customer view.
+- Pickup and home-delivery transitions likewise update the canonical order and customer projection in one transaction.
+- Manual commercial transition to `entregado` is rejected for pickup, home delivery and meeting-point orders. The only supported completion action is Admin / Entregas; the Worker then completes the commercial order automatically.
+- If a previously completed commercial order has an incomplete logistics state, a later valid logistics completion may reconcile the delivery snapshot. It does not create a duplicate commercial completion event. Existing inconsistent records are not bulk-mutated; they require operational review.
 
 ## Payment lifecycle
 
