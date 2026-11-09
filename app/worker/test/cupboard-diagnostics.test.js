@@ -68,6 +68,8 @@ test("Cupboard movement history reads and sorts commercial workspace movements",
     async query(path, options) {
       queriedPath = path;
       assert.equal(options.limit, 100);
+      assert.equal(options.orderBy, "createdAt");
+      assert.equal(options.direction, "DESCENDING");
       return [
         {
           path: path + "/older",
