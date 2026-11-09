@@ -110,6 +110,7 @@ The Worker domain suite now covers the following end-to-end invariants using iso
 - **Cancellation:** an unpaid order can be cancelled; Cupboard consumption is reversed idempotently, its member becomes cancelled, and its active table count is decremented once. A paid order is rejected before cancellation and its transition lock is released.
 - **Partial delivery:** delivering one member completes only that order; sibling orders remain active and the table is released only when the final active member is delivered.
 - **Multiple orders per table:** two orders can share one table; cancelling one preserves the other member and table capacity.
+- **Multiple orders per table:** two orders can share one table; cancelling one preserves the other member and table capacity.
 - **Payments:** confirmation is idempotent, updates the customer projection and emits one audit event. Cancelled and unconfirmed orders cannot be marked paid.
 - **Manual completion:** all supported fulfillment modes reject commercial completion outside Admin / Entregas.
 - **Historical reconciliation:** a legacy commercial completion can receive its missing logistics completion without generating a duplicate commercial completion event.
