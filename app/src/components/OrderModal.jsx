@@ -83,6 +83,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
   const nextStatus = ORDER_STATUSES.find(
     (status) =>
       status.value !== selectedOrder.status &&
+      !(status.value === "entregado" && ["virtual_table", "punto_encuentro", "recoger", "domicilio"].includes(selectedOrder.delivery?.mode || selectedOrder.fulfillment?.type)) &&
       canTransitionOrderStatus(selectedOrder.status, status.value),
   );
   const meetingPoint = selectedOrder.fulfillment?.meetingPoint;
@@ -95,8 +96,8 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
       : "Recoger en el local";
 
   const updateOrder = async (updates) => {
-    if (updates.status === "entregado" && selectedOrder.delivery?.mode === "virtual_table") {
-      setFeedback({ type: "error", message: "Completa la entrega de esta mesa desde la sección Entregas." });
+    if (updates.status === "entregado" && ["virtual_table", "punto_encuentro", "recoger", "domicilio"].includes(selectedOrder.delivery?.mode || selectedOrder.fulfillment?.type)) {
+      setFeedback({ type: "error", message: "Completa la entrega desde Entregas. El estado comercial se actualizará automáticamente." });
       return;
     }
     if (updates.status && !canTransitionOrderStatus(selectedOrder.status, updates.status)) {
@@ -339,6 +340,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
                   isUpdating ||
                   (!isActive && !canMove) ||
                   (status.value === "cancelado" && currentPaymentStatus === "pagado") ||
+                  (status.value === "entregado" && ["virtual_table", "punto_encuentro", "recoger", "domicilio"].includes(logisticsMode)) ||
                   (isCompletedOrClosed && !isActive)
                 }
                 className={isActive ? "active motion-feedback" : "motion-feedback"}
