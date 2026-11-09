@@ -644,3 +644,29 @@ test("unified order activity returns commercial, payment and logistics events in
     (error) => error.status === 403,
   );
 });
+
+
+test("commercial delivery completion is rejected for every fulfillment mode and must use logistics", async () => {
+  const cases = [
+    { id: "manual-pickup", fulfillment: { type: "recoger" }, delivery: { mode: "recoger", status: "waiting_preparation" } },
+    { id: "manual-home", fulfillment: { type: "domicilio" }, delivery: { mode: "domicilio", status: "en_route" } },
+    { id: "manual-meeting-point", fulfillment: { type: "punto_encuentro" }, delivery: { mode: "virtual_table", tableId: "table-a", status: "waiting_customer" } },
+  ];
+  const db = new MemoryFirestore(Object.fromEntries(cases.map(({ id, ...details }) => [
+    `orders/${id}`,
+    { ...orderDoc("listo", "posted"), ...details },
+  ])));
+
+  for (const item of cases) {
+    await assert.rejects(
+      transitionOrder({ orderId: item.id, status: "entregado", claims: adminClaims, env, db }),
+      (error) => error.status === 409 && error.code === "DELIVERY_MUST_COMPLETE_IN_LOGISTICS",
+      `manual completion must be rejected for ${item.id}`,
+    );
+    const stored = (await db.read(`orders/${item.id}`)).data;
+    assert.equal(stored.status, "listo");
+    assert.equal(stored.delivery.status, item.delivery.status);
+    assert.equal(stored.inventory.transitionLock, undefined);
+  }
+  assert.equal((await db.query("orderEvents")).length, 0);
+});
