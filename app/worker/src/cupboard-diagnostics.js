@@ -56,7 +56,7 @@ export async function readCupboardMovements({ env, db: injectedDb, limit = 100 }
     serviceAccountJson: env.CUPBOARD_SERVICE_ACCOUNT_JSON,
   });
   const collectionPath = `households/${config.householdId}/workspaces/sandwichies/movements`;
-  const documents = await db.query(collectionPath, { limit: Math.min(Math.max(Number(limit) || 100, 1), 500) });
+  const documents = await db.query(collectionPath, { limit: Math.min(Math.max(Number(limit) || 100, 1), 500), orderBy: "createdAt", direction: "DESCENDING" });
   const movements = documents.map((document) => {
     const data = document.data || {};
     return {
