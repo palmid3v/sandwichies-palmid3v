@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CATALOG } from "../../shared/catalog.js";
-import { createOrder, transitionOrder, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers, createSandwichiesDb } from "../src/orders.js";
+import { createOrder, transitionOrder, updateVirtualDelivery, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers, createSandwichiesDb } from "../src/orders.js";
 import { FirestoreRest } from "../src/firestore-rest.js";
 import { findOperatingZone, getZoneScheduleStatus, validateZoneSchedule } from "../../shared/virtual-tables.js";
 
@@ -542,4 +542,29 @@ test("order creation is rejected when the nearest zone is outside its service ho
     createOrder({ request, claims: customerClaims, env, db, policy: testOrderPolicy }),
     (error) => error.status === 422 && error.code === "ZONE_OUTSIDE_SERVICE_HOURS",
   );
+});
+
+
+test("delivering a ready virtual-table order atomically closes its commercial status", async () => {
+  const tableId = "table-delivery-complete";
+  const db = new MemoryFirestore({
+    [`orders/${orderId}`]: { ...orderDoc("listo", "posted"), delivery: { mode: "virtual_table", tableId } },
+    [`virtualTables/${tableId}`]: { status: "open", activeOrderCount: 1, inactivityMinutes: 60 },
+    [`virtualTables/${tableId}/members/${orderId}`]: {
+      orderId, customerUid: "customer-uid", deliveryStatus: "arrived",
+    },
+    [`customerOrderTracking/customer-uid/orders/${orderId}`]: {
+      orderId, orderStatus: "listo", paymentStatus: "pendiente",
+      deliveryStatus: "arrived", tableStatus: "open",
+    },
+  });
+  const result = await updateVirtualDelivery({
+    orderId, status: "delivered", claims: adminClaims, env, db,
+  });
+  assert.equal(result.status, "delivered");
+  assert.equal((await db.read(`orders/${orderId}`)).data.status, "entregado");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${orderId}`)).data.orderStatus, "entregado");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${orderId}`)).data.deliveryStatus, "delivered");
+  assert.equal((await db.read(`virtualTables/${tableId}`)).data.status, "released");
+  assert.equal((await db.query("orderEvents")).length, 1);
 });
