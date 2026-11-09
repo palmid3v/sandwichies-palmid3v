@@ -193,20 +193,26 @@ export default function App() {
         reason: "",
       }));
       setInventoryOperationId(createInventoryOperationId());
-      const [inventoryData, movementData] = await Promise.all([
-        workerRequest("/v1/admin/cupboard/inventory", { auth }),
-        workerRequest("/v1/admin/cupboard/movements?limit=100", { auth }),
-      ]);
-      setInventoryBalances((inventoryData.items || []).map((item) => ({
-        id: item.ingredientId,
-        quantity: item.portions,
-        unit: item.unit,
-        status: item.status,
-        productId: item.productId,
-        revision: item.revision,
-      })));
-      setInventoryTransactions(movementData.movements || []);
-      setInventoryFeedback("Movimiento registrado y sincronizado con Cupboard.");
+      setInventoryFeedback("Movimiento registrado en Cupboard.");
+      try {
+        const [inventoryData, movementData] = await Promise.all([
+          workerRequest("/v1/admin/cupboard/inventory", { auth }),
+          workerRequest("/v1/admin/cupboard/movements?limit=100", { auth }),
+        ]);
+        setInventoryBalances((inventoryData.items || []).map((item) => ({
+          id: item.ingredientId,
+          quantity: item.portions,
+          unit: item.unit,
+          status: item.status,
+          productId: item.productId,
+          revision: item.revision,
+        })));
+        setInventoryTransactions(movementData.movements || []);
+        setInventoryError("");
+      } catch (refreshError) {
+        console.error("El movimiento se guardó, pero no se pudo refrescar la vista:", refreshError);
+        setInventoryError("El movimiento quedó registrado en Cupboard. La vista se actualizará al recuperar la conexión.");
+      }
     } catch (error) {
       console.error("No se pudo registrar el movimiento:", error);
       setInventoryError(
