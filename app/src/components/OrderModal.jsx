@@ -19,6 +19,9 @@ import {
 export default function OrderModal({ selectedOrder, setSelectedOrder }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [activity, setActivity] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityError, setActivityError] = useState("");
 
   useEffect(() => {
     if (!selectedOrder) return undefined;
@@ -33,6 +36,23 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
   useEffect(() => {
     setFeedback(null);
   }, [selectedOrder?.id]);
+
+  useEffect(() => {
+    if (!selectedOrder?.id) {
+      setActivity([]);
+      return undefined;
+    }
+    let active = true;
+    setActivityLoading(true);
+    setActivityError("");
+    workerRequest(`/v1/admin/orders/${encodeURIComponent(selectedOrder.id)}/activity?limit=100`, { auth })
+      .then((result) => { if (active) setActivity(result.events || []); })
+      .catch((error) => { if (active) setActivityError(error.message || "No se pudo cargar la actividad."); })
+      .finally(() => { if (active) setActivityLoading(false); });
+    return () => { active = false; };
+  }, [selectedOrder?.id]);
+
+
 
   if (!selectedOrder) return null;
 
@@ -306,6 +326,26 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
             );
           })}
         </div>
+
+        <section className="order-activity" aria-label="Actividad del pedido">
+          <h3>Actividad del pedido</h3>
+          {activityLoading && <p role="status">Cargando actividad…</p>}
+          {activityError && <p className="admin-feedback error" role="alert">{activityError}</p>}
+          {!activityLoading && !activityError && activity.length === 0 && <p>No hay eventos registrados para este pedido.</p>}
+          {activity.map((event) => {
+            const date = event.createdAt ? new Date(event.createdAt) : null;
+            const timestamp = date && Number.isFinite(date.getTime())
+              ? date.toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })
+              : "Fecha no disponible";
+            const detail = event.fromStatus || event.toStatus
+              ? `${event.fromStatus || "—"} → ${event.toStatus || "—"}`
+              : event.deliveryStatus || event.tableId || event.zoneId || "";
+            return <article className="delivery-history-row" key={`${event.source}-${event.id}`}>
+              <strong>{String(event.type || "evento").replaceAll("_", " ")}</strong>
+              <small>{timestamp}{detail ? ` · ${detail}` : ""} · {event.source === "order" ? "Comercial / pago" : "Logística"}</small>
+            </article>;
+          })}
+        </section>
 
         {feedback && (
           <div
