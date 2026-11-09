@@ -483,7 +483,7 @@ export default function OrderPage() {
       const proteinNames = (item.proteins || []).map((protein) => INGREDIENTS.proteins.find((candidate) => candidate.id === protein.id)?.name || protein.id).join(", ");
       const extraNames = (item.extras || []).map((id) => INGREDIENTS.extras.find((candidate) => candidate.id === id)?.name || id).join(", ");
       const toppingNames = (item.toppings || []).map((id) => INGREDIENTS.toppings?.find((candidate) => candidate.id === id)?.name || id).join(", ");
-      lines.push(`\\n*${index + 1}. ${item.productName || item.name || "Sándwich personalizado"}*`, `📏 Tamaño: ${item.size} cm`);
+      lines.push(`\n*${index + 1}. ${item.productName || item.name || "Sándwich personalizado"}*`, `📏 Tamaño: ${item.size} cm`);
       if (proteinNames) lines.push(`🥩 Proteínas: ${proteinNames}`);
       if (toppingNames) lines.push(`🥬 Adiciones: ${toppingNames}`);
       if (extraNames) lines.push(`➕ Extras: ${extraNames}`);
