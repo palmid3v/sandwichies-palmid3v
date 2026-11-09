@@ -814,6 +814,33 @@ export async function listVirtualTableMembers({ tableId, claims, env, db: inject
 }
 
 
+export async function listOrderActivity({ orderId, claims, env, db: injectedDb, limit = 100 }) {
+  requireAdmin(claims);
+  if (!/^[A-Za-z0-9_-]{1,150}$/.test(orderId || "")) {
+    throw new ApiError(400, "invalid-argument", "Identificador de pedido inválido.");
+  }
+  const db = injectedDb || createSandwichiesDb(env);
+  const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 100, 1), 200);
+  const [orderEvents, deliveryEvents] = await Promise.all([
+    db.query("orderEvents", { field: "orderId", op: "EQUAL", value: orderId, limit: safeLimit }),
+    db.query("deliveryEvents", { field: "orderId", op: "EQUAL", value: orderId, limit: safeLimit }),
+  ]);
+  const events = [
+    ...orderEvents.map(({ path, data }) => ({
+      id: path.split("/").at(-1), source: "order", type: data.type,
+      fromStatus: data.fromStatus || null, toStatus: data.toStatus || null,
+      createdAt: data.createdAt || null,
+    })),
+    ...deliveryEvents.map(({ path, data }) => ({
+      id: path.split("/").at(-1), source: "delivery", type: data.type,
+      tableId: data.tableId || null, zoneId: data.zoneId || null,
+      deliveryStatus: data.deliveryStatus || null, createdAt: data.createdAt || null,
+    })),
+  ];
+  events.sort((a, b) => timestampMillis(b.createdAt) - timestampMillis(a.createdAt));
+  return { orderId, events: events.slice(0, safeLimit), count: Math.min(events.length, safeLimit) };
+}
+
 export async function markCustomerReady({ orderId, claims, env, db: injectedDb }) {
   if (!claims?.sub) throw new ApiError(401, "unauthenticated", "Inicia sesión para actualizar tu entrega.");
   const db = injectedDb || createSandwichiesDb(env);
