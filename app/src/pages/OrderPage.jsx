@@ -4,6 +4,7 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import CustomerAuth from "./CustomerAuth";
 import CustomerOrders from "../components/CustomerOrders";
+import CustomerOrderTracking from "../components/CustomerOrderTracking";
 import { workerRequest } from "../api/worker";
 import { getCustomerCart, saveCustomerCart } from "../api/customer-cart";
 import Category from "../components/Category";
@@ -377,8 +378,7 @@ export default function OrderPage() {
           preview,
           quantity: 1,
         }];
-      });
-      showToast(`${item.name} agregado al carrito.`);
+      });      showToast(`${item.name} agregado al carrito.`);
     } catch (error) {
       console.error("No se pudo agregar el producto:", error);
       showToast("No pudimos agregar este producto. Inténtalo de nuevo.", "error");
@@ -554,7 +554,7 @@ export default function OrderPage() {
     setReadyBusy(true);
     try {
       await workerRequest(
-        `/v1/customer/orders/${encodeURIComponent(completedOrder.id)}/ready`,
+        `/v1/customer/orders/${encodeURIComponent(orderId)}/ready`,
         { auth: auth, method: "POST", body: {} },
       );
     } catch (error) {
@@ -655,13 +655,7 @@ export default function OrderPage() {
           <p className="confirmation-number">
             Tu orden es la <strong>#{completedOrder.orderNumber}</strong>
           </p>
-          {completedOrder.delivery?.tableReference && <section className="customer-delivery-tracking" aria-live="polite">
-            <p className="eyebrow">Tu mesa virtual</p>
-            <h2>{completedOrder.delivery.tableReference}</h2>
-            <p>Tu entrega: <strong>{DELIVERY_STATUS_LABELS[completedOrder.delivery.status] || "Esperando al cliente"}</strong></p>
-            {completedOrder.delivery.status === "waiting_customer" && <button type="button" className="primary-button motion-feedback" disabled={readyBusy} onClick={markArrival}>{readyBusy ? "Registrando…" : "Ya estoy aquí"}</button>}
-            <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${completedOrder.fulfillment.meetingPoint.latitude},${completedOrder.fulfillment.meetingPoint.longitude}`}>Abrir punto en Maps ↗</a>
-          </section>}
+          <CustomerOrderTracking order={completedOrder} onMarkArrival={markArrival} readyBusy={readyBusy} />
           <p>
             Tiempo estimado:{" "}
             {completedOrder.fulfillment.type === "domicilio"
@@ -681,7 +675,7 @@ export default function OrderPage() {
             </button>
           </div>
           {showCustomerOrders && (
-            <CustomerOrders onClose={() => setShowCustomerOrders(false)} onRecover={setCompletedOrder} />
+            <CustomerOrders onClose={() => setShowCustomerOrders(false)} onRecover={setCompletedOrder} onMarkArrival={markArrival} readyBusy={readyBusy} />
           )}
         </section>
       </main>
@@ -730,7 +724,7 @@ export default function OrderPage() {
       </header>
 
       {showCustomerOrders && (
-        <CustomerOrders onClose={() => setShowCustomerOrders(false)} onRecover={setCompletedOrder} />
+        <CustomerOrders onClose={() => setShowCustomerOrders(false)} onRecover={setCompletedOrder} onMarkArrival={markArrival} readyBusy={readyBusy} />
       )}
 
       <div id="nuestro-menu" className="catalog-anchor">
@@ -758,7 +752,6 @@ export default function OrderPage() {
               setSelected={setSize}
               isSize
             />
-
             <div className="choice-group">
               <h3>Base incluida</h3>
               <div className="choice-grid">
