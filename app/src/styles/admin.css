@@ -463,3 +463,37 @@ button.ops-summary-card:focus-visible,
   }
 }
 
+
+
+/* Inventory: native controls match the dark admin surface. */
+.inventory-form select,
+.inventory-form input {
+  color: var(--ink);
+  color-scheme: dark;
+  background-color: #151812;
+  border-color: var(--border-strong);
+}
+.inventory-form select option {
+  color: var(--ink);
+  background-color: #151812;
+}
+.inventory-form input::placeholder {
+  color: var(--muted);
+}
+.inventory-stock-percentage {
+  display: block;
+  margin-top: 8px;
+  color: var(--leaf) !important;
+  font-size: .7rem;
+  line-height: 1.45;
+  letter-spacing: .01em;
+  text-transform: none !important;
+}
+.inventory-meter {
+  height: 9px;
+  margin-top: 9px;
+  background: #34382f;
+}
+.inventory-meter.is-unavailable span {
+  width: 0;
+}
