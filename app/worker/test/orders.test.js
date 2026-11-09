@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CATALOG } from "../../shared/catalog.js";
-import { createOrder, transitionOrder, updateOrderPayment, updateVirtualDelivery, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers, createSandwichiesDb } from "../src/orders.js";
+import { createOrder, transitionOrder, updateOrderPayment, updateVirtualDelivery, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers, listOrderActivity, createSandwichiesDb } from "../src/orders.js";
 import { FirestoreRest } from "../src/firestore-rest.js";
 import { findOperatingZone, getZoneScheduleStatus, validateZoneSchedule } from "../../shared/virtual-tables.js";
 
@@ -584,6 +584,37 @@ test("admin payment confirmation is centralized and updates the customer project
   assert.equal((await db.query("orderEvents")).length, 1);
   await assert.rejects(
     updateOrderPayment({ orderId, status: "pagado", claims: customerClaims, env, db }),
+    (error) => error.status === 403,
+  );
+});
+
+
+test("unified order activity returns commercial, payment and logistics events in reverse chronology", async () => {
+  const db = new MemoryFirestore({
+    "orderEvents/status-1": {
+      orderId, type: "order_status_changed", fromStatus: "pendiente",
+      toStatus: "confirmado", createdAt: new Date("2026-11-08T10:00:00Z"),
+    },
+    "orderEvents/payment-1": {
+      orderId, type: "payment_status_changed", fromStatus: "pendiente",
+      toStatus: "pagado", createdAt: new Date("2026-11-08T10:02:00Z"),
+    },
+    "deliveryEvents/delivery-1": {
+      orderId, type: "delivery_arrived", tableId: "table-a",
+      createdAt: new Date("2026-11-08T10:01:00Z"),
+    },
+    "orderEvents/other-order": {
+      orderId: "another-order", type: "order_status_changed",
+      createdAt: new Date("2026-11-08T10:03:00Z"),
+    },
+  });
+  const result = await listOrderActivity({ orderId, claims: adminClaims, env, db });
+  assert.equal(result.count, 3);
+  assert.deepEqual(result.events.map((event) => event.id), ["payment-1", "delivery-1", "status-1"]);
+  assert.equal(result.events[1].source, "delivery");
+  assert.equal(result.events[0].toStatus, "pagado");
+  await assert.rejects(
+    listOrderActivity({ orderId, claims: customerClaims, env, db }),
     (error) => error.status === 403,
   );
 });
