@@ -97,6 +97,10 @@ test("Firestore REST query encodes IN filters and decodes timestamp values", asy
       assert.equal(String(url).includes("/documents/:runQuery"), false);
       const body = JSON.parse(init.body);
       assert.equal(body.structuredQuery.where.fieldFilter.op, "IN");
+      assert.deepEqual(body.structuredQuery.orderBy, [{
+        field: { fieldPath: "createdAt" },
+        direction: "DESCENDING",
+      }]);
       assert.deepEqual(body.structuredQuery.where.fieldFilter.value.arrayValue.values.map((item) => item.stringValue), ["open", "closing"]);
       return new Response(JSON.stringify([{
         document: {
@@ -116,6 +120,8 @@ test("Firestore REST query encodes IN filters and decodes timestamp values", asy
     op: "IN",
     value: ["open", "closing"],
     limit: 9,
+    orderBy: "createdAt",
+    direction: "DESCENDING",
   });
   assert.equal(docs.length, 1);
   assert.equal(docs[0].path, "virtualTables/table-1");
