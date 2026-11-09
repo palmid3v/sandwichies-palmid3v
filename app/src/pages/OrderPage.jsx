@@ -475,41 +475,29 @@ export default function OrderPage() {
 
   const buildWhatsAppMessage = (order) => {
     const lines = [
-      `*Pedido #${order.orderNumber} - ${BUSINESS.name}*`,
-      order.customer.name,
-      `Tel: ${order.customer.phone}`,
-      "",
+      `🥪 *SANDWICHIES · Pedido #${order.orderNumber}*`, "",
+      `¡Hola, ${order.customer.name}! Este es el resumen de tu pedido:`,
+      `📱 WhatsApp: ${order.customer.phone}`, "", "*TU PEDIDO*",
     ];
-
     order.items.forEach((item, index) => {
-      const proteinNames = item.proteins
-        .map((protein) => INGREDIENTS.proteins.find((candidate) => candidate.id === protein.id)?.name || protein.id)
-        .join(", ");
-      const extraNames = item.extras
-        .map((extraId) => INGREDIENTS.extras.find((candidate) => candidate.id === extraId)?.name || extraId)
-        .join(", ");
-      lines.push(
-        `${index + 1}. Sandwich personalizado`,
-        `${item.size} cm`,
-        `Proteínas: ${proteinNames}`,
-      );
-      if (item.extras.length) {
-        lines.push(
-          `Extras: ${extraNames}`,
-        );
-      }
-      lines.push(formatMoney(item.price), "");
+      const proteinNames = (item.proteins || []).map((protein) => INGREDIENTS.proteins.find((candidate) => candidate.id === protein.id)?.name || protein.id).join(", ");
+      const extraNames = (item.extras || []).map((id) => INGREDIENTS.extras.find((candidate) => candidate.id === id)?.name || id).join(", ");
+      const toppingNames = (item.toppings || []).map((id) => INGREDIENTS.toppings?.find((candidate) => candidate.id === id)?.name || id).join(", ");
+      lines.push(`\\n*${index + 1}. ${item.productName || item.name || "Sándwich personalizado"}*`, `📏 Tamaño: ${item.size} cm`);
+      if (proteinNames) lines.push(`🥩 Proteínas: ${proteinNames}`);
+      if (toppingNames) lines.push(`🥬 Adiciones: ${toppingNames}`);
+      if (extraNames) lines.push(`➕ Extras: ${extraNames}`);
+      lines.push(`💰 ${formatMoney(item.price)}`);
     });
-
-    if (order.fulfillment.type === "domicilio") lines.push(`Domicilio: ${order.fulfillment.address}`);
+    lines.push("", "*ENTREGA*");
+    if (order.fulfillment.type === "domicilio") lines.push(`🏠 Domicilio: ${order.fulfillment.address}`);
     else if (order.fulfillment.type === "punto_encuentro") {
-      lines.push(`Punto de encuentro: mesa ${order.delivery?.tableReference || "asignada automáticamente"}`);
-      lines.push(`Ubicación: https://maps.google.com/?q=${order.fulfillment.meetingPoint.latitude},${order.fulfillment.meetingPoint.longitude}`);
-    } else lines.push("Recoge en el local");
-    lines.push(`Pago: ${order.payment.method}`);
-    if (order.notes) lines.push(`Notas: ${order.notes}`);
-    lines.push("", `*TOTAL: ${formatMoney(order.total)}*`);
-
+      lines.push(`📍 Punto de encuentro: mesa ${order.delivery?.tableReference || "por asignar"}`);
+      lines.push(`🗺️ Ubicación: https://maps.google.com/?q=${order.fulfillment.meetingPoint.latitude},${order.fulfillment.meetingPoint.longitude}`);
+    } else lines.push("🏪 Recogida en el local");
+    lines.push(`💳 Pago: ${order.payment.method}`);
+    if (order.notes) lines.push(`📝 Nota: ${order.notes}`);
+    lines.push("", `*TOTAL A PAGAR: ${formatMoney(order.total)}*`, "", "¡Gracias por elegir Sandwichies! 💚");
     return lines.join("\n");
   };
 

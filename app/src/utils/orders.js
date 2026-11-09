@@ -1,14 +1,18 @@
 import { ORDER_STATUSES } from "../config/business";
+import { getFavorite } from "../../shared/recipes.js";
 
 export const getOrderItems = (order) => {
-  if (Array.isArray(order.items)) return order.items.map((item) => ({
-    ...item,
-    name: item.name || `Sandwich personalizado ${item.size || "15"} cm`,
-  }));
+  if (Array.isArray(order.items)) return order.items.map((item) => {
+    const favorite = item.favoriteId ? getFavorite(item.favoriteId) : null;
+    const name = item.productName || favorite?.name || item.name || "Sándwich personalizado";
+    return { ...item, productId: item.productId || favorite?.id || item.favoriteId || "custom", productName: name, name };
+  });
 
   return [
     {
-      name: order.name || "Sandwich personalizado",
+      name: order.name || "Sándwich personalizado",
+      productName: order.name || "Sándwich personalizado",
+      productId: order.favoriteId || "custom",
       size: order.size || "15",
       base: order.base || [],
       proteins: order.proteins || [],

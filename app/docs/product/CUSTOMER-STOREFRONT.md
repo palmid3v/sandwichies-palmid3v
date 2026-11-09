@@ -50,3 +50,13 @@ Build a responsive Sandwichies customer storefront inspired by familiar food-ord
 - Existing recipes, shared price calculation, local image assets, customizer, cart, and server-validated order callable remain the source of truth.
 - Address autocomplete/coverage validation and phone verification are not yet implemented; do not describe them as available.
 - Point-of-meeting polygon validation, GPS/manual pin selection and owner-only tracking are implemented. This does not imply address-geocoding coverage or release readiness.
+
+
+## Product identity and customer communication
+
+- The trusted order builder derives `productId` and `productName` from the canonical recipe's `favoriteId`; browser-supplied display names are not trusted.
+- Custom builds use the explicit product identity `custom` and display label `Sándwich personalizado`; favorite-based products retain catalog names in orders, customer history, admin normalization, and WhatsApp summaries.
+- Product emojis are suffixes in catalog names. Search, ranking, and aggregation use stable product IDs rather than emoji-bearing labels.
+- WhatsApp summaries show product name, size, selected proteins, toppings/extras, fulfillment details, payment method, and trusted total.
+- Customer order history surfaces product names and sizes before opening the live delivery timeline. Responsive styling keeps order cards, controls, and tracking steps usable on narrow screens.
+- Historical orders with a valid `favoriteId` recover the canonical recipe name at read time. Older custom orders without recipe identity remain labeled as custom; historical Firestore records are not rewritten.

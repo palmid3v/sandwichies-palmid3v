@@ -110,10 +110,15 @@ export default function CustomerOrders({ onClose, onRecover, onMarkArrival, read
         <div className="customer-orders-list">
           {orders.map((order) => (
             <article className="customer-order-row" key={order.id}>
-              <div>
+              <div className="customer-order-summary">
                 <strong>Pedido #{order.orderNumber}</strong>
                 <span>{displayDate(order.createdAt)}</span>
                 <span>{STATUS_LABELS[order.status] || order.status || "Estado no disponible"}</span>
+                <ul className="customer-order-items">
+                  {(order.items || []).map((item, index) => <li key={item.productId || item.favoriteId || index}>
+                    <span>{item.productName || item.name || "Sándwich"}</span><small>{item.size || "15"} cm</small>
+                  </li>)}
+                </ul>
               </div>
               <div>
                 <strong>{formatMoney(order.total)}</strong>
@@ -130,6 +135,12 @@ export default function CustomerOrders({ onClose, onRecover, onMarkArrival, read
         <article className="customer-order-detail" aria-live="polite">
           <p className="eyebrow">Detalle recuperado</p>
           <p>Fecha: {displayDate(selected.createdAt)}</p>
+          <div className="customer-order-detail-items"><h3>Tu pedido</h3>
+            {(selected.items || []).map((item, index) => <div key={item.productId || item.favoriteId || index}>
+              <strong>{item.productName || item.name || "Sándwich"}</strong>
+              <span>{item.size || "15"} cm · {formatMoney(item.price)}</span>
+            </div>)}
+          </div>
           <p>Total: <strong>{formatMoney(selected.total)}</strong></p>
           <CustomerOrderTracking order={selected} onMarkArrival={onMarkArrival} readyBusy={readyBusy} />
           <div className="customer-orders-actions">

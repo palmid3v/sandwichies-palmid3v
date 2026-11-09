@@ -5,7 +5,7 @@
 export const FAVORITES = [
   {
     id: "turkey-finas-hierbas",
-    name: "🌿 Turkey Finas Hierbas",
+    name: "Turkey Finas Hierbas 🌿",
     description: "Pavo de finas hierbas y pechuga de pavo para un perfil suave y fresco.",
     status: "production",
     category: "popular",
@@ -22,7 +22,7 @@ export const FAVORITES = [
   },
   {
     id: "explosivo",
-    name: "🔥 Explosivo",
+    name: "Explosivo 🔥",
     description: "Una combinación intensa de chorizo, salami y pepperoni.",
     status: "production",
     category: "signature",
@@ -43,7 +43,7 @@ export const FAVORITES = [
   },
   {
     id: "doble-jamon",
-    name: "🥓 Doble Jamón",
+    name: "Doble Jamón 🥓",
     description: "Pechuga de pavo y jamón serrano con queso para un clásico contundente.",
     status: "production",
     category: "popular",
@@ -63,7 +63,7 @@ export const FAVORITES = [
   },
   {
     id: "spicy-mix",
-    name: "🌶️ Spicy Mix",
+    name: "Spicy Mix 🌶️",
     description: "Chorizo y pepperoni para quienes buscan más carácter.",
     status: "production",
     category: "signature",
@@ -83,7 +83,7 @@ export const FAVORITES = [
   },
   {
     id: "triple-stack",
-    name: "💪 Triple Stack",
+    name: "Triple Stack 💪",
     description: "Tres proteínas para una experiencia más abundante.",
     status: "production",
     category: "signature",
@@ -104,7 +104,7 @@ export const FAVORITES = [
   },
   {
     id: "full-house",
-    name: "👑 Full House",
+    name: "Full House 👑",
     description: "La combinación más completa del menú para ir con todo.",
     status: "production",
     category: "signature",
@@ -129,7 +129,7 @@ export const FAVORITES = [
   },
   {
     id: "serrano-verde",
-    name: "🥬 Serrano Verde",
+    name: "Serrano Verde 🥬",
     description: "Jamón serrano y pavo de finas hierbas en una combinación fresca y equilibrada.",
     status: "production",
     category: "new",
@@ -149,7 +149,7 @@ export const FAVORITES = [
   },
   {
     id: "fuego-tropical",
-    name: "🔥 Fuego Tropical",
+    name: "Fuego Tropical 🔥",
     description: "Chorizo, pepperoni y pimentón asado con un perfil más intenso.",
     status: "production",
     category: "seasonal",

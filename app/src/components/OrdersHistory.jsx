@@ -73,7 +73,8 @@ export default function OrdersHistory({ orders, setSelectedOrder, initialFilters
         !normalizedSearch ||
         String(order.orderNumber || "").includes(normalizedSearch) ||
         getCustomerName(order).toLowerCase().includes(normalizedSearch) ||
-        order.customer?.phone?.includes(normalizedSearch);
+        order.customer?.phone?.includes(normalizedSearch) ||
+        getOrderItems(order).some((item) => String(item.productName || item.name || "").toLowerCase().includes(normalizedSearch));
 
       return matchesStatus && matchesPayment && matchesSearch;
     });
@@ -126,7 +127,7 @@ export default function OrdersHistory({ orders, setSelectedOrder, initialFilters
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Número, cliente o teléfono"
+            placeholder="Número, cliente, teléfono o producto"
           />
         </label>
         <label className="admin-filter-field">
