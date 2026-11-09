@@ -393,15 +393,25 @@ export default function App() {
           <div className="inventory-grid">
             {inventory.map((item) => {
               const balance = balanceById.get(item.id);
-              const available =
-                balance?.quantity ??
-                item.stockQuantity ??
-                item.packageQuantity ??
-                0;
+              const hasLiveBalance = balance?.status === "ok"
+                && Number.isFinite(Number(balance.quantity));
+              const available = hasLiveBalance ? Number(balance.quantity) : null;
+              const unit = balance?.unit || item.unit;
               const portion = item.portionQuantity || 1;
-              const maxServings = Math.floor(available / portion);
-
-              const lowStock = maxServings <= 3;
+              const maxServings = available === null ? null : Math.floor(available / portion);
+              const initialStock = Number(item.stockQuantity ?? item.packageQuantity ?? 0);
+              const stockPercent = available !== null && initialStock > 0
+                ? (available / initialStock) * 100
+                : null;
+              const meterWidth = stockPercent === null
+                ? 0
+                : Math.min(Math.max(stockPercent, 0), 100);
+              const lowStock = maxServings !== null && maxServings <= 3;
+              const unavailableLabel = balance?.status === "missing"
+                ? "Producto no encontrado en Cupboard"
+                : balance?.status === "invalid-balance"
+                  ? "Saldo inválido en Cupboard"
+                  : "Consultando Cupboard";
 
               return (
                 <article className={lowStock ? "inventory-card low-stock" : "inventory-card"} key={item.id}>
@@ -411,21 +421,27 @@ export default function App() {
                   </div>
                   <h3>{item.name}</h3>
                   <p>
-                    Saldo actual: <strong>{available}</strong> {item.unit}
+                    Saldo actual: <strong>{available === null ? "—" : available}</strong>{" "}
+                    {available === null ? "" : unit}
                   </p>
                   <p>
-                    Capacidad aproximada: <strong>{Math.max(0, maxServings)}</strong>
+                    Capacidad aproximada: <strong>{maxServings === null ? "—" : Math.max(0, maxServings)}</strong>
                   </p>
-                  <small>
-                    Base inicial: {item.stockQuantity ?? item.packageQuantity ?? 0}{" "}
-                    {item.unit}
+                  <small className="inventory-stock-percentage">
+                    {stockPercent === null
+                      ? unavailableLabel
+                      : `Stock actual: ${stockPercent.toFixed(0)}% de la base inicial (${initialStock} ${unit})`}
                   </small>
-                  <div className="inventory-meter">
-                    <span
-                      style={{
-                        width: `${Math.min(Math.max(maxServings, 0) * 5, 100)}%`,
-                      }}
-                    />
+                  <div
+                    className={stockPercent === null ? "inventory-meter is-unavailable" : "inventory-meter"}
+                    role="progressbar"
+                    aria-label={`Stock de ${item.name} respecto a la base inicial`}
+                    aria-valuemin={0}
+                    aria-valuemax={Math.max(100, Math.ceil(stockPercent || 0))}
+                    aria-valuenow={stockPercent === null ? 0 : Math.round(stockPercent)}
+                    aria-valuetext={stockPercent === null ? unavailableLabel : `${stockPercent.toFixed(0)}% de la base inicial`}
+                  >
+                    <span style={{ width: `${meterWidth}%` }} />
                   </div>
                 </article>
               );
@@ -460,6 +476,7 @@ export default function App() {
                         {movement.orderId
                           ? ` · Pedido #${movement.orderId}`
                           : ""}
+                        {movement.reason ? ` · ${movement.reason}` : ""}
                       </small>
                     </div>
                     <div className="inventory-history-amount">
