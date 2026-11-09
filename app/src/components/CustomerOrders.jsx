@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { auth } from "../firebase";
+import { collection, onSnapshot } from "firebase/firestore";
+import { auth, db } from "../firebase";
 import { getCustomerOrder, listCustomerOrders } from "../api/customer-orders";
+import CustomerOrderTracking from "./CustomerOrderTracking";
 import { formatMoney } from "../config/business";
 import "../styles/customer-orders.css";
 
@@ -27,7 +29,7 @@ function displayDate(value) {
   }).format(date);
 }
 
-export default function CustomerOrders({ onClose, onRecover }) {
+export default function CustomerOrders({ onClose, onRecover, onMarkArrival, readyBusy = false }) {
   const [orders, setOrders] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,6 +52,23 @@ export default function CustomerOrders({ onClose, onRecover }) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return undefined;
+    return onSnapshot(collection(db, "customerOrderTracking", uid, "orders"), (snapshot) => {
+      const projections = new Map(snapshot.docs.map((item) => [item.id, item.data()]));
+      const apply = (order) => {
+        const tracking = projections.get(order.id);
+        if (!tracking) return order;
+        return { ...order, status: tracking.orderStatus || order.status,
+          payment: { ...order.payment, status: tracking.paymentStatus || order.payment?.status },
+          delivery: order.delivery || tracking.deliveryStatus ? { ...(order.delivery || {}), status: tracking.deliveryStatus || order.delivery?.status, tableStatus: tracking.tableStatus || order.delivery?.tableStatus } : null, trackingUpdatedAt: tracking.updatedAt || order.trackingUpdatedAt };
+      };
+      setOrders((current) => current.map(apply));
+      setSelected((current) => current ? apply(current) : current);
+    }, (cause) => setError(cause.message || "No se pudo sincronizar el seguimiento."));
+  }, []);
 
   const openOrder = async (orderId) => {
     setBusyId(orderId);
@@ -91,10 +110,15 @@ export default function CustomerOrders({ onClose, onRecover }) {
         <div className="customer-orders-list">
           {orders.map((order) => (
             <article className="customer-order-row" key={order.id}>
-              <div>
+              <div className="customer-order-summary">
                 <strong>Pedido #{order.orderNumber}</strong>
                 <span>{displayDate(order.createdAt)}</span>
                 <span>{STATUS_LABELS[order.status] || order.status || "Estado no disponible"}</span>
+                <ul className="customer-order-items">
+                  {(order.items || []).map((item, index) => <li key={item.productId || item.favoriteId || index}>
+                    <span>{item.productName || item.name || "Sándwich"}</span><small>{item.size || "15"} cm</small>
+                  </li>)}
+                </ul>
               </div>
               <div>
                 <strong>{formatMoney(order.total)}</strong>
@@ -110,13 +134,15 @@ export default function CustomerOrders({ onClose, onRecover }) {
       {selected && (
         <article className="customer-order-detail" aria-live="polite">
           <p className="eyebrow">Detalle recuperado</p>
-          <h3>Pedido #{selected.orderNumber}</h3>
-          <p>Estado: <strong>{STATUS_LABELS[selected.status] || selected.status}</strong></p>
           <p>Fecha: {displayDate(selected.createdAt)}</p>
+          <div className="customer-order-detail-items"><h3>Tu pedido</h3>
+            {(selected.items || []).map((item, index) => <div key={item.productId || item.favoriteId || index}>
+              <strong>{item.productName || item.name || "Sándwich"}</strong>
+              <span>{item.size || "15"} cm · {formatMoney(item.price)}</span>
+            </div>)}
+          </div>
           <p>Total: <strong>{formatMoney(selected.total)}</strong></p>
-          {selected.delivery && (
-            <p>Seguimiento de entrega: <strong>{STATUS_LABELS[selected.delivery.status] || selected.delivery.status || "Pendiente"}</strong></p>
-          )}
+          <CustomerOrderTracking order={selected} onMarkArrival={onMarkArrival} readyBusy={readyBusy} />
           <div className="customer-orders-actions">
             <button type="button" onClick={recoverOrder}>Recuperar este pedido</button>
             <button type="button" onClick={() => setSelected(null)}>Ocultar detalle</button>

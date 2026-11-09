@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CATALOG } from "../../shared/catalog.js";
-import { createOrder, transitionOrder, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers, createSandwichiesDb } from "../src/orders.js";
+import { createOrder, transitionOrder, updateOrderPayment, updateVirtualDelivery, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers, listOrderActivity, markCustomerReady, createSandwichiesDb } from "../src/orders.js";
 import { FirestoreRest } from "../src/firestore-rest.js";
 import { findOperatingZone, getZoneScheduleStatus, validateZoneSchedule } from "../../shared/virtual-tables.js";
 
@@ -542,4 +542,302 @@ test("order creation is rejected when the nearest zone is outside its service ho
     createOrder({ request, claims: customerClaims, env, db, policy: testOrderPolicy }),
     (error) => error.status === 422 && error.code === "ZONE_OUTSIDE_SERVICE_HOURS",
   );
+});
+
+
+test("delivering a ready virtual-table order atomically closes its commercial status", async () => {
+  const tableId = "table-delivery-complete";
+  const db = new MemoryFirestore({
+    [`orders/${orderId}`]: { ...orderDoc("listo", "posted"), delivery: { mode: "virtual_table", tableId } },
+    [`virtualTables/${tableId}`]: { status: "open", activeOrderCount: 1, inactivityMinutes: 60 },
+    [`virtualTables/${tableId}/members/${orderId}`]: {
+      orderId, customerUid: "customer-uid", deliveryStatus: "arrived",
+    },
+    [`customerOrderTracking/customer-uid/orders/${orderId}`]: {
+      orderId, orderStatus: "listo", paymentStatus: "pendiente",
+      deliveryStatus: "arrived", tableStatus: "open",
+    },
+  });
+  const result = await updateVirtualDelivery({
+    orderId, status: "delivered", claims: adminClaims, env, db,
+  });
+  assert.equal(result.status, "delivered");
+  assert.equal((await db.read(`orders/${orderId}`)).data.status, "entregado");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${orderId}`)).data.orderStatus, "entregado");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${orderId}`)).data.deliveryStatus, "delivered");
+  assert.equal((await db.read(`virtualTables/${tableId}`)).data.status, "released");
+  assert.equal((await db.query("orderEvents")).length, 1);
+  await updateVirtualDelivery({ orderId, status: "delivered", claims: adminClaims, env, db });
+  assert.equal((await db.read(`virtualTables/${tableId}`)).data.activeOrderCount, 0);
+  assert.equal((await db.query("orderEvents")).length, 1);
+});
+
+
+
+test("customer arrival is mirrored to the canonical order for admin realtime visibility", async () => {
+  const tableId = "table-customer-ready";
+  const readyOrderId = "customer-ready-order";
+  const db = new MemoryFirestore({
+    [`orders/${readyOrderId}`]: {
+      ...orderDoc("listo", "posted"),
+      delivery: { mode: "virtual_table", tableId, status: "waiting_customer" },
+    },
+    [`virtualTables/${tableId}`]: { status: "open", activeOrderCount: 1, inactivityMinutes: 60 },
+    [`virtualTables/${tableId}/members/${readyOrderId}`]: {
+      orderId: readyOrderId, customerUid: customerClaims.sub, deliveryStatus: "waiting_customer",
+    },
+    [`customerOrderTracking/${customerClaims.sub}/orders/${readyOrderId}`]: {
+      orderId: readyOrderId, orderStatus: "listo", deliveryStatus: "waiting_customer",
+    },
+  });
+  const result = await markCustomerReady({ orderId: readyOrderId, claims: customerClaims, env, db });
+  assert.equal(result.deliveryStatus, "customer_ready");
+  assert.equal((await db.read(`orders/${readyOrderId}`)).data.delivery.status, "customer_ready");
+  assert.equal((await db.read(`virtualTables/${tableId}/members/${readyOrderId}`)).data.deliveryStatus, "customer_ready");
+  assert.equal((await db.read(`customerOrderTracking/${customerClaims.sub}/orders/${readyOrderId}`)).data.deliveryStatus, "customer_ready");
+});
+
+test("pickup and home delivery complete through the independent delivery operation", async () => {
+  const pickupId = "pickup-order";
+  const homeId = "home-order";
+  const db = new MemoryFirestore({
+    [`orders/${pickupId}`]: { ...orderDoc("listo", "posted"), fulfillment: { type: "recoger" }, delivery: { mode: "recoger", status: "waiting_preparation" } },
+    [`orders/${homeId}`]: { ...orderDoc("listo", "posted"), fulfillment: { type: "domicilio", address: "Calle 10 # 20-30" }, delivery: { mode: "domicilio", status: "waiting_preparation" } },
+    "customerOrderTracking/customer-uid/orders/pickup-order": { orderId: pickupId, orderStatus: "listo", paymentStatus: "pendiente", deliveryStatus: "waiting_preparation" },
+    "customerOrderTracking/customer-uid/orders/home-order": { orderId: homeId, orderStatus: "listo", paymentStatus: "pendiente", deliveryStatus: "waiting_preparation" },
+  });
+  await updateVirtualDelivery({ orderId: pickupId, status: "delivered", claims: adminClaims, env, db });
+  assert.equal((await db.read(`orders/${pickupId}`)).data.status, "entregado");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${pickupId}`)).data.deliveryStatus, "delivered");
+  await updateVirtualDelivery({ orderId: homeId, status: "en_route", claims: adminClaims, env, db });
+  assert.equal((await db.read(`orders/${homeId}`)).data.delivery.status, "en_route");
+  assert.equal((await db.read(`orders/${homeId}`)).data.status, "listo");
+  await updateVirtualDelivery({ orderId: homeId, status: "delivered", claims: adminClaims, env, db });
+  assert.equal((await db.read(`orders/${homeId}`)).data.status, "entregado");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${homeId}`)).data.orderStatus, "entregado");
+  assert.equal((await db.query("orderEvents")).length, 2);
+  await updateVirtualDelivery({ orderId: homeId, status: "delivered", claims: adminClaims, env, db });
+  assert.equal((await db.query("orderEvents")).length, 2);
+});
+
+test("admin payment confirmation is centralized and updates the customer projection and audit log", async () => {
+  const db = new MemoryFirestore({
+    [`orders/${orderId}`]: orderDoc("confirmado", "posted"),
+    [`customerOrderTracking/customer-uid/orders/${orderId}`]: {
+      orderId, orderNumber: 17, orderStatus: "confirmado", paymentStatus: "pendiente",
+    },
+  });
+  const result = await updateOrderPayment({ orderId, status: "pagado", claims: adminClaims, env, db });
+  assert.equal(result.paymentStatus, "pagado");
+  assert.equal((await db.read(`orders/${orderId}`)).data.payment.status, "pagado");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${orderId}`)).data.paymentStatus, "pagado");
+  assert.equal((await db.query("orderEvents")).length, 1);
+  await assert.rejects(
+    updateOrderPayment({ orderId, status: "pagado", claims: customerClaims, env, db }),
+    (error) => error.status === 403,
+  );
+});
+
+
+test("unified order activity returns commercial, payment and logistics events in reverse chronology", async () => {
+  const db = new MemoryFirestore({
+    "orderEvents/status-1": {
+      orderId, type: "order_status_changed", fromStatus: "pendiente",
+      toStatus: "confirmado", createdAt: new Date("2026-11-08T10:00:00Z"),
+    },
+    "orderEvents/payment-1": {
+      orderId, type: "payment_status_changed", fromStatus: "pendiente",
+      toStatus: "pagado", createdAt: new Date("2026-11-08T10:02:00Z"),
+    },
+    "deliveryEvents/delivery-1": {
+      orderId, type: "delivery_arrived", tableId: "table-a",
+      createdAt: new Date("2026-11-08T10:01:00Z"),
+    },
+    "orderEvents/other-order": {
+      orderId: "another-order", type: "order_status_changed",
+      createdAt: new Date("2026-11-08T10:03:00Z"),
+    },
+  });
+  const result = await listOrderActivity({ orderId, claims: adminClaims, env, db });
+  assert.equal(result.count, 3);
+  assert.deepEqual(result.events.map((event) => event.id), ["payment-1", "delivery-1", "status-1"]);
+  assert.equal(result.events[1].source, "delivery");
+  assert.equal(result.events[0].toStatus, "pagado");
+  await assert.rejects(
+    listOrderActivity({ orderId, claims: customerClaims, env, db }),
+    (error) => error.status === 403,
+  );
+});
+
+
+test("commercial delivery completion is rejected for every fulfillment mode and must use logistics", async () => {
+  const cases = [
+    { id: "manual-pickup", fulfillment: { type: "recoger" }, delivery: { mode: "recoger", status: "waiting_preparation" } },
+    { id: "manual-home", fulfillment: { type: "domicilio" }, delivery: { mode: "domicilio", status: "en_route" } },
+    { id: "manual-meeting-point", fulfillment: { type: "punto_encuentro" }, delivery: { mode: "virtual_table", tableId: "table-a", status: "waiting_customer" } },
+  ];
+  const db = new MemoryFirestore(Object.fromEntries(cases.map(({ id, ...details }) => [
+    `orders/${id}`,
+    { ...orderDoc("listo", "posted"), ...details },
+  ])));
+
+  for (const item of cases) {
+    await assert.rejects(
+      transitionOrder({ orderId: item.id, status: "entregado", claims: adminClaims, env, db }),
+      (error) => error.status === 409 && error.code === "DELIVERY_MUST_COMPLETE_IN_LOGISTICS",
+      `manual completion must be rejected for ${item.id}`,
+    );
+    const stored = (await db.read(`orders/${item.id}`)).data;
+    assert.equal(stored.status, "listo");
+    assert.equal(stored.delivery.status, item.delivery.status);
+    assert.equal(stored.inventory.transitionLock, undefined);
+  }
+  assert.equal((await db.query("orderEvents")).length, 0);
+});
+
+
+test("logistics can reconcile a legacy delivered order without duplicating commercial completion", async () => {
+  const legacyId = "legacy-delivered-home";
+  const db = new MemoryFirestore({
+    [`orders/${legacyId}`]: {
+      ...orderDoc("entregado", "posted"),
+      fulfillment: { type: "domicilio", address: "Calle 10 # 20-30" },
+      delivery: { mode: "domicilio", status: "en_route" },
+    },
+    [`customerOrderTracking/customer-uid/orders/${legacyId}`]: {
+      orderId: legacyId, orderStatus: "entregado", paymentStatus: "pendiente", deliveryStatus: "en_route",
+    },
+    "orderEvents/legacy-manual-completion": {
+      orderId: legacyId, type: "order_status_changed", fromStatus: "listo", toStatus: "entregado",
+    },
+  });
+  await updateVirtualDelivery({ orderId: legacyId, status: "delivered", claims: adminClaims, env, db });
+  assert.equal((await db.read(`orders/${legacyId}`)).data.status, "entregado");
+  assert.equal((await db.read(`orders/${legacyId}`)).data.delivery.status, "delivered");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${legacyId}`)).data.deliveryStatus, "delivered");
+  assert.equal((await db.query("orderEvents")).length, 1);
+});
+
+
+test("partial virtual-table delivery keeps sibling orders active until the final member is delivered", async () => {
+  const tableId = "table-partial-delivery";
+  const firstId = "partial-order-one";
+  const secondId = "partial-order-two";
+  const db = new MemoryFirestore({
+    [`orders/${firstId}`]: {
+      ...orderDoc("listo", "posted"),
+      delivery: { mode: "virtual_table", tableId, status: "arrived" },
+    },
+    [`orders/${secondId}`]: {
+      ...orderDoc("listo", "posted"),
+      customerUid: "customer-two",
+      delivery: { mode: "virtual_table", tableId, status: "arrived" },
+    },
+    [`virtualTables/${tableId}`]: { status: "open", activeOrderCount: 2, inactivityMinutes: 60 },
+    [`virtualTables/${tableId}/members/${firstId}`]: {
+      orderId: firstId, customerUid: "customer-uid", deliveryStatus: "arrived",
+    },
+    [`virtualTables/${tableId}/members/${secondId}`]: {
+      orderId: secondId, customerUid: "customer-two", deliveryStatus: "arrived",
+    },
+    [`customerOrderTracking/customer-uid/orders/${firstId}`]: {
+      orderId: firstId, orderStatus: "listo", deliveryStatus: "arrived", tableStatus: "open",
+    },
+    [`customerOrderTracking/customer-two/orders/${secondId}`]: {
+      orderId: secondId, orderStatus: "listo", deliveryStatus: "arrived", tableStatus: "open",
+    },
+  });
+
+  await updateVirtualDelivery({ orderId: firstId, status: "delivered", claims: adminClaims, env, db });
+  assert.equal((await db.read(`orders/${firstId}`)).data.status, "entregado");
+  assert.equal((await db.read(`orders/${firstId}`)).data.delivery.status, "delivered");
+  assert.equal((await db.read(`orders/${secondId}`)).data.status, "listo");
+  assert.equal((await db.read(`virtualTables/${tableId}/members/${secondId}`)).data.deliveryStatus, "arrived");
+  assert.equal((await db.read(`virtualTables/${tableId}`)).data.activeOrderCount, 1);
+  assert.equal((await db.read(`virtualTables/${tableId}`)).data.status, "open");
+
+  await updateVirtualDelivery({ orderId: secondId, status: "delivered", claims: adminClaims, env, db });
+  assert.equal((await db.read(`virtualTables/${tableId}`)).data.activeOrderCount, 0);
+  assert.equal((await db.read(`virtualTables/${tableId}`)).data.status, "released");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${firstId}`)).data.deliveryStatus, "delivered");
+  assert.equal((await db.read(`customerOrderTracking/customer-two/orders/${secondId}`)).data.deliveryStatus, "delivered");
+  assert.equal((await db.query("orderEvents")).length, 2);
+});
+
+test("cancelling one order in a shared virtual table preserves the remaining member and capacity", async () => {
+  const tableId = "table-partial-cancellation";
+  const cancelledId = "cancel-one";
+  const activeId = "keep-active";
+  const db = new MemoryFirestore({
+    [`orders/${cancelledId}`]: {
+      ...orderDoc("pendiente", "pending"),
+      delivery: { mode: "virtual_table", tableId, status: "waiting_customer" },
+    },
+    [`orders/${activeId}`]: {
+      ...orderDoc("listo", "posted"),
+      delivery: { mode: "virtual_table", tableId, status: "customer_ready" },
+    },
+    [`virtualTables/${tableId}`]: { status: "open", activeOrderCount: 2, inactivityMinutes: 60 },
+    [`virtualTables/${tableId}/members/${cancelledId}`]: {
+      orderId: cancelledId, customerUid: "customer-uid", deliveryStatus: "waiting_customer",
+    },
+    [`virtualTables/${tableId}/members/${activeId}`]: {
+      orderId: activeId, customerUid: "customer-two", deliveryStatus: "customer_ready",
+    },
+    [`customerOrderTracking/customer-uid/orders/${cancelledId}`]: {
+      orderId: cancelledId, orderStatus: "pendiente", deliveryStatus: "waiting_customer", tableStatus: "open",
+    },
+    [`customerOrderTracking/customer-two/orders/${activeId}`]: {
+      orderId: activeId, orderStatus: "listo", deliveryStatus: "customer_ready", tableStatus: "open",
+    },
+  });
+
+  await transitionOrder({
+    orderId: cancelledId, status: "cancelado", claims: adminClaims, env, db, cupboardDb: new MemoryFirestore(),
+  });
+  assert.equal((await db.read(`orders/${cancelledId}`)).data.delivery.status, "cancelled");
+  assert.equal((await db.read(`virtualTables/${tableId}/members/${cancelledId}`)).data.deliveryStatus, "cancelled");
+  assert.equal((await db.read(`virtualTables/${tableId}/members/${activeId}`)).data.deliveryStatus, "customer_ready");
+  assert.equal((await db.read(`virtualTables/${tableId}`)).data.activeOrderCount, 1);
+  assert.equal((await db.read(`virtualTables/${tableId}`)).data.status, "open");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${cancelledId}`)).data.deliveryStatus, "cancelled");
+  assert.equal((await db.read(`customerOrderTracking/customer-two/orders/${activeId}`)).data.deliveryStatus, "customer_ready");
+});
+
+test("payment confirmation is idempotent and paid orders cannot be cancelled", async () => {
+  const db = new MemoryFirestore({
+    [orderPath]: orderDoc("confirmado", "posted"),
+    "customerOrderTracking/customer-uid/orders/order-transition-1": {
+      orderId, orderNumber: 17, orderStatus: "confirmado", paymentStatus: "pendiente",
+    },
+  });
+  const first = await updateOrderPayment({ orderId, status: "pagado", claims: adminClaims, env, db });
+  const second = await updateOrderPayment({ orderId, status: "pagado", claims: adminClaims, env, db });
+  assert.equal(first.paymentStatus, "pagado");
+  assert.equal(second.paymentStatus, "pagado");
+  assert.equal((await db.read(orderPath)).data.payment.status, "pagado");
+  assert.equal((await db.read("customerOrderTracking/customer-uid/orders/order-transition-1")).data.paymentStatus, "pagado");
+  assert.equal((await db.query("orderEvents")).length, 1);
+  await assert.rejects(
+    transitionOrder({ orderId, status: "cancelado", claims: adminClaims, env, db, cupboardDb: new MemoryFirestore() }),
+    (error) => error.status === 409 && error.code === "PAID_ORDER_CANNOT_CANCEL",
+  );
+  assert.equal((await db.read(orderPath)).data.status, "confirmado");
+  assert.equal((await db.read(orderPath)).data.inventory.transitionLock, undefined);
+});
+
+test("payment confirmation rejects cancelled and unconfirmed orders without writing events", async () => {
+  const db = new MemoryFirestore({
+    "orders/cancelled-payment": orderDoc("cancelado", "not-consumed"),
+    "orders/pending-payment": orderDoc("pendiente", "pending"),
+  });
+  await assert.rejects(
+    updateOrderPayment({ orderId: "cancelled-payment", status: "pagado", claims: adminClaims, env, db }),
+    (error) => error.status === 409 && error.code === "INVALID_PAYMENT_TRANSITION",
+  );
+  await assert.rejects(
+    updateOrderPayment({ orderId: "pending-payment", status: "pagado", claims: adminClaims, env, db }),
+    (error) => error.status === 409 && error.code === "INVALID_PAYMENT_TRANSITION",
+  );
+  assert.equal((await db.query("orderEvents")).length, 0);
 });

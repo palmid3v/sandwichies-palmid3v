@@ -4,6 +4,7 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import CustomerAuth from "./CustomerAuth";
 import CustomerOrders from "../components/CustomerOrders";
+import CustomerOrderTracking from "../components/CustomerOrderTracking";
 import { workerRequest } from "../api/worker";
 import { getCustomerCart, saveCustomerCart } from "../api/customer-cart";
 import Category from "../components/Category";
@@ -33,15 +34,6 @@ const DEFAULT_BASE = [
 
 const MeetingPointPicker = lazy(() => import("../components/MeetingPointPicker"));
 const newRequestId = () => globalThis.crypto.randomUUID();
-const DELIVERY_STATUS_LABELS = {
-  waiting_customer: "Esperando al cliente",
-  customer_ready: "Ya llegaste al punto",
-  en_route: "En camino",
-  arrived: "En el punto de encuentro",
-  delivered: "Entregado",
-  cancelled: "Cancelado",
-};
-
 export default function OrderPage() {
   const [size, setSize] = useState("15");
   const [proteins, setProteins] = useState([]);
@@ -81,13 +73,15 @@ export default function OrderPage() {
 
   useEffect(() => {
     const uid = auth.currentUser?.uid;
-    if (!completedOrder?.id || !uid || completedOrder.fulfillment?.type !== "punto_encuentro") return undefined;
+    if (!completedOrder?.id || !uid) return undefined;
     return onSnapshot(doc(db, "customerOrderTracking", uid, "orders", completedOrder.id), (snapshot) => {
       if (!snapshot.exists()) return;
       const tracking = snapshot.data();
       setCompletedOrder((current) => current ? {
-        ...current,
-        delivery: { ...current.delivery, status: tracking.deliveryStatus, tableStatus: tracking.tableStatus },
+        ...current, status: tracking.orderStatus || current.status,
+        payment: { ...current.payment, status: tracking.paymentStatus || current.payment?.status },
+        delivery: current.delivery || tracking.deliveryStatus ? { ...(current.delivery || {}), status: tracking.deliveryStatus || current.delivery?.status, tableStatus: tracking.tableStatus || current.delivery?.tableStatus } : null,
+        trackingUpdatedAt: tracking.updatedAt || current.trackingUpdatedAt,
       } : current);
     });
   }, [completedOrder?.id, completedOrder?.fulfillment?.type]);
@@ -376,8 +370,7 @@ export default function OrderPage() {
           preview,
           quantity: 1,
         }];
-      });
-      showToast(`${item.name} agregado al carrito.`);
+      });      showToast(`${item.name} agregado al carrito.`);
     } catch (error) {
       console.error("No se pudo agregar el producto:", error);
       showToast("No pudimos agregar este producto. Inténtalo de nuevo.", "error");
@@ -482,41 +475,29 @@ export default function OrderPage() {
 
   const buildWhatsAppMessage = (order) => {
     const lines = [
-      `*Pedido #${order.orderNumber} - ${BUSINESS.name}*`,
-      order.customer.name,
-      `Tel: ${order.customer.phone}`,
-      "",
+      `🥪 *SANDWICHIES · Pedido #${order.orderNumber}*`, "",
+      `¡Hola, ${order.customer.name}! Este es el resumen de tu pedido:`,
+      `📱 WhatsApp: ${order.customer.phone}`, "", "*TU PEDIDO*",
     ];
-
     order.items.forEach((item, index) => {
-      const proteinNames = item.proteins
-        .map((protein) => INGREDIENTS.proteins.find((candidate) => candidate.id === protein.id)?.name || protein.id)
-        .join(", ");
-      const extraNames = item.extras
-        .map((extraId) => INGREDIENTS.extras.find((candidate) => candidate.id === extraId)?.name || extraId)
-        .join(", ");
-      lines.push(
-        `${index + 1}. Sandwich personalizado`,
-        `${item.size} cm`,
-        `Proteínas: ${proteinNames}`,
-      );
-      if (item.extras.length) {
-        lines.push(
-          `Extras: ${extraNames}`,
-        );
-      }
-      lines.push(formatMoney(item.price), "");
+      const proteinNames = (item.proteins || []).map((protein) => INGREDIENTS.proteins.find((candidate) => candidate.id === protein.id)?.name || protein.id).join(", ");
+      const extraNames = (item.extras || []).map((id) => INGREDIENTS.extras.find((candidate) => candidate.id === id)?.name || id).join(", ");
+      const toppingNames = (item.toppings || []).map((id) => INGREDIENTS.toppings?.find((candidate) => candidate.id === id)?.name || id).join(", ");
+      lines.push(`\n*${index + 1}. ${item.productName || item.name || "Sándwich personalizado"}*`, `📏 Tamaño: ${item.size} cm`);
+      if (proteinNames) lines.push(`🥩 Proteínas: ${proteinNames}`);
+      if (toppingNames) lines.push(`🥬 Adiciones: ${toppingNames}`);
+      if (extraNames) lines.push(`➕ Extras: ${extraNames}`);
+      lines.push(`💰 ${formatMoney(item.price)}`);
     });
-
-    if (order.fulfillment.type === "domicilio") lines.push(`Domicilio: ${order.fulfillment.address}`);
+    lines.push("", "*ENTREGA*");
+    if (order.fulfillment.type === "domicilio") lines.push(`🏠 Domicilio: ${order.fulfillment.address}`);
     else if (order.fulfillment.type === "punto_encuentro") {
-      lines.push(`Punto de encuentro: mesa ${order.delivery?.tableReference || "asignada automáticamente"}`);
-      lines.push(`Ubicación: https://maps.google.com/?q=${order.fulfillment.meetingPoint.latitude},${order.fulfillment.meetingPoint.longitude}`);
-    } else lines.push("Recoge en el local");
-    lines.push(`Pago: ${order.payment.method}`);
-    if (order.notes) lines.push(`Notas: ${order.notes}`);
-    lines.push("", `*TOTAL: ${formatMoney(order.total)}*`);
-
+      lines.push(`📍 Punto de encuentro: mesa ${order.delivery?.tableReference || "por asignar"}`);
+      lines.push(`🗺️ Ubicación: https://maps.google.com/?q=${order.fulfillment.meetingPoint.latitude},${order.fulfillment.meetingPoint.longitude}`);
+    } else lines.push("🏪 Recogida en el local");
+    lines.push(`💳 Pago: ${order.payment.method}`);
+    if (order.notes) lines.push(`📝 Nota: ${order.notes}`);
+    lines.push("", `*TOTAL A PAGAR: ${formatMoney(order.total)}*`, "", "¡Gracias por elegir Sandwichies! 💚");
     return lines.join("\n");
   };
 
@@ -548,12 +529,12 @@ export default function OrderPage() {
     }
   };
 
-  const markArrival = async () => {
-    if (!completedOrder?.id || readyBusy) return;
+  const markArrival = async (orderId = completedOrder?.id) => {
+    if (!orderId || readyBusy) return;
     setReadyBusy(true);
     try {
       await workerRequest(
-        `/v1/customer/orders/${encodeURIComponent(completedOrder.id)}/ready`,
+        `/v1/customer/orders/${encodeURIComponent(orderId)}/ready`,
         { auth: auth, method: "POST", body: {} },
       );
     } catch (error) {
@@ -654,13 +635,7 @@ export default function OrderPage() {
           <p className="confirmation-number">
             Tu orden es la <strong>#{completedOrder.orderNumber}</strong>
           </p>
-          {completedOrder.delivery?.tableReference && <section className="customer-delivery-tracking" aria-live="polite">
-            <p className="eyebrow">Tu mesa virtual</p>
-            <h2>{completedOrder.delivery.tableReference}</h2>
-            <p>Tu entrega: <strong>{DELIVERY_STATUS_LABELS[completedOrder.delivery.status] || "Esperando al cliente"}</strong></p>
-            {completedOrder.delivery.status === "waiting_customer" && <button type="button" className="primary-button motion-feedback" disabled={readyBusy} onClick={markArrival}>{readyBusy ? "Registrando…" : "Ya estoy aquí"}</button>}
-            <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${completedOrder.fulfillment.meetingPoint.latitude},${completedOrder.fulfillment.meetingPoint.longitude}`}>Abrir punto en Maps ↗</a>
-          </section>}
+          <CustomerOrderTracking order={completedOrder} onMarkArrival={markArrival} readyBusy={readyBusy} />
           <p>
             Tiempo estimado:{" "}
             {completedOrder.fulfillment.type === "domicilio"
@@ -680,7 +655,7 @@ export default function OrderPage() {
             </button>
           </div>
           {showCustomerOrders && (
-            <CustomerOrders onClose={() => setShowCustomerOrders(false)} onRecover={setCompletedOrder} />
+            <CustomerOrders onClose={() => setShowCustomerOrders(false)} onRecover={setCompletedOrder} onMarkArrival={markArrival} readyBusy={readyBusy} />
           )}
         </section>
       </main>
@@ -729,7 +704,7 @@ export default function OrderPage() {
       </header>
 
       {showCustomerOrders && (
-        <CustomerOrders onClose={() => setShowCustomerOrders(false)} onRecover={setCompletedOrder} />
+        <CustomerOrders onClose={() => setShowCustomerOrders(false)} onRecover={setCompletedOrder} onMarkArrival={markArrival} readyBusy={readyBusy} />
       )}
 
       <div id="nuestro-menu" className="catalog-anchor">
@@ -757,7 +732,6 @@ export default function OrderPage() {
               setSelected={setSize}
               isSize
             />
-
             <div className="choice-group">
               <h3>Base incluida</h3>
               <div className="choice-grid">

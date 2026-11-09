@@ -1,4 +1,5 @@
 import { PAYMENT_METHODS } from "./business.js";
+import { getFavorite } from "./recipes.js";
 import { calculateLineItem, calculateOrderTotals, OrderValidationError } from "./pricing.js";
 
 const MAX_ITEMS = 20;
@@ -57,7 +58,12 @@ export const normalizeOrderRequest = (payload) => {
     fulfillment: { type: fulfillment.type, address, ...(meetingPoint ? { meetingPoint } : {}) },
     paymentMethod: payload.paymentMethod,
     notes: asString(payload.notes ?? "", "Notas", 0, 250, false),
-    items: payload.items.map(calculateLineItem),
+    items: payload.items.map((selection) => {
+      const item = calculateLineItem(selection);
+      const favorite = item.favoriteId ? getFavorite(item.favoriteId) : null;
+      const productName = favorite?.name || "Sándwich personalizado";
+      return { ...item, productId: favorite?.id || "custom", productName, name: productName };
+    }),
   };
 };
 

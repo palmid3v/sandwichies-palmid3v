@@ -110,6 +110,12 @@ export default function App() {
   }, [user, isAdmin]);
 
   useEffect(() => {
+    if (!selectedOrder?.id) return;
+    const latest = orders.find((order) => order.id === selectedOrder.id);
+    if (latest) setSelectedOrder(latest);
+  }, [orders, selectedOrder?.id]);
+
+  useEffect(() => {
     if (!user || !isAdmin) return undefined;
     let active = true;
     let refreshing = false;

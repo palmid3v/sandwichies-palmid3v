@@ -497,3 +497,10 @@ button.ops-summary-card:focus-visible,
 .inventory-meter.is-unavailable span {
   width: 0;
 }
+
+
+.order-logistics-status{color:#bdf75d!important;font-weight:900}
+.order-logistics-summary{margin:0 0 16px;padding:13px 15px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px 12px;border:1px solid rgba(189,247,93,.25);border-radius:14px;background:#1b2118}
+.order-logistics-summary>span{color:var(--muted);font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.05em}
+.order-logistics-summary>strong{color:#bdf75d;font-size:.9rem}
+.order-logistics-summary>small{grid-column:1/-1;color:var(--muted);font-size:.7rem}

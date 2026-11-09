@@ -16,6 +16,7 @@ import {
   listCustomerOrders,
   saveDeliveryZone,
   transitionOrder,
+  updateOrderPayment,
   markCustomerReady,
   updateVirtualDelivery,
   closeVirtualTable,
@@ -23,6 +24,7 @@ import {
   recordManualInventory,
   listDeliveryOperations,
   listVirtualTableMembers,
+  listOrderActivity,
 } from "./orders.js";
 
 const ALLOWED_METHODS = new Set(["GET", "POST", "OPTIONS"]);
@@ -318,6 +320,26 @@ async function route(request, env) {
     if (auth.claims.admin !== true) return json({ error: "permission-denied" }, 403);
     const payload = await readJson(request);
     return json(await recordManualInventory({ payload, claims: auth.claims, env }), 201);
+  }
+
+  const orderActivityMatch = path.match(new RegExp("^/v1/admin/orders/([A-Za-z0-9_-]{1,150})/activity$"));
+  if (orderActivityMatch && request.method === "GET") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    if (auth.claims.admin !== true) return json({ error: "permission-denied" }, 403);
+    const limit = new URL(request.url).searchParams.get("limit") || "100";
+    return json(await listOrderActivity({
+      orderId: orderActivityMatch[1], claims: auth.claims, env, limit,
+    }));
+  }
+
+  const paymentMatch = path.match(new RegExp("^/v1/admin/orders/([A-Za-z0-9_-]{1,150})/payment$"));
+  if (paymentMatch && request.method === "POST") {
+    const auth = await authenticate(request, env);
+    if (auth.error) return auth.error;
+    if (auth.claims.admin !== true) return json({ error: "permission-denied" }, 403);
+    const payload = await readJson(request);
+    return json(await updateOrderPayment({ orderId: paymentMatch[1], status: payload.status, claims: auth.claims, env }));
   }
 
   const transitionMatch = path.match(new RegExp("^/v1/admin/orders/([A-Za-z0-9_-]{1,150})/status$"));

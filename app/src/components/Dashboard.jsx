@@ -67,16 +67,16 @@ export default function Dashboard({ orders, onOpenOrders }) {
     ? totalSales / completedSales.length
     : 0;
 
-  const productCount = {};
+  const productCount = new Map();
   completedSales.forEach((order) => {
     getOrderItems(order).forEach((item) => {
-      productCount[item.name] = (productCount[item.name] || 0) + 1;
+      const key = item.productId || item.favoriteId || item.name;
+      const current = productCount.get(key) || { name: item.productName || item.name, quantity: 0 };
+      current.quantity += Number(item.quantity) > 0 ? Number(item.quantity) : 1;
+      productCount.set(key, current);
     });
   });
-
-  const topProducts = Object.entries(productCount)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  const topProducts = [...productCount.values()].sort((a, b) => b.quantity - a.quantity).slice(0, 5);
 
   return (
     <section className="admin-section">
@@ -137,7 +137,7 @@ export default function Dashboard({ orders, onOpenOrders }) {
         <article className="dashboard-panel">
           <h3>Productos más vendidos</h3>
           {topProducts.length ? (
-            topProducts.map(([name, quantity], index) => (
+            topProducts.map(({ name, quantity }, index) => (
               <div className="ranking-row" key={name}>
                 <span>{index + 1}</span>
                 <strong>{name}</strong>

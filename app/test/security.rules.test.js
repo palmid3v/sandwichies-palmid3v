@@ -79,7 +79,7 @@ test("authenticated non-admin cannot access protected operational data", async (
   await assertFails(setDoc(doc(db, "inventoryTransactions", "transaction-1"), { quantityDelta: 1 }));
 });
 
-test("admin can read orders and update payment, but must use the trusted callable for state transitions", async () => {
+test("admin can read orders but all order and payment writes must use the trusted Worker", async () => {
   const db = env.authenticatedContext("admin-1", { admin: true, email_verified: true }).firestore();
   await assertSucceeds(getDoc(doc(db, "orders", "order-1")));
   await assertFails(updateDoc(doc(db, "orders", "order-1"), { status: "confirmado" }));
@@ -156,12 +156,12 @@ test("admin cannot mutate financial, customer, recipe or inventory snapshot fiel
   await assertFails(updateDoc(order, { "payment.method": "transferencia" }));
 });
 
-test("admin must confirm an order before marking payment as paid", async () => {
+test("admin cannot update payment fields directly in Firestore", async () => {
   const db = env.authenticatedContext("admin-1", { admin: true, email_verified: true }).firestore();
   const order = doc(db, "orders", "order-1");
   await assertFails(updateDoc(order, { status: "confirmado" }));
   await assertFails(updateDoc(order, { "payment.status": "pagado" }));
-  await assertSucceeds(updateDoc(order, { "payment.status": "pendiente" }));
+  await assertFails(updateDoc(order, { "payment.status": "pendiente" }));
 });
 
 

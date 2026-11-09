@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth } from "../firebase";
 import { workerRequest } from "../api/worker";
 import {
   canTransitionOrderStatus,
@@ -17,9 +16,29 @@ import {
   getOrderTotal,
 } from "../utils/orders";
 
+
+const DELIVERY_STATUS_LABELS = {
+  waiting_preparation: "Esperando preparación",
+  waiting_customer: "Esperando al cliente",
+  customer_ready: "Cliente en el punto",
+  en_route: "En camino",
+  arrived: "Llegó al punto",
+  delivered: "Entregado",
+  cancelled: "Cancelado",
+};
+
+const getDeliveryStatusLabel = (order) => {
+  const mode = order.delivery?.mode || order.fulfillment?.type;
+  const status = order.delivery?.status || (mode === "virtual_table" ? "waiting_customer" : "waiting_preparation");
+  return DELIVERY_STATUS_LABELS[status] || status;
+};
+
 export default function OrderModal({ selectedOrder, setSelectedOrder }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [activity, setActivity] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityError, setActivityError] = useState("");
 
   useEffect(() => {
     if (!selectedOrder) return undefined;
@@ -35,6 +54,23 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
     setFeedback(null);
   }, [selectedOrder?.id]);
 
+  useEffect(() => {
+    if (!selectedOrder?.id) {
+      setActivity([]);
+      return undefined;
+    }
+    let active = true;
+    setActivityLoading(true);
+    setActivityError("");
+    workerRequest(`/v1/admin/orders/${encodeURIComponent(selectedOrder.id)}/activity?limit=100`, { auth })
+      .then((result) => { if (active) setActivity(result.events || []); })
+      .catch((error) => { if (active) setActivityError(error.message || "No se pudo cargar la actividad."); })
+      .finally(() => { if (active) setActivityLoading(false); });
+    return () => { active = false; };
+  }, [selectedOrder?.id]);
+
+
+
   if (!selectedOrder) return null;
 
   const items = getOrderItems(selectedOrder);
@@ -47,9 +83,15 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
   const nextStatus = ORDER_STATUSES.find(
     (status) =>
       status.value !== selectedOrder.status &&
+      !(status.value === "entregado" && ["virtual_table", "punto_encuentro", "recoger", "domicilio"].includes(selectedOrder.delivery?.mode || selectedOrder.fulfillment?.type)) &&
       canTransitionOrderStatus(selectedOrder.status, status.value),
   );
   const meetingPoint = selectedOrder.fulfillment?.meetingPoint;
+  const logisticsLabel = getDeliveryStatusLabel(selectedOrder);
+  const logisticsMode = selectedOrder.delivery?.mode || selectedOrder.fulfillment?.type;
+  const logisticsStatus = selectedOrder.delivery?.status || "waiting_preparation";
+  const hasLegacyDeliveryMismatch = selectedOrder.status === "entregado"
+    && !["delivered", "cancelled"].includes(logisticsStatus);
   const fulfillmentLabel = selectedOrder.fulfillment?.type === "domicilio"
     ? "Domicilio"
     : selectedOrder.fulfillment?.type === "punto_encuentro"
@@ -57,6 +99,10 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
       : "Recoger en el local";
 
   const updateOrder = async (updates) => {
+    if (updates.status === "entregado" && ["virtual_table", "punto_encuentro", "recoger", "domicilio"].includes(selectedOrder.delivery?.mode || selectedOrder.fulfillment?.type)) {
+      setFeedback({ type: "error", message: "Completa la entrega desde Entregas. El estado comercial se actualizará automáticamente." });
+      return;
+    }
     if (updates.status && !canTransitionOrderStatus(selectedOrder.status, updates.status)) {
       return;
     }
@@ -82,10 +128,10 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
           },
         );
       } else {
-        await updateDoc(doc(db, "orders", selectedOrder.id), {
-          ...updates,
-          updatedAt: serverTimestamp(),
-        });
+        await workerRequest(
+          `/v1/admin/orders/${encodeURIComponent(selectedOrder.id)}/payment`,
+          { auth, method: "POST", body: { status: updates["payment.status"] } },
+        );
       }
 
       setSelectedOrder((current) => {
@@ -183,6 +229,13 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
             {meetingPoint && <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${meetingPoint.latitude},${meetingPoint.longitude}`}>Abrir punto en Maps ↗</a>}
           </div>
         </div>
+
+        <section className="order-logistics-summary" aria-label="Estado logístico">
+          <span>Estado logístico</span>
+          <strong>{logisticsLabel}</strong>
+          <small>La finalización comercial se registra automáticamente al confirmar la entrega desde Entregas.</small>
+          {hasLegacyDeliveryMismatch && <p className="admin-feedback error" role="alert">Este pedido tiene un estado comercial entregado, pero su logística sigue pendiente. Completa o revisa la entrega desde Entregas para reconciliarlo.</p>}
+        </section>
 
         <div className="modal-items">
           {items.map((item, index) => (
@@ -291,6 +344,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
                   isUpdating ||
                   (!isActive && !canMove) ||
                   (status.value === "cancelado" && currentPaymentStatus === "pagado") ||
+                  (status.value === "entregado" && ["virtual_table", "punto_encuentro", "recoger", "domicilio"].includes(logisticsMode)) ||
                   (isCompletedOrClosed && !isActive)
                 }
                 className={isActive ? "active motion-feedback" : "motion-feedback"}
@@ -303,6 +357,26 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
             );
           })}
         </div>
+
+        <section className="order-activity" aria-label="Actividad del pedido">
+          <h3>Actividad del pedido</h3>
+          {activityLoading && <p role="status">Cargando actividad…</p>}
+          {activityError && <p className="admin-feedback error" role="alert">{activityError}</p>}
+          {!activityLoading && !activityError && activity.length === 0 && <p>No hay eventos registrados para este pedido.</p>}
+          {activity.map((event) => {
+            const date = event.createdAt ? new Date(event.createdAt) : null;
+            const timestamp = date && Number.isFinite(date.getTime())
+              ? date.toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })
+              : "Fecha no disponible";
+            const detail = event.fromStatus || event.toStatus
+              ? `${event.fromStatus || "—"} → ${event.toStatus || "—"}`
+              : event.deliveryStatus || event.tableId || event.zoneId || "";
+            return <article className="delivery-history-row" key={`${event.source}-${event.id}`}>
+              <strong>{String(event.type || "evento").replaceAll("_", " ")}</strong>
+              <small>{timestamp}{detail ? ` · ${detail}` : ""} · {event.source === "order" ? "Comercial / pago" : "Logística"}</small>
+            </article>;
+          })}
+        </section>
 
         {feedback && (
           <div
