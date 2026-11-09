@@ -276,6 +276,9 @@ test("trusted order recalculates favorite cost and owns its order number", () =>
   assert.equal(order.source, "web");
   assert.equal(order.payment.method, "transferencia");
   assert.equal(order.payment.status, "pendiente");
+  assert.equal(order.items[0].productId, "full-house");
+  assert.equal(order.items[0].productName, "Full House 👑");
+  assert.equal(order.items[0].name, "Full House 👑");
 
   for (const invalidOrderNumber of [0, -1, 1.5, "48", Number.NaN]) {
     assert.throws(
