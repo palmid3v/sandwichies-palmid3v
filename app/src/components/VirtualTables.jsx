@@ -165,12 +165,12 @@ export default function VirtualTables({ orders = [] }) {
   };
 
   const selectedEvents = events.filter((item) => item.tableId === selectedId || item.zoneId === selectedId);
-  const showMap = mobileMap || window.matchMedia("(min-width: 761px)").matches;
+  const showMap = tab !== "externas" && (mobileMap || window.matchMedia("(min-width: 761px)").matches);
 
   return <section className="admin-section virtual-operations">
     <div className="admin-section-heading"><div><p className="admin-eyebrow">Logística</p><h2>Entregas</h2></div><p>Supervisa zonas y entregas individuales. Los pedidos y sus estados comerciales siguen en la cola de pedidos.</p></div>
     <div className="delivery-view-tabs" role="tablist" aria-label="Operación de entregas">
-      {[["mesas", "Mesas"], ["zonas", "Zonas"], ["historial", "Actividad"]].map(([value, label]) => <button key={value} role="tab" aria-selected={tab === value} className={tab === value ? "active" : ""} onClick={() => { setTab(value); setMobileMap(false); }}>{label}</button>)}
+      {[["mesas", "Mesas"], ["externas", "Recogida y domicilio"], ["zonas", "Zonas"], ["historial", "Actividad"]].map(([value, label]) => <button key={value} role="tab" aria-selected={tab === value} className={tab === value ? "active" : ""} onClick={() => { setTab(value); setMobileMap(false); }}>{label}</button>)}
       <button className="delivery-mobile-map-toggle" onClick={() => setMobileMap((current) => !current)}>{mobileMap ? "Ver lista" : "Ver mapa"}</button>
     </div>
     {error && <div className="admin-alert" role="alert">{error}</div>}
@@ -239,6 +239,39 @@ export default function VirtualTables({ orders = [] }) {
             })}
             {tables.length === 0 && <p className="empty-state">Aún no hay mesas activas.</p>}
           </>}
+        </>}
+
+        {tab === "externas" && <>
+          <h3>Cola de recogida y domicilio</h3>
+          <p>Operación logística independiente. Los estados comerciales y de pago se administran en Pedidos.</p>
+          {orders.filter((order) => ["recoger", "domicilio"].includes(order.fulfillment?.type)
+            && order.status !== "cancelado" && order.status !== "entregado"
+            && (order.status === "listo" || order.delivery?.status === "en_route"))
+            .sort((a, b) => timestampMillis(b.createdAt) - timestampMillis(a.createdAt))
+            .map((order) => {
+              const pickup = order.fulfillment.type === "recoger";
+              const state = order.delivery?.status || "waiting_preparation";
+              const dispatch = !pickup && order.status === "listo" && state === "waiting_preparation";
+              const complete = order.status === "listo" && (pickup ? state === "waiting_preparation" : state === "en_route");
+              return <article className="virtual-member-card" key={order.id}>
+                <div className="virtual-member-heading"><strong>Pedido #{order.orderNumber || order.id.slice(0, 7)}</strong><span>{pickup ? "Recogida" : "Domicilio"}</span></div>
+                <p><strong>{order.customer?.name || "Cliente"}</strong><br />
+                  {order.fulfillment?.address || "Recoger en el local"}<br />
+                  Comercial: {order.status}<br />
+                  Logística: {state === "waiting_preparation" ? "Esperando preparación" : state === "en_route" ? "En camino" : state}
+                </p>
+                {order.customer?.phone && <a href={`tel:${order.customer.phone}`}>{order.customer.phone}</a>}
+                {order.fulfillment?.type === "domicilio" && order.fulfillment?.address && <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.fulfillment.address)}`}>Abrir dirección en Maps ↗</a>}
+                <div className="virtual-delivery-actions">
+                  {dispatch && <button disabled={busy} onClick={() => invoke("updateVirtualDelivery", { orderId: order.id, status: "en_route" }, `Pedido #${order.orderNumber}: marcado en camino.`)}>Marcar en camino</button>}
+                  {complete && <button disabled={busy} onClick={() => invoke("updateVirtualDelivery", { orderId: order.id, status: "delivered" }, `Pedido #${order.orderNumber}: entrega completada.`)}>Confirmar entrega</button>}
+                </div>
+              </article>;
+            })}
+          {!orders.some((order) => ["recoger", "domicilio"].includes(order.fulfillment?.type)
+            && order.status !== "cancelado" && order.status !== "entregado"
+            && (order.status === "listo" || order.delivery?.status === "en_route"))
+            && <p className="empty-state">No hay pedidos listos pendientes de recogida o despacho.</p>}
         </>}
 
         {tab === "zonas" && <>
