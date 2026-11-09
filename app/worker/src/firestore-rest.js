@@ -291,7 +291,7 @@ export class FirestoreRest {
     return names.map((name) => byName.get(name) || { exists: false, data: null, updateTime: null });
   }
 
-  async query(collectionPath, { field, op = "EQUAL", value, limit = 100 } = {}, transaction) {
+  async query(collectionPath, { field, op = "EQUAL", value, limit = 100, orderBy, direction = "DESCENDING" } = {}, transaction) {
     const segments = String(collectionPath).split("/").filter(Boolean);
     if (!segments.length || segments.length % 2 !== 1) throw new Error("FIRESTORE_COLLECTION_PATH_INVALID");
     const structuredQuery = {
@@ -305,6 +305,7 @@ export class FirestoreRest {
           },
         },
       } : {}),
+      ...(orderBy ? { orderBy: [{ field: { fieldPath: orderBy }, direction: direction === "ASCENDING" ? "ASCENDING" : "DESCENDING" }] } : {}),
       limit: Math.min(Math.max(1, Number(limit) || 100), 500),
     };
     const parentPath = segments.slice(0, -1).map(encodeURIComponent).join("/");
