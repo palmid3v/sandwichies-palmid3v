@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CATALOG } from "../../shared/catalog.js";
-import { readCupboardInventory } from "../src/cupboard-diagnostics.js";
+import { readCupboardInventory, readCupboardMovements } from "../src/cupboard-diagnostics.js";
 
 const mapping = Object.fromEntries(
   CATALOG.ingredients
@@ -59,4 +59,52 @@ test("read-only diagnostic rejects incomplete Cupboard configuration", async () 
     readCupboardInventory({ env: { ...env, CUPBOARD_SERVICE_ACCOUNT_JSON: "" }, db: { readMany: async () => [] } }),
     (error) => error.code === "CUPBOARD_CREDENTIALS_MISSING",
   );
+});
+
+
+test("Cupboard movement history reads and sorts commercial workspace movements", async () => {
+  let queriedPath = "";
+  const db = {
+    async query(path, options) {
+      queriedPath = path;
+      assert.equal(options.limit, 100);
+      return [
+        {
+          path: path + "/older",
+          data: {
+            ingredientId: "pepperoni",
+            ingredientName: "Pepperoni",
+            type: "purchase",
+            quantityDelta: 5,
+            unit: "unidad",
+            reason: "Compra semanal",
+            createdAt: new Date("2026-11-01T10:00:00.000Z"),
+          },
+        },
+        {
+          path: path + "/newer",
+          data: {
+            ingredientId: "base",
+            ingredientName: "Base (lechuga + cebolla)",
+            type: "consumption",
+            quantityDelta: -1,
+            unit: "porción",
+            orderId: "order-123",
+            createdAt: new Date("2026-11-02T10:00:00.000Z"),
+          },
+        },
+      ];
+    },
+  };
+
+  const result = await readCupboardMovements({ env, db });
+  assert.equal(
+    queriedPath,
+    "households/household-test/workspaces/sandwichies/movements",
+  );
+  assert.equal(result.total, 2);
+  assert.equal(result.movements[0].id, "newer");
+  assert.equal(result.movements[0].quantityDelta, -1);
+  assert.equal(result.movements[0].orderId, "order-123");
+  assert.equal(result.movements[1].reason, "Compra semanal");
 });
