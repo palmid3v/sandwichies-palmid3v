@@ -111,53 +111,44 @@ export default function App() {
 
   useEffect(() => {
     if (!user || !isAdmin) return undefined;
+    let active = true;
+    let refreshing = false;
+    let timer;
 
-    const balancesUnsubscribe = onSnapshot(
-      collection(db, "inventoryBalances"),
-      (snapshot) => {
-        setInventoryBalances(
-          snapshot.docs.map((snapshotDoc) => ({
-            id: snapshotDoc.id,
-            ...snapshotDoc.data(),
-          })),
-        );
+    const refreshCupboardData = async () => {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const [inventoryData, movementData] = await Promise.all([
+          workerRequest("/v1/admin/cupboard/inventory", { auth }),
+          workerRequest("/v1/admin/cupboard/movements?limit=100", { auth }),
+        ]);
+        if (!active) return;
+        setInventoryBalances((inventoryData.items || []).map((item) => ({
+          id: item.ingredientId,
+          quantity: item.portions,
+          unit: item.unit,
+          status: item.status,
+          productId: item.productId,
+          revision: item.revision,
+        })));
+        setInventoryTransactions(movementData.movements || []);
         setInventoryError("");
-      },
-      (error) => {
-        console.error("No se pudo cargar el inventario:", error);
-        setInventoryError(
-          "No se pudo sincronizar el inventario. Revisa la conexión y los permisos.",
+      } catch (error) {
+        console.error("No se pudo sincronizar el inventario de Cupboard:", error);
+        if (active) setInventoryError(
+          error?.message || "No se pudo sincronizar el inventario comercial de Cupboard.",
         );
-      },
-    );
+      } finally {
+        refreshing = false;
+      }
+    };
 
-    const transactionsUnsubscribe = onSnapshot(
-      collection(db, "inventoryTransactions"),
-      (snapshot) => {
-        const nextTransactions = snapshot.docs
-          .map((snapshotDoc) => ({
-            id: snapshotDoc.id,
-            ...snapshotDoc.data(),
-          }))
-          .sort((a, b) => {
-            const aDate = a.createdAt?.toDate?.()?.getTime?.() || 0;
-            const bDate = b.createdAt?.toDate?.()?.getTime?.() || 0;
-            return bDate - aDate;
-          });
-
-        setInventoryTransactions(nextTransactions);
-      },
-      (error) => {
-        console.error("No se pudo cargar el historial de inventario:", error);
-        setInventoryError(
-          "No se pudo cargar el historial de inventario.",
-        );
-      },
-    );
-
+    refreshCupboardData();
+    timer = window.setInterval(refreshCupboardData, 15000);
     return () => {
-      balancesUnsubscribe();
-      transactionsUnsubscribe();
+      active = false;
+      window.clearInterval(timer);
     };
   }, [user, isAdmin]);
 
@@ -202,7 +193,20 @@ export default function App() {
         reason: "",
       }));
       setInventoryOperationId(createInventoryOperationId());
-      setInventoryFeedback("Movimiento registrado en Cupboard.");
+      const [inventoryData, movementData] = await Promise.all([
+        workerRequest("/v1/admin/cupboard/inventory", { auth }),
+        workerRequest("/v1/admin/cupboard/movements?limit=100", { auth }),
+      ]);
+      setInventoryBalances((inventoryData.items || []).map((item) => ({
+        id: item.ingredientId,
+        quantity: item.portions,
+        unit: item.unit,
+        status: item.status,
+        productId: item.productId,
+        revision: item.revision,
+      })));
+      setInventoryTransactions(movementData.movements || []);
+      setInventoryFeedback("Movimiento registrado y sincronizado con Cupboard.");
     } catch (error) {
       console.error("No se pudo registrar el movimiento:", error);
       setInventoryError(
