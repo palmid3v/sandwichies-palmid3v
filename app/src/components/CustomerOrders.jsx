@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { getCustomerOrder, listCustomerOrders } from "../api/customer-orders";
+import CustomerOrderTracking from "./CustomerOrderTracking";
 import { formatMoney } from "../config/business";
 import "../styles/customer-orders.css";
 
@@ -28,7 +29,7 @@ function displayDate(value) {
   }).format(date);
 }
 
-export default function CustomerOrders({ onClose, onRecover }) {
+export default function CustomerOrders({ onClose, onRecover, onMarkArrival, readyBusy = false }) {
   const [orders, setOrders] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -62,7 +63,7 @@ export default function CustomerOrders({ onClose, onRecover }) {
         if (!tracking) return order;
         return { ...order, status: tracking.orderStatus || order.status,
           payment: { ...order.payment, status: tracking.paymentStatus || order.payment?.status },
-          delivery: order.delivery || tracking.deliveryStatus ? { ...(order.delivery || {}), status: tracking.deliveryStatus || order.delivery?.status, tableStatus: tracking.tableStatus || order.delivery?.tableStatus } : null };
+          delivery: order.delivery || tracking.deliveryStatus ? { ...(order.delivery || {}), status: tracking.deliveryStatus || order.delivery?.status, tableStatus: tracking.tableStatus || order.delivery?.tableStatus } : null, trackingUpdatedAt: tracking.updatedAt || order.trackingUpdatedAt };
       };
       setOrders((current) => current.map(apply));
       setSelected((current) => current ? apply(current) : current);
@@ -128,13 +129,9 @@ export default function CustomerOrders({ onClose, onRecover }) {
       {selected && (
         <article className="customer-order-detail" aria-live="polite">
           <p className="eyebrow">Detalle recuperado</p>
-          <h3>Pedido #{selected.orderNumber}</h3>
-          <p>Estado: <strong>{STATUS_LABELS[selected.status] || selected.status}</strong></p>
           <p>Fecha: {displayDate(selected.createdAt)}</p>
           <p>Total: <strong>{formatMoney(selected.total)}</strong></p>
-          {selected.delivery && (
-            <p>Seguimiento de entrega: <strong>{STATUS_LABELS[selected.delivery.status] || selected.delivery.status || "Pendiente"}</strong></p>
-          )}
+          <CustomerOrderTracking order={selected} onMarkArrival={onMarkArrival} readyBusy={readyBusy} />
           <div className="customer-orders-actions">
             <button type="button" onClick={recoverOrder}>Recuperar este pedido</button>
             <button type="button" onClick={() => setSelected(null)}>Ocultar detalle</button>
