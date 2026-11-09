@@ -47,3 +47,36 @@ export async function readCupboardInventory({ env, db: injectedDb }) {
     items,
   };
 }
+
+
+export async function readCupboardMovements({ env, db: injectedDb, limit = 100 }) {
+  const config = readCupboardConfig(env);
+  const db = injectedDb || new FirestoreRest({
+    projectId: config.projectId,
+    serviceAccountJson: env.CUPBOARD_SERVICE_ACCOUNT_JSON,
+  });
+  const collectionPath = `households/${config.householdId}/workspaces/sandwichies/movements`;
+  const documents = await db.query(collectionPath, { limit: Math.min(Math.max(Number(limit) || 100, 1), 500) });
+  const movements = documents.map((document) => {
+    const data = document.data || {};
+    return {
+      id: document.path.split("/").at(-1),
+      ingredientId: data.ingredientId || null,
+      ingredientName: data.ingredientName || data.ingredientId || "Ingrediente",
+      type: data.type || "adjustment",
+      quantityDelta: Number(data.quantityDelta) || 0,
+      quantity: Number(data.quantity) || 0,
+      unit: data.unit || "",
+      reason: data.reason || "",
+      orderId: data.orderId || null,
+      operationId: data.operationId || null,
+      sourceApp: data.sourceApp || null,
+      createdAt: data.createdAt || document.updateTime || null,
+    };
+  });
+  const timestamp = (value) => value instanceof Date
+    ? value.getTime()
+    : Date.parse(value || "") || 0;
+  movements.sort((a, b) => timestamp(b.createdAt) - timestamp(a.createdAt));
+  return { workspace: "sandwichies", total: movements.length, movements: movements.slice(0, 100) };
+}
