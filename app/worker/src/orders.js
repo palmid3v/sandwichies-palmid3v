@@ -879,6 +879,10 @@ export async function markCustomerReady({ orderId, claims, env, db: injectedDb }
     }
     const now = nowDate();
     tx.update(memberPath, { deliveryStatus: "customer_ready", customerReadyAt: now });
+    tx.update(orderPath, {
+      delivery: { ...(data.delivery || {}), mode: "virtual_table", status: "customer_ready" },
+      updatedAt: now,
+    });
     tx.set(trackingPath, { deliveryStatus: "customer_ready", tableStatus, updatedAt: now });
     if (table.exists && ["open", "closing"].includes(tableStatus)) {
       const inactivityMinutes = Number(table.data.inactivityMinutes) || VIRTUAL_TABLE_DEFAULTS.inactivityMinutes;
@@ -983,8 +987,12 @@ export async function updateVirtualDelivery({ orderId, status, claims, env, db: 
       paymentStatus: order.data.payment?.status || "pendiente",
       deliveryStatus: status, tableStatus, updatedAt: now,
     });
+    tx.update(`orders/${orderId}`, {
+      delivery: { ...(order.data.delivery || {}), mode: "virtual_table", status },
+      ...(status === "delivered" ? { status: "entregado", statusChangedAt: now, deliveredAt: now } : {}),
+      updatedAt: now,
+    });
     if (status === "delivered") {
-      tx.update(`orders/${orderId}`, { status: "entregado", statusChangedAt: now, deliveredAt: now, updatedAt: now });
       tx.create(`orderEvents/${randomId()}`, {
         orderId, type: "order_delivered", fromStatus: order.data.status || "listo",
         toStatus: "entregado", actorUid: claims.sub, createdAt: now,
