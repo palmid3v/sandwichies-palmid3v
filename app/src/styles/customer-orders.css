@@ -28,3 +28,87 @@
 .customer-order-detail h3 { margin: .25rem 0 .75rem; }
 .confirmation-actions { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
 @media (max-width: 560px) { .customer-order-row { align-items: flex-start; } .customer-order-row > div:last-child { align-items: flex-end; } }
+
+
+.customer-delivery-tracking {
+  margin: 1rem 0;
+  padding: 1.1rem;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 1rem;
+  background: rgba(0,0,0,.18);
+  color: #f7f2e9;
+  text-align: left;
+}
+.customer-tracking-heading, .customer-tracking-payment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+.customer-tracking-heading h2 { margin: .2rem 0 .6rem; }
+.customer-tracking-state {
+  padding: .35rem .65rem;
+  border: 1px solid rgba(189,247,93,.35);
+  border-radius: 999px;
+  color: #d5ffc3;
+  font-size: .76rem;
+  font-weight: 800;
+}
+.customer-tracking-state.is-cancelled { color: #ffaaa0; border-color: rgba(255,170,160,.4); }
+.customer-tracking-section { margin-top: 1rem; }
+.customer-tracking-section h3 { margin: 0 0 .75rem; font-size: .95rem; }
+.customer-tracking-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+  gap: .55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.customer-tracking-steps li {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  min-width: 0;
+  color: #aaa397;
+  font-size: .76rem;
+}
+.customer-tracking-marker {
+  display: grid;
+  flex: 0 0 1.55rem;
+  width: 1.55rem;
+  height: 1.55rem;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 50%;
+  color: #b9b3a8;
+  font-size: .68rem;
+  font-weight: 800;
+}
+.customer-tracking-steps li.is-complete { color: #d5ffc3; }
+.customer-tracking-steps li.is-complete .customer-tracking-marker,
+.customer-tracking-steps li.is-current .customer-tracking-marker {
+  border-color: #bdf75d;
+  color: #172115;
+  background: #bdf75d;
+}
+.customer-tracking-steps li.is-current { color: #fff; font-weight: 800; }
+.customer-tracking-table, .customer-tracking-address { margin: .75rem 0 .35rem; color: #d8d1c6; }
+.customer-tracking-map { display: inline-block; margin-top: .65rem; color: #d5ffc3; }
+.customer-tracking-payment {
+  margin-top: 1rem;
+  padding-top: .8rem;
+  border-top: 1px solid rgba(255,255,255,.12);
+  font-size: .85rem;
+}
+.customer-tracking-updated, .customer-tracking-cancelled {
+  margin: .65rem 0 0;
+  color: #b9b3a8;
+  font-size: .78rem;
+}
+.customer-tracking-cancelled { color: #ffaaa0; }
+.customer-delivery-tracking .primary-button { margin-top: .8rem; }
+@media (max-width: 560px) {
+  .customer-tracking-heading { align-items: flex-start; flex-direction: column; }
+  .customer-tracking-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
