@@ -1,6 +1,6 @@
 # Order, payment, delivery and virtual-table contract
 
-Status: implemented baseline for phases 2–3 on `main`. The canonical write boundary, customer projection synchronization and admin activity history are active in code. Historical reconciliation and non-virtual-table dispatch workflows remain explicit rollout work.
+Status: phases 2–4 implemented on `main`. Admin Pedidos and Entregas are separate workspaces. The Worker owns commercial, payment and logistics transitions for virtual-table, pickup and home-delivery orders.
 
 ## Canonical ownership
 
@@ -9,6 +9,7 @@ Status: implemented baseline for phases 2–3 on `main`. The canonical write bou
 - `orders/{orderId}.payment.status` owns the payment lifecycle.
 - `virtualTables/{tableId}` owns the shared meeting-point table lifecycle and capacity.
 - `virtualTables/{tableId}/members/{orderId}.deliveryStatus` owns the individual logistics lifecycle for a meeting-point order.
+- `orders/{orderId}.delivery` owns the logistics lifecycle for pickup and home-delivery orders.
 - `customerOrderTracking/{uid}/orders/{orderId}` is a customer-safe, read-only projection, never an independent source of truth.
 - `orderEvents/{eventId}` records commercial and payment transitions.
 - `deliveryEvents/{eventId}` records logistics, table and zone activity.
@@ -20,6 +21,13 @@ Status: implemented baseline for phases 2–3 on `main`. The canonical write bou
 Cancellation is allowed only from the states permitted by the domain transition policy and the existing unpaid-order rule. `entregado` and `cancelado` are terminal.
 
 For virtual-table orders, the Worker rejects manual commercial completion. The admin completes delivery once in Admin / Entregas. The Worker accepts logistics completion only when the order is `listo`; the transition to `delivered` atomically updates the member, customer projection, table capacity/status and canonical order to `entregado`.
+
+## Pickup and home-delivery lifecycle
+
+- Pickup (`recoger`): `waiting_preparation -> delivered`. The admin confirms handoff from Entregas once the order is `listo`.
+- Home delivery (`domicilio`): `waiting_preparation -> en_route -> delivered`. The admin dispatches and confirms completion from Entregas once the order is `listo`.
+- Each logistics transition updates the canonical order's delivery object and the customer's tracking projection. Final delivery atomically changes commercial status to `entregado` and records logistics and commercial events.
+- Repeating a completed transition is idempotent and cannot create a second completion event.
 
 ## Payment lifecycle
 
@@ -39,7 +47,7 @@ A table can contain multiple orders. Completing one member decrements capacity o
 
 - `POST /v1/admin/orders/:id/status`: commercial transition and associated inventory side effects.
 - `POST /v1/admin/orders/:id/payment`: payment confirmation.
-- `POST /v1/admin/orders/:id/delivery`: individual virtual-table delivery transition.
+- `POST /v1/admin/orders/:id/delivery`: logistics transition for virtual-table, pickup and home-delivery orders.
 - `POST /v1/customer/orders/:id/ready`: authenticated customer arrival confirmation.
 - `GET /v1/admin/orders/:id/activity`: merged admin-only order/payment/logistics history.
 - `POST /v1/admin/delivery-zones` and virtual-table operations: Worker-owned zone/table changes.
@@ -70,5 +78,5 @@ Older records are not retroactively assigned events that were never recorded. Th
 ## Remaining scope outside this implementation
 
 - Historical projection backfill/reconciliation and synthetic legacy timeline entries are intentionally not automatic; they require a dry-run report and explicit review before mutating live records.
-- Pickup and home-delivery orders retain their commercial status workflow. A separate dispatch lifecycle and Entregas UI for those fulfillment modes is not yet implemented; only virtual-table deliveries currently drive automatic logistics-to-commercial completion.
+- Admin navigation separates Pedidos (commercial/payment management) from Entregas (virtual tables, pickup and home delivery). Entregas exposes only operationally ready or dispatched orders; commercial and payment controls remain in Pedidos.
 - Event history is bounded to the latest 200 records per source before merge; cursor pagination is future work.
