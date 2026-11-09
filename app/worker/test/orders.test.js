@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CATALOG } from "../../shared/catalog.js";
-import { createOrder, transitionOrder, updateVirtualDelivery, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers, createSandwichiesDb } from "../src/orders.js";
+import { createOrder, transitionOrder, updateOrderPayment, updateVirtualDelivery, saveDeliveryZone, listDeliveryOperations, listVirtualTableMembers, createSandwichiesDb } from "../src/orders.js";
 import { FirestoreRest } from "../src/firestore-rest.js";
 import { findOperatingZone, getZoneScheduleStatus, validateZoneSchedule } from "../../shared/virtual-tables.js";
 
@@ -567,4 +567,23 @@ test("delivering a ready virtual-table order atomically closes its commercial st
   assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${orderId}`)).data.deliveryStatus, "delivered");
   assert.equal((await db.read(`virtualTables/${tableId}`)).data.status, "released");
   assert.equal((await db.query("orderEvents")).length, 1);
+});
+
+
+test("admin payment confirmation is centralized and updates the customer projection and audit log", async () => {
+  const db = new MemoryFirestore({
+    [`orders/${orderId}`]: orderDoc("confirmado", "posted"),
+    [`customerOrderTracking/customer-uid/orders/${orderId}`]: {
+      orderId, orderNumber: 17, orderStatus: "confirmado", paymentStatus: "pendiente",
+    },
+  });
+  const result = await updateOrderPayment({ orderId, status: "pagado", claims: adminClaims, env, db });
+  assert.equal(result.paymentStatus, "pagado");
+  assert.equal((await db.read(`orders/${orderId}`)).data.payment.status, "pagado");
+  assert.equal((await db.read(`customerOrderTracking/customer-uid/orders/${orderId}`)).data.paymentStatus, "pagado");
+  assert.equal((await db.query("orderEvents")).length, 1);
+  await assert.rejects(
+    updateOrderPayment({ orderId, status: "pagado", claims: customerClaims, env, db }),
+    (error) => error.status === 403,
+  );
 });
