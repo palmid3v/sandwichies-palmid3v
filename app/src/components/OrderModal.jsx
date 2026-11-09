@@ -89,6 +89,9 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
   const meetingPoint = selectedOrder.fulfillment?.meetingPoint;
   const logisticsLabel = getDeliveryStatusLabel(selectedOrder);
   const logisticsMode = selectedOrder.delivery?.mode || selectedOrder.fulfillment?.type;
+  const logisticsStatus = selectedOrder.delivery?.status || "waiting_preparation";
+  const hasLegacyDeliveryMismatch = selectedOrder.status === "entregado"
+    && !["delivered", "cancelled"].includes(logisticsStatus);
   const fulfillmentLabel = selectedOrder.fulfillment?.type === "domicilio"
     ? "Domicilio"
     : selectedOrder.fulfillment?.type === "punto_encuentro"
@@ -231,6 +234,7 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
           <span>Estado logístico</span>
           <strong>{logisticsLabel}</strong>
           <small>La finalización comercial se registra automáticamente al confirmar la entrega desde Entregas.</small>
+          {hasLegacyDeliveryMismatch && <p className="admin-feedback error" role="alert">Este pedido tiene un estado comercial entregado, pero su logística sigue pendiente. Completa o revisa la entrega desde Entregas para reconciliarlo.</p>}
         </section>
 
         <div className="modal-items">
