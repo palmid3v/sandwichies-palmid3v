@@ -952,7 +952,7 @@ export async function updateVirtualDelivery({ orderId, status, claims, env, db: 
         orderId, type: status === "delivered" ? "delivery_delivered" : "delivery_en_route",
         fulfillmentType, actorUid: claims.sub, createdAt: now,
       });
-      if (status === "delivered") {
+      if (status === "delivered" && order.data.status !== "entregado") {
         tx.create(`orderEvents/${randomId()}`, {
           orderId, type: "order_delivered", fromStatus: order.data.status,
           toStatus: "entregado", actorUid: claims.sub, createdAt: now,
@@ -992,7 +992,7 @@ export async function updateVirtualDelivery({ orderId, status, claims, env, db: 
       ...(status === "delivered" ? { status: "entregado", statusChangedAt: now, deliveredAt: now } : {}),
       updatedAt: now,
     });
-    if (status === "delivered") {
+    if (status === "delivered" && order.data.status !== "entregado") {
       tx.create(`orderEvents/${randomId()}`, {
         orderId, type: "order_delivered", fromStatus: order.data.status || "listo",
         toStatus: "entregado", actorUid: claims.sub, createdAt: now,
