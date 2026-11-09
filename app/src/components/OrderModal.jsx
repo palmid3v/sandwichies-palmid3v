@@ -16,6 +16,23 @@ import {
   getOrderTotal,
 } from "../utils/orders";
 
+
+const DELIVERY_STATUS_LABELS = {
+  waiting_preparation: "Esperando preparación",
+  waiting_customer: "Esperando al cliente",
+  customer_ready: "Cliente en el punto",
+  en_route: "En camino",
+  arrived: "Llegó al punto",
+  delivered: "Entregado",
+  cancelled: "Cancelado",
+};
+
+const getDeliveryStatusLabel = (order) => {
+  const mode = order.delivery?.mode || order.fulfillment?.type;
+  const status = order.delivery?.status || (mode === "virtual_table" ? "waiting_customer" : "waiting_preparation");
+  return DELIVERY_STATUS_LABELS[status] || status;
+};
+
 export default function OrderModal({ selectedOrder, setSelectedOrder }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -69,6 +86,8 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
       canTransitionOrderStatus(selectedOrder.status, status.value),
   );
   const meetingPoint = selectedOrder.fulfillment?.meetingPoint;
+  const logisticsLabel = getDeliveryStatusLabel(selectedOrder);
+  const logisticsMode = selectedOrder.delivery?.mode || selectedOrder.fulfillment?.type;
   const fulfillmentLabel = selectedOrder.fulfillment?.type === "domicilio"
     ? "Domicilio"
     : selectedOrder.fulfillment?.type === "punto_encuentro"
@@ -206,6 +225,12 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
             {meetingPoint && <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${meetingPoint.latitude},${meetingPoint.longitude}`}>Abrir punto en Maps ↗</a>}
           </div>
         </div>
+
+        <section className="order-logistics-summary" aria-label="Estado logístico">
+          <span>Estado logístico</span>
+          <strong>{logisticsLabel}</strong>
+          <small>La finalización comercial se registra automáticamente al confirmar la entrega desde Entregas.</small>
+        </section>
 
         <div className="modal-items">
           {items.map((item, index) => (
