@@ -354,13 +354,15 @@ export async function listCustomerOrders({ claims, env, db: injectedDb, limit = 
   const normalized = await Promise.all(orders.map(async ({ path, data }) => {
     const orderId = path.split("/").at(-1);
     const order = normalizeOrderForCustomer(data, orderId);
-    if (data.delivery?.mode === "virtual_table") {
-      const tracking = await db.read(`customerOrderTracking/${claims.sub}/orders/${orderId}`);
-      if (tracking.exists) {
+    const tracking = await db.read(`customerOrderTracking/${claims.sub}/orders/${orderId}`);
+    if (tracking.exists) {
+      order.status = tracking.data.orderStatus || order.status;
+      order.payment = { ...(order.payment || {}), status: tracking.data.paymentStatus || order.payment?.status };
+      if (order.delivery || tracking.data.deliveryStatus) {
         order.delivery = {
-          ...order.delivery,
-          status: tracking.data.deliveryStatus || order.delivery.status,
-          tableStatus: tracking.data.tableStatus || order.delivery.tableStatus,
+          ...(order.delivery || {}),
+          status: tracking.data.deliveryStatus || order.delivery?.status || null,
+          tableStatus: tracking.data.tableStatus || order.delivery?.tableStatus || null,
         };
       }
     }
@@ -378,13 +380,15 @@ export async function getCustomerOrder({ orderId, claims, env, db: injectedDb })
     throw new ApiError(404, "not-found", "No se encontró el pedido.");
   }
   const order = normalizeOrderForCustomer(snapshot.data, orderId);
-  if (snapshot.data.delivery?.mode === "virtual_table") {
-    const tracking = await db.read(`customerOrderTracking/${claims.sub}/orders/${orderId}`);
-    if (tracking.exists) {
+  const tracking = await db.read(`customerOrderTracking/${claims.sub}/orders/${orderId}`);
+  if (tracking.exists) {
+    order.status = tracking.data.orderStatus || order.status;
+    order.payment = { ...(order.payment || {}), status: tracking.data.paymentStatus || order.payment?.status };
+    if (order.delivery || tracking.data.deliveryStatus) {
       order.delivery = {
-        ...order.delivery,
-        status: tracking.data.deliveryStatus || order.delivery.status,
-        tableStatus: tracking.data.tableStatus || order.delivery.tableStatus,
+        ...(order.delivery || {}),
+        status: tracking.data.deliveryStatus || order.delivery?.status || null,
+        tableStatus: tracking.data.tableStatus || order.delivery?.tableStatus || null,
       };
     }
   }
