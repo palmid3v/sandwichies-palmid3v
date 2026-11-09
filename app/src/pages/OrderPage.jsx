@@ -34,15 +34,6 @@ const DEFAULT_BASE = [
 
 const MeetingPointPicker = lazy(() => import("../components/MeetingPointPicker"));
 const newRequestId = () => globalThis.crypto.randomUUID();
-const DELIVERY_STATUS_LABELS = {
-  waiting_customer: "Esperando al cliente",
-  customer_ready: "Ya llegaste al punto",
-  en_route: "En camino",
-  arrived: "En el punto de encuentro",
-  delivered: "Entregado",
-  cancelled: "Cancelado",
-};
-
 export default function OrderPage() {
   const [size, setSize] = useState("15");
   const [proteins, setProteins] = useState([]);
