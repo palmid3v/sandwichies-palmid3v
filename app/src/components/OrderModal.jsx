@@ -56,6 +56,10 @@ export default function OrderModal({ selectedOrder, setSelectedOrder }) {
       : "Recoger en el local";
 
   const updateOrder = async (updates) => {
+    if (updates.status === "entregado" && selectedOrder.delivery?.mode === "virtual_table") {
+      setFeedback({ type: "error", message: "Completa la entrega de esta mesa desde la sección Entregas." });
+      return;
+    }
     if (updates.status && !canTransitionOrderStatus(selectedOrder.status, updates.status)) {
       return;
     }
