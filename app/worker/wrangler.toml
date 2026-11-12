@@ -7,9 +7,14 @@ enabled = true
 
 [vars]
 FIREBASE_PROJECT_ID = "sandwich-pro"
+<<<<<<< HEAD
 CUPBOARD_PROJECT_ID = "cupboard-app-ce528"
 CUPBOARD_HOUSEHOLD_ID = "e68b4d69-ef73-4a21-913a-ee1ad3b8a14b"
 ALLOWED_ORIGINS = "https://sanpalmid3v.vercel.app"
+=======
+# Production Vercel origin plus loopback origins for local development.
+ALLOWED_ORIGINS = "https://sanpalmid3v.vercel.app,http://localhost:5173,http://127.0.0.1:5173,http://localhost:5182,http://127.0.0.1:5182"
+>>>>>>> 65db4287e5e33ab8f4baf7b628a750adf73419f6
 ORDERS_ENABLED = "false"
 
 [triggers]
