@@ -29,6 +29,11 @@ function displayDate(value) {
   }).format(date);
 }
 
+function getOrderItemKey(item, index) {
+  const identity = item.id || item.lineId || item.productId || item.favoriteId || item.name || "item";
+  return `${identity}-${index}`;
+}
+
 export default function CustomerOrders({ onClose, onRecover, onMarkArrival, readyBusy = false }) {
   const [orders, setOrders] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -115,7 +120,7 @@ export default function CustomerOrders({ onClose, onRecover, onMarkArrival, read
                 <span>{displayDate(order.createdAt)}</span>
                 <span>{STATUS_LABELS[order.status] || order.status || "Estado no disponible"}</span>
                 <ul className="customer-order-items">
-                  {(order.items || []).map((item, index) => <li key={item.productId || item.favoriteId || index}>
+                  {(order.items || []).map((item, index) => <li key={getOrderItemKey(item, index)}>
                     <span>{item.productName || item.name || "Sándwich"}</span><small>{item.size || "15"} cm</small>
                   </li>)}
                 </ul>
@@ -136,7 +141,7 @@ export default function CustomerOrders({ onClose, onRecover, onMarkArrival, read
           <p className="eyebrow">Detalle recuperado</p>
           <p>Fecha: {displayDate(selected.createdAt)}</p>
           <div className="customer-order-detail-items"><h3>Tu pedido</h3>
-            {(selected.items || []).map((item, index) => <div key={item.productId || item.favoriteId || index}>
+            {(selected.items || []).map((item, index) => <div key={getOrderItemKey(item, index)}>
               <strong>{item.productName || item.name || "Sándwich"}</strong>
               <span>{item.size || "15"} cm · {formatMoney(item.price)}</span>
             </div>)}
