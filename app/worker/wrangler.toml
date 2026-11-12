@@ -7,8 +7,8 @@ enabled = true
 
 [vars]
 FIREBASE_PROJECT_ID = "sandwich-pro"
-# Local origins only. Add the verified Vercel production domain after deployment.
-ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5182,http://127.0.0.1:5182"
+# Production Vercel origin plus loopback origins for local development.
+ALLOWED_ORIGINS = "https://sanpalmid3v.vercel.app,http://localhost:5173,http://127.0.0.1:5173,http://localhost:5182,http://127.0.0.1:5182"
 ORDERS_ENABLED = "false"
 
 [triggers]
