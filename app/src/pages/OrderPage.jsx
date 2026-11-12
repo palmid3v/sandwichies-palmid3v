@@ -602,9 +602,22 @@ export default function OrderPage() {
       setNotes("");
       showToast(`Pedido #${savedOrder.orderNumber} enviado.`);
 
-      const whatsappUrl = `https://wa.me/${BUSINESS.whatsapp}?text=${encodeURIComponent(
-        buildWhatsAppMessage(savedOrder),
-      )}`;
+      // const whatsappUrl = `https://wa.me/${BUSINESS.whatsapp}?text=${encodeURIComponent(
+      //   buildWhatsAppMessage(savedOrder),
+      // )}`;
+      const whatsappMessage = buildWhatsAppMessage(order);
+
+        console.log("[WhatsApp] Mensaje original:", whatsappMessage);
+        console.log("[WhatsApp] Mensaje codificado:", encodeURIComponent(whatsappMessage));
+        console.log(
+          "[WhatsApp] Verificación Unicode:",
+          decodeURIComponent(encodeURIComponent(whatsappMessage)) === whatsappMessage
+        );
+
+        const whatsappUrl = `https://wa.me/${BUSINESS.whatsapp}?text=${encodeURIComponent(
+          whatsappMessage
+        )}`;
+
       if (whatsappWindow) {
         whatsappWindow.location.href = whatsappUrl;
       } else {
