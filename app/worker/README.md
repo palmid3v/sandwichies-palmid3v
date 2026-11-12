@@ -4,14 +4,14 @@ Cloudflare Worker backend for Sandwichies, built to keep the mandatory service b
 
 ## Runtime status and safety defaults
 
-- Cloudflare Worker source: implemented in `src/`.
+- Cloudflare Worker source: implemented in `src/`. A Worker named `sandwichies-palmid3v` is present in the connected Cloudflare account (observed 2026-11-12), but its current settings response exposes no runtime bindings; this does not establish a working production backend.
 - Firebase ID token verification: implemented (RS256/JWK, issuer, audience, subject, time claims).
 - Firestore REST client: implemented with Google service-account OAuth, Firestore transactions and batched transactional reads (`batchGet`), including loopback-only Firestore Emulator transport for local development.
 - Orders, delivery zones, virtual tables and Cupboard movement endpoints: implemented in source.
 - Frontend adapter: customer and admin actions now call the Worker API.
 - Automated Worker tests: the prior local QA run passed 30 tests. The new local-emulator transport and delivery-zone domain tests passed in GitHub Actions commit `ddc8171`; the actual Wrangler + Firestore Emulator UI flow still requires local owner-side verification.
 - Local development: Wrangler can run the same Worker against the Firestore Emulator without service-account credentials; see `../docs/development/local-worker.md`.
-- Cloudflare deployment: **not performed**.
+- Cloudflare deployment: a script and deployment versions exist in the account, but the live version has not been verified against `main`; production configuration and end-to-end validation remain incomplete.
 - Service-account secrets, real Cupboard household ID and validated ingredient mapping: **not configured in this repository**.
 - `ORDERS_ENABLED`: defaults to `false` in the Wrangler configuration; real order creation stays blocked.
 - No Firebase Blaze, billing, production data migration, production write or real order is authorized by this implementation.
