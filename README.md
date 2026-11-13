@@ -27,7 +27,7 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 
 ## 🔎 Quality checkpoint — 2026-11-12
 
-See [QUALITY-CHECKPOINT-2026-11-12.md](QUALITY-CHECKPOINT-2026-11-12.md) for the latest CI evidence, changes under review and release gates. CI status is not represented as green until the corresponding GitHub Actions run completes successfully.
+Maintenance-branch CI passed domain, Worker, Firestore Rules, integration, build and smoke checks. Production dependency audit reports 7 vulnerabilities (1 low, 6 moderate); order intake remains disabled. See [QUALITY-CHECKPOINT-2026-11-12.md](QUALITY-CHECKPOINT-2026-11-12.md) for evidence and release gates.
 
 ## 📊 Estado del proyecto
 **Fases históricas del repositorio:** Fase 1 (integridad de dominio) y Fase 2 (endurecimiento de seguridad) aparecen implementadas en el roadmap. Fases de calidad, integración y release conservan gates pendientes.
