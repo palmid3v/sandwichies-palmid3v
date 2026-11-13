@@ -164,3 +164,4 @@ Public README states the product scope and release limits. Use the source code, 
 - npm audit reports 7 vulnerabilities (1 low, 6 moderate); the current audit gate is high severity. Keep these findings visible and review dependency paths before changing versions.
 - Preserve BUSINESS.acceptingOrders=false and ORDERS_ENABLED=false. No order intake, deployment or real inventory operation is authorized.
 - Latest evidence: QUALITY-CHECKPOINT-2026-11-12.md.
+- Dependency risk: npm audit --omit=dev reports 7 production dependency vulnerabilities (1 low, 6 moderate). CI now prints package-level advisory titles and available fixes. Review before changing versions; do not hide these findings behind the high-severity-only exit threshold.
