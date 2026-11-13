@@ -7,7 +7,7 @@
 ## Findings
 - The latest main-branch run after PR #14 ended as failed within approximately three seconds and reported no executed job steps. That run was inconclusive for application code.
 - The documentation PR validation then completed successfully on 2026-11-13: dependency audit, lint, syntax checks, 43 domain tests, 84 Worker tests, 12 Firestore security tests, 7 integration tests, production build and storefront/admin smoke all passed.
-- npm audit --omit=dev reported 7 production dependency vulnerabilities (1 low, 6 moderate); the configured audit gate is high severity and passed. A non-blocking JSON report step has been added to print affected packages, advisory titles and available fixes for review.
+- npm audit --omit=dev reports 7 production dependency vulnerabilities: fast-xml-parser (1 low), plus gaxios, gcp-metadata, glob, google-gax, minimatch and rimraf (6 moderate). No high/critical production findings were reported. npm audit marks fixes available for all seven. The CI gate remains high severity and passes; a JSON report step prints package/advisory details for review.
 - The CI workflow defines dependency audit, lint, Worker tests, domain tests, Firestore Rules emulator tests, integration tests, production build and smoke checks. These gates must be evaluated from a run where the runner actually executes the steps.
 - Customer order intake remains disabled: BUSINESS.acceptingOrders=false and ORDERS_ENABLED=false. This is an intentional release guard and must not be changed by maintenance work.
 
