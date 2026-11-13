@@ -13,7 +13,7 @@
 
 ## Evidence
 - Main-branch run with no job steps: https://github.com/palmid3v/sandwichies-palmid3v/actions/runs/43308466921
-- Successful full workflow on the current maintenance branch: https://github.com/palmid3v/sandwichies-palmid3v/actions/runs/43359742331
+- Latest successful full workflow, including the package-level production audit report: https://github.com/palmid3v/sandwichies-palmid3v/actions/runs/43360656251
 - Merged change preceding the main-branch run: PR #14, Wrangler production configuration resolution.
 
 ## Change prepared
