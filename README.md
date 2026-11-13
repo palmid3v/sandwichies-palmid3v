@@ -25,6 +25,10 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 - El Worker verifica tokens, valida CORS, reconstruye precios/consumos en servidor y conserva la API de pedidos; la creación de nuevas órdenes está desactivada por configuración.
 - Cupboard es la autoridad de balances comerciales; Sandwichies mantiene referencias/sincronización operativa, no una segunda autoridad de stock.
 
+## 🔎 Quality checkpoint — 2026-11-12
+
+See [QUALITY-CHECKPOINT-2026-11-12.md](QUALITY-CHECKPOINT-2026-11-12.md) for the latest CI evidence, changes under review and release gates. CI status is not represented as green until the corresponding GitHub Actions run completes successfully.
+
 ## 📊 Estado del proyecto
 **Fases históricas del repositorio:** Fase 1 (integridad de dominio) y Fase 2 (endurecimiento de seguridad) aparecen implementadas en el roadmap. Fases de calidad, integración y release conservan gates pendientes.
 
