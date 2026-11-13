@@ -5,18 +5,19 @@
 - Latest available GitHub Actions run on 2026-11-12.
 
 ## Findings
-- The latest run was triggered by the merge of PR #14 and ended as failed within approximately three seconds.
-- GitHub returned no executed job steps for that run, and the job log was unavailable. This is an inconclusive runner/bootstrap failure, not evidence of a failing application test.
+- The latest main-branch run after PR #14 ended as failed within approximately three seconds and reported no executed job steps. That run was inconclusive for application code.
+- The documentation PR validation then completed successfully on 2026-11-13: dependency audit, lint, syntax checks, 43 domain tests, 84 Worker tests, 12 Firestore security tests, 7 integration tests, production build and storefront/admin smoke all passed.
+- npm audit reported 7 total vulnerabilities (1 low, 6 moderate); the configured audit gate is high severity and passed. These findings remain visible for dependency review.
 - The CI workflow defines dependency audit, lint, Worker tests, domain tests, Firestore Rules emulator tests, integration tests, production build and smoke checks. These gates must be evaluated from a run where the runner actually executes the steps.
 - Customer order intake remains disabled: BUSINESS.acceptingOrders=false and ORDERS_ENABLED=false. This is an intentional release guard and must not be changed by maintenance work.
 
 ## Evidence
-- Latest observed run: https://github.com/palmid3v/sandwichies-palmid3v/actions/runs/43308466921
-- Merged change preceding the run: PR #14, Wrangler production configuration resolution.
-- Current run result is not a usable pass/fail signal for application code because no job steps were reported.
+- Main-branch run with no job steps: https://github.com/palmid3v/sandwichies-palmid3v/actions/runs/43308466921
+- Successful full workflow on the current maintenance branch: https://github.com/palmid3v/sandwichies-palmid3v/actions/runs/43359742331
+- Merged change preceding the main-branch run: PR #14, Wrangler production configuration resolution.
 
 ## Change prepared
-- No application-code change is proposed from this run alone. The failed run needs to be rerun with an available GitHub Actions runner before diagnosing a code-level cause.
+- The full CI workflow now completed successfully on the maintenance branch, so no speculative application-code fix was made.
 - Preserve the disabled-ordering guard and do not deploy Worker, Functions or Rules as part of this checkpoint.
 
 ## Next gates
