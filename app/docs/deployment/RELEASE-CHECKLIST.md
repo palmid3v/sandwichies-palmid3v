@@ -1,5 +1,7 @@
 # Checklist de release
 
+Current evidence and no-go state: [release checklist](../RELEASE-CHECKLIST.md). The historical operational gates below remain in force.
+
 ## Estado
 
 acceptingOrders = false se mantiene hasta que todos los bloqueos de release tengan evidencia real.

@@ -107,6 +107,8 @@ export default function CustomerAuth({ pendingMessage = "" }) {
         <label>
           Correo electrónico
           <input
+            id="customer-email"
+            name="email"
             type="email"
             autoComplete="email"
             required
@@ -117,6 +119,8 @@ export default function CustomerAuth({ pendingMessage = "" }) {
         <label>
           Contraseña
           <input
+            id="customer-password"
+            name="password"
             type="password"
             autoComplete={mode === "register" ? "new-password" : "current-password"}
             minLength={6}

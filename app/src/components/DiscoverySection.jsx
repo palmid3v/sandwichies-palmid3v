@@ -101,7 +101,7 @@ export default function DiscoverySection({ onSelect, cart = [] }) {
         <div className="discovery-toolbar">
         <label className="discovery-select">
           Filtrar por precio
-          <select value={priceFilter} onChange={(event) => setPriceFilter(event.target.value)}>
+          <select id="menu-price-filter" name="priceFilter" value={priceFilter} onChange={(event) => setPriceFilter(event.target.value)}>
             <option value="all">Todos los precios</option>
             <option value="under20">Menos de $20.000</option>
             <option value="20to30">$20.000 – $30.000</option>
@@ -110,7 +110,7 @@ export default function DiscoverySection({ onSelect, cart = [] }) {
         </label>
         <label className="discovery-select">
           Ordenar por
-          <select value={sort} onChange={(event) => setSort(event.target.value)}>
+          <select id="menu-sort" name="sort" value={sort} onChange={(event) => setSort(event.target.value)}>
             <option value="featured">Destacados</option>
             <option value="price-asc">Precio: menor a mayor</option>
             <option value="price-desc">Precio: mayor a menor</option>

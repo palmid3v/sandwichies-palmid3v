@@ -12,7 +12,7 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 - Catálogo, búsqueda, filtros y recetas.
 - Carrito persistente por UID con sincronización, control de conflictos y reconciliación idempotente tras timeouts.
 - Recogida/domicilio, datos de contacto y ubicación/punto de encuentro.
-- Firebase Anonymous Auth para sesiones de cliente; identidad administrativa separada.
+- Firebase Email/Password Auth con verificación de correo; identidad administrativa separada.
 - Historial privado de pedidos por UID, detalle recuperable y seguimiento logístico tras cerrar sesión o cambiar de navegador.
 - Perfil persistente y direcciones guardadas, aislados por UID de Firebase.
 ### Administración
@@ -27,21 +27,22 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 
 ## 🔎 Quality checkpoint — 2026-11-12
 
-Maintenance-branch CI passed domain, Worker, Firestore Rules, integration, build and smoke checks. Production dependency audit reports 7 vulnerabilities (1 low, 6 moderate); order intake remains disabled. See [QUALITY-CHECKPOINT-2026-11-12.md](QUALITY-CHECKPOINT-2026-11-12.md) for evidence and release gates.
+Local verification on 2026-11-12 passed `npm run check`: lint, 87 Worker tests, 43 domain tests, 12 Firestore Rules tests, 7 Functions/Firestore integration tests, build, bundle budget and smoke. Six moderate production dependency advisories remain; order intake remains disabled. See `app/docs/FINALIZATION-AUDIT.md` and `app/docs/INTEGRATION-MATRIX.md`.
 
 ## 📊 Estado del proyecto
 **Fases históricas del repositorio:** Fase 1 (integridad de dominio) y Fase 2 (endurecimiento de seguridad) aparecen implementadas en el roadmap. Fases de calidad, integración y release conservan gates pendientes.
 
-**Avance estimado del MVP funcional: 70%.** Hay evidencia de pruebas automatizadas y pruebas manuales locales del flujo de zona/pedido/mesa; faltan pruebas integrales repetibles, configuración de producción, revisión IAM, recuperación de fallos entre proyectos, identidad persistente de clientes y aceptación de release.
+**Avance funcional verificado: 67.5%.** The score follows the weighted evidence rubric in `app/docs/FINALIZATION-AUDIT.md`. Checkout remains intentionally blocked; live integrations and authorized admin workflows are not fully verified.
+
 
 | Área | Estado |
 |---|---|
 | Catálogo, recetas y precios confiables | Implementado en dominio compartido |
-| Storefront y carrito | Persistencia por UID, revisiones y control de conflictos implementados en código; QA local pendiente |
+| Storefront y carrito | Authenticated cart persisted through local Worker/Firestore emulator and survived browser reload; discovery and category search verified |
 | Pedidos y Worker | Recepción desactivada; `BUSINESS.acceptingOrders=false` y `ORDERS_ENABLED=false` |
 | Zonas y mesas virtuales | Implementación y prueba local confirmadas; ampliar reglas |
 | Cupboard | Puente idempotente en código; configuración/QA cruzado pendiente |
-| Registro, perfil y direcciones persistentes | Perfil, direcciones y carrito persistente implementados en código; QA local pendiente |
+| Registro, perfil y direcciones persistentes | Synthetic verified Auth Emulator account and customer profile read/write verified locally; production unverified |
 | DayFlow / Financial-D3v | Contratos futuros; no declarar integración operativa |
 | Producción | No validada; sin autorización de despliegue |
 
@@ -71,7 +72,7 @@ Desde `app/`:
 npm install
 npm run dev
 npm run worker:dev
-npm run emulator:firestore
+npm run emulator:local
 npm run worker:test
 npm test
 npm run security:test

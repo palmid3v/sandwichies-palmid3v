@@ -19,7 +19,12 @@ The experience should evolve around discovery, favorites, new creations, meaning
 
 ## Current operational state
 
-The current `main` contains commit `270303d` with `BUSINESS.acceptingOrders = true`. This conflicts with `MASTERPROMPT.md`, the storefront requirements and release checklist, which require `false` until release approval. The user previously asked to preserve the change; do not silently overwrite it. No production deployment or release approval is evidenced. Resolve this gate before publishing a build that could serve ordering, deploying, or accepting real orders.
+- `BUSINESS.acceptingOrders=false` in `app/shared/business.js` and `ORDERS_ENABLED=false` in Wrangler, local Worker vars and examples. Keep both release guards unchanged.
+- No production deployment, production data write or live inventory operation is authorized or evidenced.
+- Customer identity uses Firebase Email/Password with verified email. Vite development uses local Auth and Firestore emulators.
+- Local browser QA verified catalog discovery, authenticated cart persistence through Worker/Firestore Emulator, profile read/write, closed checkout and non-admin denial.
+- Current weighted functional score is 67.5%; see `app/docs/FINALIZATION-AUDIT.md` for evidence and domain scoring.
+- `npm run check` passed on 2026-11-12 with 87 Worker, 43 domain, 12 Rules and 7 Functions/Firestore integration tests; six moderate production dependency advisories remain.
 
 ## Customer flow
 
@@ -27,7 +32,7 @@ discover curated products
 → add an existing canonical recipe to cart
 → review quantities and total
 → customer, fulfillment, payment and notes
-→ trusted callable order submission (release-gated)
+→ Worker order API (currently blocked by both release flags)
 → confirmation / WhatsApp summary
 → private virtual-table tracking where applicable
 
@@ -63,11 +68,11 @@ Future admin UX improvements must preserve the existing trust boundary.
 - `app/shared/recipes.js`
 - `app/shared/order-request.js`
 
-Client values are previews. Financial/order values are rebuilt by the trusted Firebase callable function.
+Client values are previews. The active storefront order API is the Cloudflare Worker (`POST /v1/orders`); the Worker validates and rebuilds trusted values. The route remains disabled by release gates.
 
 ## Security
 
-Customer order creation goes through `createOrder`.
+The storefront submits to Worker `POST /v1/orders`; the Worker order domain is `createOrder`. Firebase callable order functions remain in the repository but are not the active storefront API path.
 
 Firestore Rules:
 - deny direct browser order creation/deletion,
@@ -114,7 +119,7 @@ Detailed documentation is under `app/docs/`. Historical material remains under `
 - Current UI/design decisions are documented in `app/docs/design/DESIGN-SYSTEM.md` and `app/docs/design/MOTION-INTERACTION.md`.
 - FASE 9 adds customer discovery segments, featured/product hierarchy and lower-friction selection into the ordering flow.
 - FASE 10 adds canonical production product metadata plus first new signature/seasonal creations in `app/shared/recipes.js`.
-- Screenshot/browser evidence is intentionally not fabricated; it remains an execution task.
+- A storefront screenshot was captured inline during local browser QA on 2026-11-12; the browser tool denied saving it into the workspace, so no persistent image or trace was retained.
 
 ## Development
 
@@ -130,7 +135,7 @@ npm run check
 
 ## Rule for future work
 
-Maintain parity between client configuration, shared business modules, Firebase callable functions, and Firestore security rules.
+Maintain parity between client configuration, shared business modules, Worker APIs, retained Firebase Functions, and Firestore security rules.
 
 For product/UI work, also maintain parity between the visual system, interaction system, responsive behavior, and product goals.
 
@@ -145,7 +150,7 @@ The admin experience prioritizes active orders, confirmation/payment attention, 
 
 Current customer improvements keep category/search controls prominent, collapse advanced price/sort controls on mobile and add a fixed cart summary when items are present. The cart still uses canonical recipe/pricing/order modules.
 
-The source currently has `BUSINESS.acceptingOrders = true` in `main` commit `270303d`, conflicting with the strict release requirements in `MASTERPROMPT.md` and the release checklist. The user previously asked to preserve this change; do not silently overwrite it. No production deployment/release approval is evidenced. Resolve before publishing an ordering-enabled build or accepting orders. Never perform production orders as a test.
+Current source keeps `BUSINESS.acceptingOrders=false` and `ORDERS_ENABLED=false`; these release protections must remain disabled.
 
 The previous 2026-10-18 documentation checkpoint below is historical. It is not a statement of today's source configuration.
 
@@ -158,10 +163,9 @@ Public README states the product scope and release limits. Use the source code, 
 
 ## Maintenance handoff — 2026-11-12
 
-- Current branch: maintenance/ci-recovery-2026-11.
-- Documentation PR: https://github.com/palmid3v/sandwichies-palmid3v/pull/15.
-- CI passed on 2026-11-13: 43 domain tests, 84 Worker tests, 12 Firestore Rules tests, 7 integration tests, dependency audit gate, lint, production build and storefront/admin smoke.
-- npm audit reports 7 vulnerabilities (1 low, 6 moderate); the current audit gate is high severity. Keep these findings visible and review dependency paths before changing versions.
-- Preserve BUSINESS.acceptingOrders=false and ORDERS_ENABLED=false. No order intake, deployment or real inventory operation is authorized.
-- Latest evidence: QUALITY-CHECKPOINT-2026-11-12.md.
-- Dependency risk: npm audit --omit=dev reports 7 production dependency vulnerabilities (1 low, 6 moderate). CI now prints package-level advisory titles and available fixes. Review before changing versions; do not hide these findings behind the high-severity-only exit threshold.
+- Current branch: `main`; local uncommitted finalization work is present.
+- Local `npm run check` passed: 87 Worker, 43 domain, 12 Rules, 7 integration tests, audit gate, lint, build, bundle budget and smoke.
+- `npm audit --omit=dev` reports six moderate production dependency vulnerabilities. The configured gate blocks high/critical findings; keep moderate advisories visible.
+- Preserve `BUSINESS.acceptingOrders=false` and `ORDERS_ENABLED=false`. No order intake, deployment or real inventory operation is authorized.
+- Current evidence: `app/docs/FINALIZATION-AUDIT.md`, `app/docs/INTEGRATION-MATRIX.md`, and `app/docs/BROWSER-QA-REPORT.md`.
+- Node 22 runtime verification, production IAM and Cupboard reconciliation remain open.

@@ -155,11 +155,11 @@ export default function CustomerProfile() {
       <form className="customer-profile-card" onSubmit={submitProfile}>
         <h2>Datos personales</h2>
         <div className="customer-profile-grid">
-          <label>Nombre completo<input autoComplete="name" minLength={2} maxLength={80} required value={profile.name || ""} onChange={(event) => setProfile((current) => ({ ...current, name: event.target.value }))} /></label>
-          <label>WhatsApp<input autoComplete="tel" inputMode="tel" required value={profile.phone || ""} onChange={(event) => setProfile((current) => ({ ...current, phone: event.target.value }))} placeholder="300 123 4567" /></label>
-          <label>Correo electrónico<input value={profile.email || user.email || ""} readOnly /></label>
-          <label>Entrega preferida<select value={profile.preferences?.preferredFulfillment || "recoger"} onChange={(event) => updatePreference("preferredFulfillment", event.target.value)}><option value="recoger">Recoger</option><option value="domicilio">Domicilio</option><option value="punto_encuentro">Punto de encuentro</option></select></label>
-          <label className="customer-profile-wide">Indicaciones frecuentes<textarea maxLength={250} value={profile.preferences?.deliveryNotes || ""} onChange={(event) => updatePreference("deliveryNotes", event.target.value)} placeholder="Ej. llamar al llegar, portería..." /></label>
+          <label>Nombre completo<input id="profile-name" name="name" autoComplete="name" minLength={2} maxLength={80} required value={profile.name || ""} onChange={(event) => setProfile((current) => ({ ...current, name: event.target.value }))} /></label>
+          <label>WhatsApp<input id="profile-phone" name="phone" autoComplete="tel" inputMode="tel" required value={profile.phone || ""} onChange={(event) => setProfile((current) => ({ ...current, phone: event.target.value }))} placeholder="300 123 4567" /></label>
+          <label>Correo electrónico<input id="profile-email" name="email" autoComplete="email" value={profile.email || user.email || ""} readOnly /></label>
+          <label>Entrega preferida<select id="profile-fulfillment" name="preferredFulfillment" autoComplete="off" value={profile.preferences?.preferredFulfillment || "recoger"} onChange={(event) => updatePreference("preferredFulfillment", event.target.value)}><option value="recoger">Recoger</option><option value="domicilio">Domicilio</option><option value="punto_encuentro">Punto de encuentro</option></select></label>
+          <label className="customer-profile-wide">Indicaciones frecuentes<textarea id="profile-delivery-notes" name="deliveryNotes" autoComplete="off" maxLength={250} value={profile.preferences?.deliveryNotes || ""} onChange={(event) => updatePreference("deliveryNotes", event.target.value)} placeholder="Ej. llamar al llegar, portería..." /></label>
         </div>
         <button type="submit" disabled={busy}>Guardar perfil</button>
       </form>
@@ -176,14 +176,14 @@ export default function CustomerProfile() {
         <form className="customer-address-form" onSubmit={submitAddress}>
           <h3>{editingId ? "Editar dirección" : "Agregar dirección"}</h3>
           <div className="customer-profile-grid">
-            <label>Nombre de la dirección<input maxLength={30} required value={address.label} onChange={(event) => setAddress((current) => ({ ...current, label: event.target.value }))} placeholder="Casa, trabajo..." /></label>
-            <label>Destinatario<input maxLength={80} required value={address.recipientName} onChange={(event) => setAddress((current) => ({ ...current, recipientName: event.target.value }))} /></label>
-            <label>WhatsApp<input maxLength={24} required value={address.phone} onChange={(event) => setAddress((current) => ({ ...current, phone: event.target.value }))} /></label>
-            <label>Dirección<input maxLength={120} required value={address.line1} onChange={(event) => setAddress((current) => ({ ...current, line1: event.target.value }))} placeholder="Calle y número" /></label>
-            <label>Barrio<input maxLength={60} required value={address.neighborhood} onChange={(event) => setAddress((current) => ({ ...current, neighborhood: event.target.value }))} /></label>
-            <label>Ciudad<input maxLength={60} required value={address.city} onChange={(event) => setAddress((current) => ({ ...current, city: event.target.value }))} /></label>
-            <label className="customer-profile-wide">Referencia<input maxLength={120} value={address.reference} onChange={(event) => setAddress((current) => ({ ...current, reference: event.target.value }))} placeholder="Apartamento, portería, indicaciones..." /></label>
-            <label className="customer-profile-check"><input type="checkbox" checked={address.isDefault} onChange={(event) => setAddress((current) => ({ ...current, isDefault: event.target.checked }))} /> Usar como dirección predeterminada</label>
+            <label>Nombre de la dirección<input id="address-label" name="label" autoComplete="off" maxLength={30} required value={address.label} onChange={(event) => setAddress((current) => ({ ...current, label: event.target.value }))} placeholder="Casa, trabajo..." /></label>
+            <label>Destinatario<input id="address-recipient" name="recipientName" autoComplete="name" maxLength={80} required value={address.recipientName} onChange={(event) => setAddress((current) => ({ ...current, recipientName: event.target.value }))} /></label>
+            <label>WhatsApp<input id="address-phone" name="phone" autoComplete="tel" maxLength={24} required value={address.phone} onChange={(event) => setAddress((current) => ({ ...current, phone: event.target.value }))} /></label>
+            <label>Dirección<input id="address-line1" name="line1" autoComplete="street-address" maxLength={120} required value={address.line1} onChange={(event) => setAddress((current) => ({ ...current, line1: event.target.value }))} placeholder="Calle y número" /></label>
+            <label>Barrio<input id="address-neighborhood" name="neighborhood" autoComplete="address-level3" maxLength={60} required value={address.neighborhood} onChange={(event) => setAddress((current) => ({ ...current, neighborhood: event.target.value }))} /></label>
+            <label>Ciudad<input id="address-city" name="city" autoComplete="address-level2" maxLength={60} required value={address.city} onChange={(event) => setAddress((current) => ({ ...current, city: event.target.value }))} /></label>
+            <label className="customer-profile-wide">Referencia<input id="address-reference" name="reference" autoComplete="address-line2" maxLength={120} value={address.reference} onChange={(event) => setAddress((current) => ({ ...current, reference: event.target.value }))} placeholder="Apartamento, portería, indicaciones..." /></label>
+            <label className="customer-profile-check"><input id="address-default" name="isDefault" autoComplete="off" type="checkbox" checked={address.isDefault} onChange={(event) => setAddress((current) => ({ ...current, isDefault: event.target.checked }))} /> Usar como dirección predeterminada</label>
           </div>
           <div className="customer-profile-actions"><button type="submit" disabled={busy}>{editingId ? "Actualizar dirección" : "Guardar dirección"}</button>{editingId && <button type="button" onClick={() => { setEditingId(null); setAddress(emptyAddress); }}>Cancelar edición</button>}</div>
         </form>

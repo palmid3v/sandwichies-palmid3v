@@ -28,7 +28,7 @@ Esta carpeta reúne la especificación vigente de producto, las referencias visu
 - Al expirar, la mesa deja de aceptar pedidos. Los pedidos activos quedan visibles en la cola admin para coordinación individual; no se cancelan ni se borran.
 - Pedidos siguen siendo independientes.
 - Pagos y Cupboard no se modifican por esta funcionalidad.
-- `main` tiene `BUSINESS.acceptingOrders = true` desde `270303d`, aunque el release gate exige false. Las mesas están implementadas en el source y no hay evidencia de despliegue en producción; resolver el conflicto antes de publicar o recibir pedidos reales.
+- El estado actual mantiene `BUSINESS.acceptingOrders=false` y `ORDERS_ENABLED=false`. No se ha desplegado ni aprobado recepción de pedidos.
 
 ## Superficies implementadas
 

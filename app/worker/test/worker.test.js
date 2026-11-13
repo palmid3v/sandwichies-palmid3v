@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { Buffer } from "node:buffer";
 import worker from "../src/index.js";
 
 const allowedOrigin = "https://sandwichies-palmid3v-bay.vercel.app";
@@ -109,6 +110,43 @@ test("session route rejects missing bearer tokens without calling Firebase", asy
   assert.equal(response.status, 401);
   assert.equal(response.headers.get("access-control-allow-origin"), allowedOrigin);
   assert.deepEqual(await response.json(), { error: "unauthenticated" });
+});
+
+test("local session accepts emulator tokens only through the loopback Auth Emulator", async () => {
+  const claims = {
+    iss: "https://securetoken.google.com/sandwich-pro",
+    aud: "sandwich-pro",
+    sub: "synthetic-customer",
+    iat: Math.floor(Date.now() / 1000) - 60,
+    auth_time: Math.floor(Date.now() / 1000) - 60,
+    exp: Math.floor(Date.now() / 1000) + 3_600,
+    email_verified: true,
+    admin: false,
+  };
+  const encode = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  const token = `${encode({ alg: "none", typ: "JWT" })}.${encode(claims)}.`;
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    assert.match(String(url), /^http:\/\/127\.0\.0\.1:9099\//);
+    assert.deepEqual(JSON.parse(init.body), { idToken: token });
+    return Response.json({ users: [{ localId: "synthetic-customer", emailVerified: true }] });
+  };
+  try {
+    const response = await worker.fetch(
+      new Request("https://worker.example/v1/session", {
+        headers: { Origin: allowedOrigin, Authorization: `Bearer ${token}` },
+      }),
+      { ...env, LOCAL_DEV: "true", FIREBASE_AUTH_EMULATOR_HOST: "127.0.0.1:9099" },
+    );
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      uid: "synthetic-customer",
+      authenticated: true,
+      admin: false,
+    });
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
 });
 
 test("unknown routes retain CORS headers for an allowed origin", async () => {

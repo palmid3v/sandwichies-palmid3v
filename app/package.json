@@ -12,6 +12,7 @@
     "security:rules": "node --test test/security.rules.test.js",
     "security:test": "firebase emulators:exec --only firestore --project demo-sandwichies \"npm run security:rules\"",
     "emulators:test": "npm run security:test",
+    "emulator:local": "firebase emulators:start --only auth,firestore --project sandwich-pro",
     "audit": "npm audit --omit=dev --audit-level=high",
     "smoke": "node scripts/smoke.mjs",
     "performance:check": "node scripts/check-bundle-budget.mjs",

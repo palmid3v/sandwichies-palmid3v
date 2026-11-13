@@ -1,5 +1,9 @@
 # ROADMAP — Sandwichies
 
+## Finalization checkpoint — 2026-11-12
+
+Local verification reached 67.5% by the weighted functional evidence rubric. `npm run check` passed; browser verified storefront discovery, customer cart/profile persistence and non-admin denial. Orders remain disabled. Production integrations, authorized admin flows, complete checkout and mobile purchase remain release gates. See `app/docs/FINALIZATION-AUDIT.md` and `app/docs/RELEASE-CHECKLIST.md`.
+
 ## Delivery phases approved — 2026-11-03
 
 ### Delivery Phase 1 — Automatic nearest active zone
@@ -49,7 +53,7 @@
 - [ ] Before enabling, confirm Firebase Phone provider settings, authorized domains, reCAPTCHA behavior and current SMS billing/quotas
 - [ ] Test SMS verification end-to-end in a controlled Firebase project
 - [ ] Decide whether SMS is acceptable or an approved WhatsApp Business verification provider is required
-- [x] Keep SMS verification out of the customer flow; use Firebase Anonymous Auth for customer sessions
+- [x] Keep SMS verification out of the customer flow; use verified Firebase Email/Password for customer sessions
 - [x] Implement the customer order-submission flow for controlled testing; keep `BUSINESS.acceptingOrders = false` until explicit release approval and do not deploy Firebase as part of this change
 
 **Cost/safety note:** SMS verification is intentionally feature-flagged off by default. Enabling it can incur SMS charges depending on Firebase configuration and usage. A WhatsApp click-to-chat link is not phone verification.
@@ -135,10 +139,10 @@ No desplegar ni habilitar recepción de pedidos reales como parte de esta entreg
 - [x] Mostrar punto de encuentro y enlace a Maps en el detalle admin; impedir cerrar el modal mientras se guarda.
 - [ ] Validar pantallas admin autenticadas con datos de prueba en navegador y revisar 320–430 px, tablet y desktop.
 
-No se ejecutaron pedidos reales ni se hizo despliegue. Resolver antes de push el estado `acceptingOrders = true` de `270303d`, incompatible con el release gate de este roadmap.
+Checkpoint histórico reemplazado por finalización local el 2026-11-12: `acceptingOrders=false`; no se ejecutaron pedidos reales ni se hizo despliegue.
 
 **Current release line:** MVP hardening → Product Experience Evolution  
-**Operational state:** `main` includes commit `270303d` with `acceptingOrders = true`. This is not release approval and conflicts with the release gate below. No production deployment is evidenced.
+**Operational state:** current source keeps `acceptingOrders=false` and `ORDERS_ENABLED=false`; no production deployment is evidenced.
 **Status:** Fases A–D have implementation baselines on main. The owner confirmed local `npm run check` and browser functionality on 2026-10-22; CI confirmation and production release gates remain pending.
 
 ## Fase activa — Fase 3: Conectar Sandwichies con Cupboard

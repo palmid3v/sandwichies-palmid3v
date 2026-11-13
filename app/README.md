@@ -89,7 +89,7 @@ Adaptadores de interfaz
         ↓
 Dominio compartido (shared/)
         ↓
-Cloudflare Worker (API confiable en implementación)
+Cloudflare Worker (API confiable en código; local browser integration verified, deployed API unverified)
         ↓
 Firestore / integración Cupboard
 ```
@@ -231,14 +231,14 @@ Los porcentajes son estimaciones de avance documental/funcional por área, no m�
 | Dominio, catálogo, precios y contratos de pedido | 100% | Base centralizada y pruebas existentes |
 | Seguridad y reglas de acceso | 100% | Base implementada; mantener regresiones |
 | Calidad automatizada local | 80% | Scripts disponibles; falta repetir el gate sobre el estado actual |
-| UX cliente web | 70% | Flujos base; validación completa pendiente |
+| UX cliente web | 75% | Browser verified storefront discovery, cart, profile and route authorization; checkout remains closed |
 | UX administración | 85% | Herramientas principales; validación operativa pendiente |
 | Integración con Cupboard | 65% | Falta configuración real y pruebas cruzadas |
 | Recepción de pedidos | Desactivada | `BUSINESS.acceptingOrders=false` y `ORDERS_ENABLED=false`; no se aceptan nuevas órdenes |
 | Mesas virtuales | Implementación base | Cliente, funciones, consola admin y reglas; validación/release pendientes |
 | iOS y Android nativos | 0% código | Plan de crecimiento, sin app nativa |
 
-No se calcula un promedio general porque las áreas tienen pesos y criterios de finalización distintos.
+La tabla conserva estimaciones descriptivas por área. El cálculo ponderado actual con evidencia está en `docs/FINALIZATION-AUDIT.md` y es 67.5%.
 
 ## 6. Fase activa: cerrar la integración con Cupboard
 
@@ -369,14 +369,14 @@ Sandwichies remains one of the four separate PALMI-D3V workspace repositories. T
   - `GET /v1/admin/delivery-operations`
   - `GET /v1/admin/virtual-tables/:id/members`
 - `VirtualTables.jsx` no longer reads those operational collections directly from the browser; it refreshes through the Worker API.
-- Local mode uses Wrangler on `127.0.0.1:8787` and Firestore Emulator on `127.0.0.1:8080`, with project ID `sandwich-pro`.
+- Local mode uses Wrangler on `127.0.0.1:8787`, Firebase Auth Emulator on `127.0.0.1:9099`, and Firestore Emulator on `127.0.0.1:8080`, with project ID `sandwich-pro`.
 - Firestore Emulator transport requires `LOCAL_DEV=true` and a loopback host. It uses the emulator-only owner token; production service-account OAuth remains unchanged.
-- Firebase Authentication still issues the administrator ID token for Worker verification. The local Worker sends zone/table/event persistence to the emulator, not the production Firestore database.
+- Vite development uses the local Auth Emulator; the Worker Auth Emulator verifier only accepts loopback. The local Worker sends zone/table/event persistence to the Firestore Emulator, not production Firestore.
 - Local environment examples are `.env.local.example` and `worker/.dev.vars.example`; the copied real files are gitignored.
 
 ### Validation and boundaries
 
-The user's last full local QA run before this change passed 30 Worker tests, 40 domain tests, 9 Firestore rules tests, 7 Functions/Firestore integration tests, build, bundle budget and smoke. New Worker tests cover the local emulator transport guard, zone create/update validation, admin listing and member-data sanitization. GitHub Actions for commit `ddc8171` passed lint, domain tests, Worker tests, Firestore security regression, Functions/Firestore integration, production build and smoke. The actual three-process local UI + Wrangler + Firestore Emulator flow still requires owner-side verification.
+The user's last full local QA run before this change passed 30 Worker tests, 40 domain tests, 9 Firestore rules tests, 7 Functions/Firestore integration tests, build, bundle budget and smoke. New Worker tests cover the local emulator transport guard, zone create/update validation, admin listing and member-data sanitization. GitHub Actions for commit `ddc8171` passed lint, domain tests, Worker tests, Firestore security regression, Functions/Firestore integration, production build and smoke. The local UI + Wrangler + Auth/Firestore Emulator browser flow was verified on 2026-11-12; see `docs/BROWSER-QA-REPORT.md`.
 
 `ORDERS_ENABLED=false` remains the safety default. No Cloudflare deployment, Firebase Blaze upgrade, production Firestore write, production secret configuration or real order is authorized or performed. Cupboard's separate service-account boundary remains required for stock movements and is not configured by the local zone workflow.
 
@@ -424,3 +424,8 @@ Guía de arranque: [docs/development/local-worker.md](docs/development/local-wor
 El recorrido real de navegador, cierre de sesión, dos perfiles de navegador, recuperación y responsive se registra por separado en `docs/qa/browser-recovery.md`. El runner automatizado no sustituye esta evidencia manual ni declara el QA de navegador aprobado.
 
 **Estado de validación de E/F:** implementación en `main`; pruebas locales, CI y recorrido de navegador deben ejecutarse contra el commit actual antes de declarar QA aprobado. No se ha desplegado ni habilitado recepción de pedidos.
+
+
+## Finalization status — 2026-11-12
+
+The evidence-based functional score is 67.5%. Checkout remains disabled and production release is not approved. See `docs/FINALIZATION-AUDIT.md`, `docs/INTEGRATION-MATRIX.md`, `docs/BROWSER-QA-REPORT.md`, and `docs/RELEASE-CHECKLIST.md` for current evidence and remaining gates.

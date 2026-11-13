@@ -813,6 +813,8 @@ export default function OrderPage() {
               <label>
                 Nombre
                 <input
+                  id="order-customer-name"
+                  name="customerName"
                   autoComplete="name"
                   value={clientName}
                   onChange={(event) => setClientName(event.target.value)}
@@ -822,6 +824,8 @@ export default function OrderPage() {
               <label>
                 WhatsApp
                 <input
+                  id="order-customer-phone"
+                  name="customerPhone"
                   autoComplete="tel"
                   inputMode="tel"
                   value={phone}
@@ -884,6 +888,8 @@ export default function OrderPage() {
             <label className="full-field">
               Notas del pedido
               <textarea
+                id="order-notes"
+                name="notes"
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder="Ej: sin cebolla, llamar al llegar..."
@@ -1004,11 +1010,11 @@ export default function OrderPage() {
         <div className="form-grid">
           <label>
             Nombre
-            <input autoComplete="name" value={clientName} onChange={(event) => setClientName(event.target.value)} onBlur={() => { void persistCustomerName(); }} placeholder="Tu nombre" minLength={2} maxLength={80} required />
+            <input id="checkout-customer-name" name="customerName" autoComplete="name" value={clientName} onChange={(event) => setClientName(event.target.value)} onBlur={() => { void persistCustomerName(); }} placeholder="Tu nombre" minLength={2} maxLength={80} required />
           </label>
           <label>
             WhatsApp
-            <input autoComplete="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Ej. 300 123 4567" required />
+            <input id="checkout-customer-phone" name="customerPhone" autoComplete="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Ej. 300 123 4567" required />
           </label>
         </div>
         <div className="segmented-control">

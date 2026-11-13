@@ -55,12 +55,12 @@ export default function Login() {
         <p>Gestiona pedidos, ventas e inventario.</p>
         <label>
           Correo
-          <input type="email" autoComplete="email" required value={email}
+          <input id="admin-email" name="email" type="email" autoComplete="email" required value={email}
             onChange={(event) => setEmail(event.target.value)} />
         </label>
         <label>
           Contraseña
-          <input type="password" autoComplete="current-password" required
+          <input id="admin-password" name="password" type="password" autoComplete="current-password" required
             value={password} onChange={(event) => setPassword(event.target.value)} />
         </label>
         {error && <div className="login-error" role="alert">{error}</div>}

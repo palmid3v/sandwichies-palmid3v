@@ -52,3 +52,12 @@ For current priorities, use `ROADMAP.md`.
 ## Documentation checkpoint — 2026-10-18
 
 Start with the root README.md for public product scope and ROADMAP.md / MASTERPROMPT.md for current release constraints. Current ordering safety state is acceptingOrders=false. Use app/docs/architecture/PRICING-AND-COSTS.md and the Phase A audit for the spreadsheet-derived source of truth. Do not mark release ready until security rules, automated tests, build, Firebase Emulator and browser review have evidence.
+
+
+## Finalization evidence — 2026-11-12
+
+- `FINALIZATION-AUDIT.md` — weighted evidence score and release assessment.
+- `INTEGRATION-MATRIX.md` — verified local behavior and external blockers.
+- `BROWSER-QA-REPORT.md` — routes, responsive checks, defects and browser evidence.
+- `RELEASE-CHECKLIST.md` — current local gates and production no-go criteria.
+- `CHANGELOG.md` — finalization changes.

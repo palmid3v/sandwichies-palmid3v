@@ -1,4 +1,9 @@
-import { hasVerifiedEmail, readBearerToken, verifyFirebaseIdToken } from "./firebase-auth.js";
+import {
+  hasVerifiedEmail,
+  readBearerToken,
+  verifyFirebaseAuthEmulatorIdToken,
+  verifyFirebaseIdToken,
+} from "./firebase-auth.js";
 import { readCupboardInventory, readCupboardMovements } from "./cupboard-diagnostics.js";
 import { getCustomerCart, saveCustomerCart } from "./customer-cart.js";
 import {
@@ -94,7 +99,12 @@ async function authenticate(request, env) {
   const token = readBearerToken(request);
   if (!token) return { error: json({ error: "unauthenticated" }, 401) };
   try {
-    const claims = await verifyFirebaseIdToken(token, { projectId: env.FIREBASE_PROJECT_ID });
+    const claims = env.LOCAL_DEV === "true"
+      ? await verifyFirebaseAuthEmulatorIdToken(token, {
+        projectId: env.FIREBASE_PROJECT_ID,
+        host: env.FIREBASE_AUTH_EMULATOR_HOST,
+      })
+      : await verifyFirebaseIdToken(token, { projectId: env.FIREBASE_PROJECT_ID });
     if (!hasVerifiedEmail(claims)) {
       return { error: json({ error: "email-not-verified" }, 403) };
     }

@@ -1,102 +1,53 @@
-# Sandwichies Worker — desarrollo local
+﻿# Sandwichies: local Worker and emulator workflow
 
-Este flujo conecta la interfaz de Sandwichies con el Worker real del repositorio, ejecutado localmente por Wrangler. Las operaciones de zonas, mesas y actividad se escriben/leen en **Firestore Emulator**, no en el Firestore productivo.
+The local browser, Worker, Authentication and Firestore all use loopback services. Use synthetic accounts and demo data only. The order gates remain disabled.
 
-## Arquitectura local
+## Local request path
 
+```text
+Browser: Vite http://127.0.0.1:5182
+  ├─ Firebase Auth SDK → Auth Emulator :9099
+  ├─ Firestore Web SDK → Firestore Emulator :8080
+  └─ Worker API → Wrangler :8787
+       ├─ verifies emulator ID tokens through loopback Auth Emulator :9099
+       └─ reads/writes Firestore Emulator :8080
 ```
-Navegador (Vite :5182)
-  ├─ Firebase Authentication (proyecto sandwich-pro; emite el ID token)
-  ├─ Firestore Web SDK → Firestore Emulator (:8080)
-  └─ Worker API (Wrangler :8787)
-       └─ Firestore Emulator (:8080)
-```
 
-- El Worker verifica el ID token Firebase del administrador contra el proyecto `sandwich-pro`.
-El SDK web de Firestore y el Worker local apuntan al mismo Firestore Emulator. Las lecturas en tiempo real del panel admin tampoco consultan Firestore productivo durante Vite development.
-- Firebase Authentication permanece en el proyecto `sandwich-pro` para emitir ID tokens reales; no se conecta Auth al emulador en este flujo.
-- El transporte del Worker usa `Bearer owner` únicamente contra un host loopback y solo cuando `LOCAL_DEV=true`.
-- El Worker local falla cerrado si falta `FIRESTORE_EMULATOR_HOST`, si el host no es loopback o si el project ID no coincide con `FIREBASE_PROJECT_ID`.
-- `ORDERS_ENABLED=false` es el valor de seguridad en `wrangler.toml` y `.dev.vars.example`. No se habilita checkout ni creación de pedidos.
-- No se requiere service account de Sandwichies para guardar zonas en el emulador.
-- Los builds de producción no conectan Firestore Emulator; usan Firestore remoto. Nunca compilar producción con una variable de emulador.
+`LOCAL_DEV=true` is only in the ignored local Worker variables. The local verifier requires an Auth Emulator loopback host, validates token project/time claims, then asks that emulator to validate the token and confirms its UID/email verification state. Production Wrangler config does not set `LOCAL_DEV`; production uses Firebase public-key verification. Do not use local emulator variables in a production build.
 
-## Preparación (PowerShell)
+## Start services (PowerShell, from `app/`)
 
-Ejecutar desde `D:\PALMI-D3V\projects\sandwichies-palmid3v\app`.
-
-### 0. Preflight seguro (una sola vez por cambio de entorno)
+Run the preflight first; it creates ignored local config only when absent and never overwrites it:
 
 ```powershell
 npm run local:preflight
 ```
 
-El preflight crea `worker/.dev.vars` y `.env.local` desde sus plantillas solo si no existen; nunca sobrescribe archivos locales. Comprueba los dos bloqueos de pedidos, el proyecto Firebase esperado, que frontend y Worker apunten a loopback, y que estén disponibles las dependencias, Firebase CLI y Java. Si detecta una URL remota, un emulador mal configurado o un flag de pedidos distinto de `false`, se detiene.
-
-Si el preflight falla, corrige el archivo local indicado y vuelve a ejecutarlo. No copies secretos de producción ni cambies los flags para hacerlo pasar.
-
-### 1. Terminal — Firestore Emulator
+Start the emulator suite (Auth and Firestore) in one terminal. It is ephemeral; do not enable import/export for this test workflow:
 
 ```powershell
-npm run emulator:firestore
+npm run emulator:local
 ```
 
-El emulador usa el proyecto local `sandwich-pro` y escucha en `127.0.0.1:8080`. El comando importa automáticamente el último respaldo de `app/.emulator-data` y exporta los datos al detenerse con `Ctrl+C`. La primera ejecución inicia vacío; al detenerla normalmente crea el respaldo que se restaurará en el siguiente inicio. Esta carpeta está ignorada por Git. No se ejecuta ningún comando de deploy ni se escribe en Firestore remoto.
-
-### 2. Terminal — Worker local
-
-El preflight ya crea `worker/.dev.vars` desde la plantilla si no existía. Iniciar el Worker:
+Start the Worker and Vite in separate terminals:
 
 ```powershell
 npm run worker:dev
-```
-
-Wrangler inicia el Worker en `http://127.0.0.1:8787`. Verificar:
-
-```powershell
-Invoke-RestMethod http://127.0.0.1:8787/health
-```
-
-La respuesta debe indicar `status = ok` y `ordersEnabled = false`.
-
-### 3. Terminal — frontend
-
-El preflight crea `.env.local` desde la plantilla si no existe y comprueba que sus destinos sean loopback. Iniciar el frontend:
-
-```powershell
 npm run dev -- --host 127.0.0.1 --port 5182
 ```
 
-Abrir `http://127.0.0.1:5182`, iniciar sesión con la cuenta administradora habitual y entrar en Administración → Entregas → Zonas.
+Open `http://127.0.0.1:5182`. The Firebase Emulator UI is at `http://127.0.0.1:4000`. Use synthetic test accounts created in the Auth Emulator. Email verification codes are available in the Emulator UI; no real email or customer communication is sent.
 
-El ID token de Firebase se usa para autenticar al administrador ante el Worker local. Las lecturas directas de Firestore del dashboard y las escrituras del Worker quedan en el mismo emulador local.
+Check `http://127.0.0.1:8787/health`: it must return `status: ok` and `ordersEnabled: false`. Local CORS must allow the exact Vite origin. Never print `.env.local` or `worker/.dev.vars`; both can contain local credentials and are ignored by Git.
 
-## Verificación funcional
+## Local verification boundaries
 
-1. Dibujar un polígono de al menos tres vértices.
-2. Guardar la zona.
-3. La lista debe actualizarse después del guardado.
-4. Detener el emulador con `Ctrl+C` y volver a ejecutar `npm run emulator:firestore`; la zona debe seguir presente tras importar el respaldo.
-5. Verificar que el navegador admin lee las colecciones del emulador y no datos del Firestore productivo.
-6. Confirmar que `/health` responde con `ordersEnabled = false` en el Worker local.
+- Customer cart and profile requests are exercised against Firestore Emulator.
+- The Auth Emulator and Worker are local only; local emulator tokens are not production tokens.
+- Do not exercise Cupboard routes unless the endpoint is explicitly isolated to demo services. The Worker may have local Cupboard credentials configured.
+- Do not submit orders. `BUSINESS.acceptingOrders=false` and `ORDERS_ENABLED=false` are intentional.
+- Do not run deploy commands or production migrations from this workflow.
 
-Los endpoints administrativos nuevos son:
+## Production configuration (reference only)
 
-- `GET /v1/admin/delivery-operations`
-- `GET /v1/admin/virtual-tables/:id/members`
-- `POST /v1/admin/delivery-zones`
-
-La respuesta de miembros omite `customerUid`; los eventos administrativos omiten `actorUid`.
-
-## Migración posterior a Cloudflare
-
-La interfaz conserva la misma URL base y los mismos contratos HTTP. Para Cloudflare:
-
-1. Revisar y aprobar IAM, service accounts y secretos independientes de Sandwichies y Cupboard.
-2. Configurar los secretos en Cloudflare; nunca copiarlos a `.env.local`, `.dev.vars` ni al repositorio.
-3. Revisar el allowlist CORS y límites de Workers Free.
-4. Desplegar solo con autorización explícita.
-5. Cambiar `VITE_SANDWICHIES_WORKER_URL` en el entorno de hosting a la URL real verificada del Worker.
-6. Mantener `ORDERS_ENABLED=false` hasta cerrar la validación integral y obtener autorización separada.
-
-No inventar el hostname de Cloudflare, no habilitar Firebase Blaze y no ejecutar despliegues desde este procedimiento.
+A production release requires separate approval, exact CORS origins, verified project-specific service identities and IAM, independent Sandwichies/Cupboard credentials, confirmed Cupboard mappings, and a tested reconciliation plan. Keep `ORDERS_ENABLED=false` until those gates and the release checklist are approved. This guide does not deploy anything.

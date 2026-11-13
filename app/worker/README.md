@@ -166,7 +166,7 @@ No production deployment, data mutation, billing change or real-order test has b
 
 For the complete three-terminal setup, PowerShell commands, local auth boundary and migration path to Cloudflare, see [Local Worker development](../docs/development/local-worker.md).
 
-The Worker accepts `FIRESTORE_EMULATOR_HOST` only when `LOCAL_DEV=true`, the host is `localhost` or `127.0.0.1`, and the emulator project matches `FIREBASE_PROJECT_ID`. Local mode without an emulator host fails closed instead of falling through to remote Firestore. In emulator mode it uses the emulator owner token and does not request Google OAuth. These settings are supplied through the ignored `worker/.dev.vars` file; they are not part of the deployed Wrangler configuration. Vite development also connects the browser Firestore SDK to the same emulator; Firebase Authentication remains remote for real ID tokens.
+The Worker accepts `FIRESTORE_EMULATOR_HOST` only when `LOCAL_DEV=true`, the host is `localhost` or `127.0.0.1`, and the emulator project matches `FIREBASE_PROJECT_ID`. Local mode without an emulator host fails closed instead of falling through to remote Firestore. In emulator mode it uses the emulator owner token and does not request Google OAuth. These settings are supplied through the ignored `worker/.dev.vars` file; they are not part of the deployed Wrangler configuration. Vite development connects both Auth and Firestore SDKs to local emulators. The Worker local Auth verifier talks only to the loopback Auth Emulator and confirms token state there; production config continues to use Firebase signing-key verification.
 
 ## Local tests
 

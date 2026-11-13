@@ -71,11 +71,18 @@ const ensureLocalFile = async (target, example) => {
 };
 
 console.log("Sandwichies — preflight de desarrollo local");
-console.log("No despliega ni modifica Cloudflare; Firestore usa el emulador local. Firebase Auth sigue conectado a sandwich-pro para emitir ID tokens.\n");
+console.log("No despliega ni modifica Cloudflare; Firebase Auth y Firestore usan emuladores locales.\n");
 
 const business = await readText("shared/business.js");
 const wrangler = await readText("worker/wrangler.toml");
 const devVarsExample = await readText("worker/.dev.vars.example");
+const firebaseConfigText = await readText("firebase.json");
+let firebaseConfig;
+try {
+  firebaseConfig = JSON.parse(firebaseConfigText || "");
+} catch {
+  firebaseConfig = null;
+}
 
 if (!business || !/\bacceptingOrders\s*:\s*false\b/.test(business)) {
   fail("shared/business.js debe mantener acceptingOrders: false.");
@@ -123,6 +130,10 @@ if (localFilesReady.every(Boolean)) {
     fail("FIRESTORE_PROJECT_ID debe ser sandwich-pro.");
   } else pass("Proyecto del emulador: sandwich-pro.");
 
+  if (devVars.FIREBASE_AUTH_EMULATOR_HOST !== "127.0.0.1:9099") {
+    fail("FIREBASE_AUTH_EMULATOR_HOST debe ser 127.0.0.1:9099.");
+  } else pass("Firebase Authentication usa el emulador loopback.");
+
   if (devVars.ORDERS_ENABLED !== "false") {
     fail("worker/.dev.vars debe mantener ORDERS_ENABLED=false.");
   } else pass("Pedidos bloqueados en variables locales.");
@@ -135,6 +146,10 @@ if (localFilesReady.every(Boolean)) {
     fail("VITE_FIRESTORE_EMULATOR_HOST debe apuntar al emulador loopback en el puerto 8080.");
   } else pass("Frontend conectado al Firestore Emulator local.");
 }
+
+if (firebaseConfig?.emulators?.auth?.port !== 9099) {
+  fail("firebase.json debe configurar Authentication Emulator en el puerto 9099.");
+} else pass("Firebase Authentication Emulator configurado en el puerto 9099.");
 
 if (!(await exists("node_modules/vite"))) {
   fail("Dependencias del frontend no encontradas. Ejecuta npm ci desde app/.");
@@ -163,7 +178,7 @@ if (process.exitCode) {
 
 console.log("\nPREFLIGHT APROBADO.");
 console.log("Abre tres terminales desde app/:");
-console.log("  1. npm run emulator:firestore");
+console.log("  1. npm run emulator:local");
 console.log("  2. npm run worker:dev");
 console.log("  3. npm run dev -- --host 127.0.0.1 --port 5182");
 console.log("Verifica el Worker local en http://127.0.0.1:8787/health.");

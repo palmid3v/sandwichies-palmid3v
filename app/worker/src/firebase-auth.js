@@ -124,6 +124,60 @@ export async function verifyFirebaseIdToken(token, {
   return claims;
 }
 
+export async function verifyFirebaseAuthEmulatorIdToken(token, {
+  projectId,
+  host,
+  fetchImpl = fetch,
+  now = Date.now(),
+  timeoutMs = 2_000,
+} = {}) {
+  if (!projectId || typeof token !== "string") {
+    throw new Error("Firebase project and ID token are required");
+  }
+  if (typeof host !== "string" || !/^(localhost|127[.]0[.]0[.]1):([0-9]{2,5})$/.test(host)) {
+    throw new Error("Firebase Auth Emulator must use a loopback host");
+  }
+
+  const segments = token.split(".");
+  if (segments.length !== 3) throw new Error("Malformed emulator bearer token");
+  const claims = decodeJsonSegment(segments[1]);
+  const expectedIssuer = `https://securetoken.google.com/${projectId}`;
+  const nowSeconds = Math.floor(now / 1000);
+  if (claims.iss !== expectedIssuer || claims.aud !== projectId
+    || typeof claims.sub !== "string" || claims.sub.length === 0 || claims.sub.length > 128
+    || !Number.isFinite(claims.exp) || claims.exp <= nowSeconds
+    || !Number.isFinite(claims.iat) || claims.iat > nowSeconds
+    || !Number.isFinite(claims.auth_time) || claims.auth_time > nowSeconds) {
+    throw new Error("Firebase Auth Emulator token claims are invalid");
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), Math.max(250, Number(timeoutMs) || 2_000));
+  try {
+    const response = await fetchImpl(
+      `http://${host}/identitytoolkit.googleapis.com/v1/accounts:lookup?key=fake-api-key`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ idToken: token }),
+        signal: controller.signal,
+      },
+    );
+    if (!response.ok) throw new Error("Firebase Auth Emulator rejected the ID token");
+    const body = await response.json();
+    const user = Array.isArray(body.users) ? body.users[0] : null;
+    if (!user || user.localId !== claims.sub || user.emailVerified !== (claims.email_verified === true)) {
+      throw new Error("Firebase Auth Emulator account does not match the ID token");
+    }
+    return claims;
+  } catch (error) {
+    if (error?.name === "AbortError") throw new Error("Firebase Auth Emulator verification timed out");
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export function readBearerToken(request) {
   const authorization = request.headers.get("authorization") || "";
   const match = authorization.match(/^Bearer\s+(.+)$/i);

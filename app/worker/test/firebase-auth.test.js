@@ -4,6 +4,7 @@ import { Buffer } from "node:buffer";
 import {
   clearFirebaseKeyCacheForTests,
   hasVerifiedEmail,
+  verifyFirebaseAuthEmulatorIdToken,
   verifyFirebaseIdToken,
 } from "../src/firebase-auth.js";
 
@@ -110,5 +111,64 @@ test("Firebase signing-key lookup aborts at its configured timeout", async () =>
   await assert.rejects(
     verifyFirebaseIdToken(token, { projectId, fetchImpl, now, timeoutMs: 1_000 }),
     (error) => error.code === "FIREBASE_JWKS_TIMEOUT",
+  );
+});
+
+function encodeUnsignedToken(claims) {
+  return `${encode({ alg: "none", typ: "JWT" })}.${encode(claims)}.`;
+}
+
+test("local Auth Emulator verification confirms the token subject and verification state", async () => {
+  const token = encodeUnsignedToken({
+    iss: `https://securetoken.google.com/${projectId}`,
+    aud: projectId,
+    sub: "synthetic-customer",
+    iat: Math.floor(now / 1000) - 60,
+    auth_time: Math.floor(now / 1000) - 60,
+    exp: Math.floor(now / 1000) + 3600,
+    email_verified: true,
+    admin: false,
+  });
+  const claims = await verifyFirebaseAuthEmulatorIdToken(token, {
+    projectId,
+    host: "127.0.0.1:9099",
+    now,
+    fetchImpl: async (url, init) => {
+      assert.equal(url, "http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:lookup?key=fake-api-key");
+      assert.equal(init.method, "POST");
+      assert.deepEqual(JSON.parse(init.body), { idToken: token });
+      return Response.json({ users: [{ localId: "synthetic-customer", emailVerified: true }] });
+    },
+  });
+  assert.equal(claims.sub, "synthetic-customer");
+  assert.equal(claims.email_verified, true);
+});
+
+test("local Auth Emulator verification rejects non-loopback hosts and account mismatches", async () => {
+  const token = encodeUnsignedToken({
+    iss: `https://securetoken.google.com/${projectId}`,
+    aud: projectId,
+    sub: "synthetic-customer",
+    iat: Math.floor(now / 1000) - 60,
+    auth_time: Math.floor(now / 1000) - 60,
+    exp: Math.floor(now / 1000) + 3600,
+    email_verified: true,
+  });
+  await assert.rejects(
+    verifyFirebaseAuthEmulatorIdToken(token, {
+      projectId,
+      host: "auth.example.com:9099",
+      fetchImpl: async () => { throw new Error("must not send a request"); },
+    }),
+    /loopback host/,
+  );
+  await assert.rejects(
+    verifyFirebaseAuthEmulatorIdToken(token, {
+      projectId,
+      host: "127.0.0.1:9099",
+      now,
+      fetchImpl: async () => Response.json({ users: [{ localId: "other-user", emailVerified: true }] }),
+    }),
+    /does not match/,
   );
 });
