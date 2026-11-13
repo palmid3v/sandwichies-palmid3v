@@ -9,8 +9,8 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 
 ## ✨ Capacidades y base técnica
 ### Cliente
-- Catálogo, búsqueda, filtros, recetas y carrito persistente por UID con sincronización y control de conflictos.
-- Catálogo, búsqueda, filtros, recetas y carrito persistente por UID con sincronización, control de conflictos y reconciliación idempotente tras timeouts.
+- Catálogo, búsqueda, filtros y recetas.
+- Carrito persistente por UID con sincronización, control de conflictos y reconciliación idempotente tras timeouts.
 - Recogida/domicilio, datos de contacto y ubicación/punto de encuentro.
 - Firebase Anonymous Auth para sesiones de cliente; identidad administrativa separada.
 - Historial privado de pedidos por UID, detalle recuperable y seguimiento logístico tras cerrar sesión o cambiar de navegador.
