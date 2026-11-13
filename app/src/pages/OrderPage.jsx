@@ -26,6 +26,7 @@ import "../styles/storefront.css";
 import "../styles/creative-refresh.css";
 import "../styles/menu-world.css";
 import "../styles/charcuteria-club.css";
+import "../styles/visual-system.css";
 
 const DEFAULT_BASE = [
   "Lechuga",
@@ -694,8 +695,10 @@ export default function OrderPage() {
           <span />
           {BUSINESS.acceptingOrders ? "Recibiendo pedidos" : "Pedidos cerrados"}
         </div>
-        <a className="customer-profile-link" href="/perfil">Mi perfil</a>
-        <button type="button" className="customer-profile-link" onClick={() => setShowCustomerOrders((current) => !current)}>Mis pedidos</button>
+        <nav className="customer-hero-nav" aria-label="Navegación de tu cuenta">
+          <a className="customer-profile-link" href="/perfil">Mi perfil</a>
+          <button type="button" className="customer-orders-link" onClick={() => setShowCustomerOrders((current) => !current)}>Mis pedidos</button>
+        </nav>
         <button
           type="button"
           className="customer-signout-button"

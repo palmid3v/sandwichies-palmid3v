@@ -13,6 +13,7 @@ import { INVENTORY_TRANSACTION_TYPES } from "../shared/inventory.js";
 import { BUSINESS } from "./config/business";
 import { getOrderDate, normalizeOrder } from "./utils/orders";
 import "./styles/admin.css";
+import "./styles/visual-system.css";
 
 const createInventoryOperationId = () =>
   globalThis.crypto?.randomUUID?.() || `manual-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -143,7 +144,9 @@ export default function App() {
       } catch (error) {
         console.error("No se pudo sincronizar el inventario de Cupboard:", error);
         if (active) setInventoryError(
-          error?.message || "No se pudo sincronizar el inventario comercial de Cupboard.",
+          error?.status === 502 || error?.code === "worker-network-error"
+            ? "Sin conexión con el Worker local. Los saldos de Cupboard no están disponibles."
+            : error?.message || "No se pudo sincronizar el inventario comercial de Cupboard.",
         );
       } finally {
         refreshing = false;
@@ -288,7 +291,7 @@ export default function App() {
       </nav>
 
       {ordersError && <div className="admin-alert" role="alert">{ordersError}</div>}
-      {inventoryError && <div className="admin-alert" role="alert">{inventoryError}</div>}
+      {activeTab === "inventario" && inventoryError && <div className="admin-alert" role="alert">{inventoryError}</div>}
 
       {activeTab === "pedidos" && (
         <OrdersHistory
@@ -419,7 +422,9 @@ export default function App() {
                 ? 0
                 : Math.min(Math.max(stockPercent, 0), 100);
               const lowStock = maxServings !== null && maxServings <= 3;
-              const unavailableLabel = balance?.status === "missing"
+              const unavailableLabel = inventoryError
+                ? "Saldo no disponible"
+                : balance?.status === "missing"
                 ? "Producto no encontrado en Cupboard"
                 : balance?.status === "invalid-balance"
                   ? "Saldo inválido en Cupboard"

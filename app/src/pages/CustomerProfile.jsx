@@ -11,6 +11,7 @@ import {
   deleteCustomerAddress,
 } from "../api/customer-profile";
 import "../styles/customer-profile.css";
+import "../styles/visual-system.css";
 
 const emptyAddress = {
   label: "Casa",

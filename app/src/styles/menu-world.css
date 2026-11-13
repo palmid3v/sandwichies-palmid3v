@@ -1,17 +1,17 @@
 /* Sandwichies — Menu World
-   A new visual language inspired by neighborhood delis, printed menus and tomato-red ink.
-   Storefront only: keeps ordering logic and responsive panel architecture intact. */
+   The original menu layout now inherits the permanent dark night-deli palette. */
 :root {
-  --menu-paper: #f4ead7;
-  --menu-paper-light: #fff8ec;
-  --menu-ink: #20263a;
-  --menu-muted: #6e6a62;
-  --menu-tomato: #c74732;
-  --menu-tomato-dark: #a93425;
-  --menu-blue: #4268a5;
-  --menu-blue-soft: #dce5f1;
-  --menu-line: rgba(32, 38, 58, .16);
-  --menu-shadow: 0 16px 38px rgba(63, 45, 29, .09);
+  color-scheme: dark;
+  --menu-paper: #211e19;
+  --menu-paper-light: #2b2620;
+  --menu-ink: #fff1da;
+  --menu-muted: #c5b8a6;
+  --menu-tomato: #f07859;
+  --menu-tomato-dark: #bd4c3a;
+  --menu-blue: #88c79a;
+  --menu-blue-soft: #29352b;
+  --menu-line: rgba(255, 237, 209, .13);
+  --menu-shadow: 0 18px 46px rgba(0, 0, 0, .32);
   --creative-ink: var(--menu-ink);
   --creative-muted: var(--menu-muted);
   --creative-line: var(--menu-line);
@@ -20,31 +20,31 @@
   --muted: var(--menu-muted);
   --leaf: var(--menu-ink);
   --tropical: var(--menu-blue);
-  --lime: #b8d9a8;
-  --mango: #f0b64b;
-  --papaya: #e88958;
+  --lime: #b7dc78;
+  --mango: #f0c45f;
+  --papaya: #f39a61;
   --coral: var(--menu-tomato);
-  --surface-0: #e9ddc8;
-  --surface-1: #fff8ec;
-  --surface-2: #f4ead7;
-  --surface-3: #e9dfcf;
-  --surface-raised: #fff8ec;
+  --surface-0: #100f0d;
+  --surface-1: #191714;
+  --surface-2: #211e19;
+  --surface-3: #2b2620;
+  --surface-raised: #1d1a16;
   --border: var(--menu-line);
-  --border-strong: rgba(32, 38, 58, .28);
-  --shadow-focus: 0 0 0 3px rgba(66, 104, 165, .22);
+  --border-strong: rgba(255, 237, 209, .24);
+  --shadow-focus: 0 0 0 3px rgba(240, 196, 95, .24);
 }
 
 html {
-  color-scheme: light;
-  background: #e9ddc8;
+  color-scheme: dark;
+  background: #100f0d;
 }
 
 body {
   color: var(--menu-ink);
   background:
-    radial-gradient(circle at 8% 5%, rgba(199, 71, 50, .06), transparent 24%),
-    radial-gradient(circle at 94% 80%, rgba(66, 104, 165, .06), transparent 27%),
-    #e9ddc8;
+    radial-gradient(circle at 8% 5%, rgba(240, 120, 89, .06), transparent 24%),
+    radial-gradient(circle at 94% 80%, rgba(136, 199, 154, .05), transparent 27%),
+    #100f0d;
 }
 
 ::selection {

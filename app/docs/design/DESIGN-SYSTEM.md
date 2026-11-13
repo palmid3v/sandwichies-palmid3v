@@ -1,114 +1,27 @@
-# Sandwichies Design System — FASE 7
+# Sandwichies Design System — Night Deli
 
-## Direction
+The product has one permanent dark theme. It pairs a warm neighborhood sandwich shop with restrained 1980s sign-paint accents and modern, readable controls. The detailed visual specification is in [`../VISUAL-DESIGN-SYSTEM.md`](../VISUAL-DESIGN-SYSTEM.md).
 
-Sandwichies uses a dark-first visual system designed around food, appetite and kitchen energy rather than generic SaaS patterns.
+## Foundations
 
-The interface should feel:
-- warm without becoming pastel;
-- tactile without becoming skeuomorphic;
-- energetic without becoming noisy;
-- premium enough for a curated food product;
-- readable and fast on mobile.
+- Page background: charcoal `#100f0d`.
+- Deep surface: espresso `#191714`.
+- Card/control surface: `#211e19`; raised option: `#2b2620`.
+- Main text: warm cream `#fff1da`; secondary text: `#c5b8a6`.
+- Primary action/focus: mustard `#f0c45f`.
+- Supporting accents: tomato `#f07859`, mint `#88c79a`, lime `#b7dc78`.
+- Display typography: Fraunces. Interface/body: DM Sans.
 
-## Color roles
+Use CSS semantic tokens from `src/index.css` and the visual override layer `src/styles/visual-system.css`. Avoid page-specific light surfaces or arbitrary new color palettes.
 
-| Token | Role |
-| --- | --- |
-| `--surface-0` | page background |
-| `--surface-1` | controls / deep surfaces |
-| `--surface-2` | cards and secondary surfaces |
-| `--surface-3` | interactive option surfaces |
-| `--ink` | primary readable text |
-| `--muted` | secondary text |
-| `--leaf` | headings and emphasis |
-| `--tropical` | primary positive/action color |
-| `--lime` | confirmation/accent |
-| `--mango` | appetite/primary CTA accent |
-| `--papaya` | secondary accent / attention |
-| `--coral` | checkout / destructive emphasis |
+## Components
 
-The semantic role matters more than the literal color value. Components should use tokens instead of introducing new arbitrary colors.
+Primary actions use mustard with espresso text. Secondary actions use dark fills and warm borders. Focus rings are clearly visible. Inputs use dark native controls, legible placeholders, and dark autofill. Product cards prioritize food image, product name, price, and action. Admin cards and lists retain the same surface and status language as the storefront.
 
-## Typography
+## Responsive and accessibility
 
-The baseline uses the system UI stack:
+Start at phone widths; retain at least 44 px touch targets and 48 px for primary fields/actions where practical. Do not rely on hover for state. Keep selection, disabled and error meaning textually clear. Respect `prefers-reduced-motion`. Do not compress admin tables until unreadable; use responsive card/list presentation.
 
-`Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`.
+## Dark-only behavior
 
-Hierarchy:
-- eyebrow: compact uppercase contextual label;
-- heading: strong, compact, high contrast;
-- body: readable with comfortable line-height;
-- helper: muted and subordinate;
-- price/total: visually prominent.
-
-## Spacing
-
-Primary spacing units are `4px` multiples:
-
-`--space-1` through `--space-9`.
-
-Prefer the token scale over one-off spacing values.
-
-## Radius and elevation
-
-- small controls: `--radius-sm`
-- interactive cards: `--radius-md` / `--radius-lg`
-- primary surfaces: `--radius-xl`
-- pills/statuses: `--radius-pill`
-
-Use `--shadow-sm` for normal surfaces, `--shadow-md` for elevated interactive controls, and `--shadow-lg` for overlays/important confirmation.
-
-## Product-card language
-
-Favorite products are represented as tactile cards with:
-- clear product name;
-- price anchor;
-- selection state;
-- confirmation mark;
-- subtle food-oriented accent;
-- hover/pressed feedback.
-
-The canonical product definition remains in `app/shared/recipes.js`. UI components do not duplicate product definitions.
-
-## Controls
-
-Interactive controls should:
-- use a minimum target around 48px where practical;
-- show a clear selected state;
-- expose a keyboard focus ring;
-- support pressed/active feedback;
-- avoid relying on color alone when possible.
-
-## Food/product motifs
-
-Current motifs include:
-- bread/food hero photography;
-- warm mango and papaya accents;
-- green kitchen/ingredient tones;
-- diagonal texture in hero surfaces;
-- small ingredient-like accent dots and bars.
-
-Motifs are restrained so product content remains dominant.
-
-## Dark-first behavior
-
-The active product system is intentionally dark-first. There is no automatic light theme introduced by FASE 7; this avoids maintaining two visual systems before the product needs one.
-
-## Accessibility contrast rule
-
-Text and controls must remain visibly distinguishable from their surface. Focus indication must remain visible independently from hover state. Selected controls should combine border/background/mark changes rather than relying on hue alone.
-
-Reduced-motion behavior is defined in the FASE 8 interaction system.
-
-## Mobile rules
-
-Customer UX is mobile-first:
-- controls stay touch-friendly;
-- option grids collapse to a single column at narrow widths;
-- the active builder total becomes a sticky bottom action surface;
-- text remains readable without horizontal scrolling;
-- interaction feedback remains visible without hover.
-- discovery keeps category and search controls visible, while advanced price/sort filters collapse into a disclosure;
-- an in-cart mobile summary stays above the safe-area inset and reserves page space, with a single link to the cart.
+`color-scheme: dark` is enforced at document and native-control level and in legacy style roots. No light theme or theme switch is part of the product.

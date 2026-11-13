@@ -1,20 +1,19 @@
 /* Sandwichies — Charcutería Club
-   Retro deli identity: bone rose, burgundy, terracotta and sage.
-   CSS-only ornamental seals keep the storefront light and avoid external image dependencies. */
+   Night deli identity: espresso, toasted tomato, mustard and mint. */
 :root {
-  --char-bone: #f6eee5;
-  --char-paper: #fff9f2;
-  --char-rose: #ead4cf;
-  --char-ink: #30272b;
-  --char-muted: #78696a;
-  --char-wine: #762d40;
-  --char-wine-deep: #57202f;
-  --char-terra: #c86d52;
-  --char-terra-light: #e8a18a;
-  --char-sage: #879783;
-  --char-sage-deep: #4e6655;
-  --char-line: rgba(68, 43, 48, .17);
-  --char-shadow: 0 14px 34px rgba(76, 43, 42, .09);
+  --char-bone: #1c1915;
+  --char-paper: #24201b;
+  --char-rose: #302820;
+  --char-ink: #fff1da;
+  --char-muted: #c5b8a6;
+  --char-wine: #f07859;
+  --char-wine-deep: #bd4c3a;
+  --char-terra: #f07859;
+  --char-terra-light: #ffad86;
+  --char-sage: #8db890;
+  --char-sage-deep: #88c79a;
+  --char-line: rgba(255, 237, 209, .14);
+  --char-shadow: 0 18px 46px rgba(0, 0, 0, .32);
 
   --menu-paper: var(--char-bone);
   --menu-paper-light: var(--char-paper);
@@ -23,7 +22,7 @@
   --menu-tomato: var(--char-wine);
   --menu-tomato-dark: var(--char-wine-deep);
   --menu-blue: var(--char-sage-deep);
-  --menu-blue-soft: #e1e7dd;
+  --menu-blue-soft: #29352b;
   --menu-line: var(--char-line);
   --menu-shadow: var(--char-shadow);
   --creative-ink: var(--char-ink);
@@ -34,32 +33,31 @@
   --muted: var(--char-muted);
   --leaf: var(--char-sage-deep);
   --tropical: var(--char-sage-deep);
-  --lime: #cbd7bf;
-  --mango: #d7a36e;
+  --lime: #b7dc78;
+  --mango: #f0c45f;
   --papaya: var(--char-terra);
   --coral: var(--char-terra);
-  --surface-0: #e5d5cd;
+  --surface-0: #100f0d;
   --surface-1: var(--char-paper);
   --surface-2: var(--char-bone);
   --surface-3: var(--char-rose);
   --surface-raised: var(--char-paper);
   --border: var(--char-line);
-  --border-strong: rgba(68, 43, 48, .3);
-  --shadow-focus: 0 0 0 3px rgba(78, 102, 85, .25);
+  --border-strong: rgba(255, 237, 209, .24);
+  --shadow-focus: 0 0 0 3px rgba(240, 196, 95, .26);
 }
 
 html {
-  color-scheme: light;
-  background: #e8d9d0;
+  color-scheme: dark;
+  background: #100f0d;
 }
 
 body {
   color: var(--char-ink);
   background:
-    radial-gradient(ellipse at 10% 0%, rgba(200,109,82,.12), transparent 29%),
-    radial-gradient(ellipse at 95% 80%, rgba(135,151,131,.15), transparent 30%),
-    repeating-linear-gradient(0deg, rgba(48,39,43,.012) 0, rgba(48,39,43,.012) 1px, transparent 1px, transparent 5px),
-    #e8d9d0;
+    radial-gradient(ellipse at 10% 0%, rgba(240,120,89,.08), transparent 32%),
+    radial-gradient(ellipse at 95% 80%, rgba(141,184,144,.07), transparent 34%),
+    #100f0d;
 }
 
 ::selection {

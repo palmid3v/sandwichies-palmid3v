@@ -3,6 +3,17 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    // Keep the local API reachable through the forwarded Vite port during
+    // browser QA sessions, where the Worker port itself may not be forwarded.
+    proxy: {
+      '/__worker': {
+        target: 'http://127.0.0.1:8787',
+        changeOrigin: false,
+        rewrite: (path) => path.replace(/^\/__worker/, ''),
+      },
+    },
+  },
   build: {
     rolldownOptions: {
       output: {

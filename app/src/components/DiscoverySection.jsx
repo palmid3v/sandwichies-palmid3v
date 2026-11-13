@@ -61,6 +61,7 @@ export default function DiscoverySection({ onSelect, cart = [] }) {
           <h2 id="discovery-title">El menú, a tu manera</h2>
           <p>Tus favoritos de siempre, preparados con ingredientes frescos. Elige, agrega al carrito y listo.</p>
         </div>
+        <a className="discovery-builder-link" href="#personaliza">Personaliza desde cero <span aria-hidden="true">↗</span></a>
         </div>
 
       <div className="discovery-tabs" aria-label="Filtrar por categoría">
