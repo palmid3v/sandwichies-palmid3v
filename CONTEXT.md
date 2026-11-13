@@ -155,3 +155,13 @@ The previous 2026-10-18 documentation checkpoint below is historical. It is not 
 README.md actualizado para describir producto y estado sin ocultar bloqueos: acceptingOrders=false, checkout deshabilitado hasta aprobación. El Excel vigente es la fuente de verdad de cantidades y costos. La auditoría Fase A–D, reglas Firestore, pruebas, build, Emulator y revisión browser siguen siendo gates según la evidencia disponible.
 
 Public README states the product scope and release limits. Use the source code, tests and latest audit reports to decide whether a milestone is actually complete.
+
+## Maintenance handoff — 2026-11-12
+
+- Current branch: maintenance/ci-recovery-2026-11.
+- Documentation PR: https://github.com/palmid3v/sandwichies-palmid3v/pull/15.
+- CI passed on 2026-11-13: 43 domain tests, 84 Worker tests, 12 Firestore Rules tests, 7 integration tests, dependency audit gate, lint, production build and storefront/admin smoke.
+- npm audit reports 7 vulnerabilities (1 low, 6 moderate); the current audit gate is high severity. Keep these findings visible and review dependency paths before changing versions.
+- Preserve BUSINESS.acceptingOrders=false and ORDERS_ENABLED=false. No order intake, deployment or real inventory operation is authorized.
+- Latest evidence: QUALITY-CHECKPOINT-2026-11-12.md.
+- Dependency risk: npm audit --omit=dev reports 7 production dependency vulnerabilities (1 low, 6 moderate). CI now prints package-level advisory titles and available fixes. Review before changing versions; do not hide these findings behind the high-severity-only exit threshold.

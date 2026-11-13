@@ -9,8 +9,8 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 
 ## ✨ Capacidades y base técnica
 ### Cliente
-- Catálogo, búsqueda, filtros, recetas y carrito persistente por UID con sincronización y control de conflictos.
-- Catálogo, búsqueda, filtros, recetas y carrito persistente por UID con sincronización, control de conflictos y reconciliación idempotente tras timeouts.
+- Catálogo, búsqueda, filtros y recetas.
+- Carrito persistente por UID con sincronización, control de conflictos y reconciliación idempotente tras timeouts.
 - Recogida/domicilio, datos de contacto y ubicación/punto de encuentro.
 - Firebase Anonymous Auth para sesiones de cliente; identidad administrativa separada.
 - Historial privado de pedidos por UID, detalle recuperable y seguimiento logístico tras cerrar sesión o cambiar de navegador.
@@ -24,6 +24,10 @@ Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, pr
 - React 19, Vite 8, Firebase 12, Cloudflare Worker/Wrangler, Firestore REST, Firebase ID token/JWK, Leaflet/React-Leaflet y Node Test Runner.
 - El Worker verifica tokens, valida CORS, reconstruye precios/consumos en servidor y conserva la API de pedidos; la creación de nuevas órdenes está desactivada por configuración.
 - Cupboard es la autoridad de balances comerciales; Sandwichies mantiene referencias/sincronización operativa, no una segunda autoridad de stock.
+
+## 🔎 Quality checkpoint — 2026-11-12
+
+Maintenance-branch CI passed domain, Worker, Firestore Rules, integration, build and smoke checks. Production dependency audit reports 7 vulnerabilities (1 low, 6 moderate); order intake remains disabled. See [QUALITY-CHECKPOINT-2026-11-12.md](QUALITY-CHECKPOINT-2026-11-12.md) for evidence and release gates.
 
 ## 📊 Estado del proyecto
 **Fases históricas del repositorio:** Fase 1 (integridad de dominio) y Fase 2 (endurecimiento de seguridad) aparecen implementadas en el roadmap. Fases de calidad, integración y release conservan gates pendientes.
