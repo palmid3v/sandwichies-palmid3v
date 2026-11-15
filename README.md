@@ -2,6 +2,19 @@
 
 > **PALMI-D3V** · Storefront mobile-first y consola de operación del negocio.
 
+## 🎯 Misión
+
+Gestionar el catálogo, configuración, precios y operación de un negocio de sándwiches, con flujos de cliente y administración seguros.
+
+## 🔭 Visión
+
+Convertirse en una plataforma operativa lista para apoyar el negocio y su integración con Cupboard; la recepción de pedidos seguirá desactivada hasta completar validación y autorización de lanzamiento.
+
+## 🗓️ Revisión documental
+
+README revisado el **14 de noviembre de 2026**. El estado y las capacidades descritas se limitan a lo documentado en este repositorio; una función planificada no se considera implementada sin evidencia y validación.
+
+
 > **Estado documental:** la recepción de pedidos está desactivada. `BUSINESS.acceptingOrders=false` en el dominio compartido y `ORDERS_ENABLED=false` en Wrangler. El storefront debe mostrar **Pedidos cerrados** y el Worker debe rechazar nuevas órdenes. La configuración local debe revisarse en `app/worker/.dev.vars`; nunca versionar secretos.
 
 ## 🎯 Producto
