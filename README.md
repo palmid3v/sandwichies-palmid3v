@@ -10,6 +10,14 @@ Gestionar el catálogo, configuración, precios y operación de un negocio de s�
 
 Convertirse en una plataforma operativa lista para apoyar el negocio y su integración con Cupboard; la recepción de pedidos seguirá desactivada hasta completar validación y autorización de lanzamiento.
 
+
+## 🌐 Despliegue en Vercel
+
+- **URL de producción:** https://sanpalmid3v.vercel.app
+- **Proyecto Vercel:** `sandwichies-palmid3v`
+- **Repositorio GitHub:** [`palmid3v/sandwichies-palmid3v`](https://github.com/palmid3v/sandwichies-palmid3v)
+- **Alias verificado:** dominio asociado al despliegue de producción READY consultado el 15 de noviembre de 2026.
+
 ## 🗓️ Revisión documental
 
 README revisado el **14 de noviembre de 2026**. El estado y las capacidades descritas se limitan a lo documentado en este repositorio; una función planificada no se considera implementada sin evidencia y validación.
