@@ -13,7 +13,7 @@ Cloudflare Worker backend for Sandwichies, built to keep the mandatory service b
 - Local development: Wrangler can run the same Worker against the Firestore Emulator without service-account credentials; see `../docs/development/local-worker.md`.
 - Cloudflare deployment: a script and deployment versions exist in the account, but the live version has not been verified against `main`; production configuration and end-to-end validation remain incomplete.
 - Service-account secrets, real Cupboard household ID and validated ingredient mapping: **not configured in this repository**.
-- `ORDERS_ENABLED`: defaults to `false` in the Wrangler configuration; real order creation stays blocked.
+- `ORDERS_ENABLED`: set to `true` in the repository Wrangler configuration for owner-authorized controlled testing. The active Cloudflare runtime must still be checked through `/health`; a Git commit alone does not deploy the Worker.
 - No Firebase Blaze, billing, production data migration, production write or real order is authorized by this implementation.
 
 ## API
@@ -58,7 +58,7 @@ CORS is restricted to exact origins listed in `ALLOWED_ORIGINS`; methods are `GE
 - An ambiguous save is reconciled by reading the cart with the same mutation ID. If already committed, the client adopts the server revision; if not committed and the revision is unchanged, it retries the exact same payload and mutation ID once. A newer revision remains a conflict.
 - Firebase signing-key retrieval, Google service-account OAuth and Firestore HTTP requests are each bounded to 5 seconds, including response-body reads. Timeout logs identify the dependency stage (`FIREBASE_JWKS`, `GOOGLE_OAUTH` or `FIRESTORE_REQUEST`) without customer IDs or credentials. Timeouts are tagged by dependency stage (for example `GOOGLE_OAUTH_TIMEOUT` or `FIRESTORE_REQUEST_TIMEOUT`) and logged without customer IDs or credentials. Transaction commit outcomes can still be ambiguous, so mutation reconciliation remains required.
 - Cart read/write duration is logged by the Worker for latency diagnosis. These logs contain duration and outcome only, not cart contents or UID.
-- Cart synchronization is not order acceptance. `BUSINESS.acceptingOrders=false` and `ORDERS_ENABLED=false` remain unchanged.
+- Cart synchronization is separate from order acceptance. The repository gates `BUSINESS.acceptingOrders` and `ORDERS_ENABLED` are now enabled for controlled tests; local `.dev.vars` and the deployed Cloudflare Worker are independent configurations.
 
 The cart uses the same Worker-only data boundary as customer profiles. Service-account access bypasses Firestore Security Rules, so keep Worker credentials private and review project-level IAM before production.
 
@@ -126,7 +126,7 @@ The ingredient mapping must cover every active ingredient in `shared/catalog.js`
 
 Cupboard's commercial inventory stores physical `portions` and backend-owned `reservedPortions`; available stock is `portions - reservedPortions`. Reservation records live under `households/{householdId}/workspaces/sandwichies/reservations/` and include the order ID, mapped lines, lifecycle status and `systemRecord: true`. Cupboard Rules prevent browser clients from writing reservation records or changing reservation counters. The Cupboard UI's stock adjustments and the Worker both preserve the reserved-stock floor.
 
-**Release limitation:** the current reservation is acquired when an administrator confirms a pending order, immediately before consumption. It does not yet reserve stock during customer checkout/order creation. Therefore the complete “do not accept an order without stock” gate is not met; leave `ORDERS_ENABLED=false` and `BUSINESS.acceptingOrders=false` until checkout itself performs and compensates a reservation.
+**Checkout inventory gate:** `createOrder` now builds the trusted ingredient consumption and calls `reserveCupboardOrder` before finalizing the order document. A missing/incomplete recipe or insufficient stock fails closed. This path still requires isolated emulator tests and validation of the two service-account integrations before any real customer orders.
 
 **IAM limitation:** Firestore REST calls made with service-account OAuth bypass Firestore Security Rules. Firestore IAM permissions are project-scoped, not collection-scoped. The service identities therefore have powerful project-level data access even though this Worker only addresses the Sandwichies business-inventory paths. The predefined data role is `roles/datastore.user`, which grants read/write access to Firestore data; assign it only in the matching project (`sandwich-pro` for the Sandwichies identity and the configured Cupboard project for the Cupboard identity). Do not grant project Owner/Editor. A custom role may reduce permissions further after validating the exact REST methods used, but IAM still does not isolate collections. Review this project-wide IAM limitation before issuing secrets. See [Firestore IAM roles](https://cloud.google.com/iam/docs/roles-permissions/firestore) and [Firestore REST authentication](https://cloud.google.com/firestore/native/docs/use-rest-api).
 
@@ -152,7 +152,7 @@ Public/non-secret configuration in `wrangler.toml`:
 
 - `FIREBASE_PROJECT_ID = "sandwich-pro"`
 - `ALLOWED_ORIGINS` — exact Vercel and local origins.
-- `ORDERS_ENABLED = "false"` — leave false until explicit release approval.
+- `ORDERS_ENABLED = "true"` in the repository for controlled testing only. Confirm the deployed Worker reports `ordersEnabled: true` at `/health`; do not process real customer orders.
 - Cron trigger every five minutes for virtual-table expiry.
 
 Configure the following in Cloudflare secrets/settings, never in Git or frontend `.env` files:
@@ -179,7 +179,7 @@ After an explicitly approved deployment, set `VITE_SANDWICHIES_WORKER_URL` in th
 8. Verify the frontend Vercel origin in the exact CORS allowlist.
 9. Review Worker quotas and Cron Trigger availability under the Cloudflare Free plan.
 10. Review the actual IAM grants, secrets and runtime logs.
-11. Obtain explicit approval before deployment, enabling `ORDERS_ENABLED`, changing frontend production configuration or processing real orders.
+11. Obtain separate release approval before production deployment, changing production frontend configuration or processing real customer orders.
 
 No production deployment, data mutation, billing change or real-order test has been performed.
 
