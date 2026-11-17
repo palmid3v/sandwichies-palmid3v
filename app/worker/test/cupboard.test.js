@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CATALOG } from "../../shared/catalog.js";
-import { applyCupboardOrderMovement, applyCupboardManualMovement, readCupboardConfig, CupboardWorkerError } from "../src/cupboard.js";
+import { applyCupboardOrderMovement, applyCupboardManualMovement, reserveCupboardOrder, releaseCupboardOrderReservation, readCupboardConfig, CupboardWorkerError } from "../src/cupboard.js";
 
 class MemoryFirestore {
   constructor(initial = {}) {
@@ -101,6 +101,50 @@ test("order consumption updates Cupboard once and retries are idempotent", async
   assert.equal((await db.read(inventoryPath)).data.portions, 6);
 });
 
+test("Cupboard order reservations atomically hold availability and release once", async () => {
+  const db = new MemoryFirestore({ [inventoryPath]: { portions: 10, unit: "unidad" } });
+  const first = await reserveCupboardOrder({ db, config, orderId: "reserve-1", lines: [line] });
+  assert.deepEqual(first, { applied: true, status: "reserved" });
+  assert.equal((await db.read(inventoryPath)).data.portions, 10);
+  assert.equal((await db.read(inventoryPath)).data.reservedPortions, 4);
+
+  const retry = await reserveCupboardOrder({ db, config, orderId: "reserve-1", lines: [line] });
+  assert.deepEqual(retry, { applied: false, status: "reserved" });
+  const released = await releaseCupboardOrderReservation({ db, config, orderId: "reserve-1", lines: [line] });
+  assert.deepEqual(released, { applied: true, status: "released" });
+  const releaseRetry = await releaseCupboardOrderReservation({ db, config, orderId: "reserve-1", lines: [line] });
+  assert.deepEqual(releaseRetry, { applied: false, status: "released" });
+  assert.equal((await db.read(inventoryPath)).data.reservedPortions, 0);
+});
+
+test("Cupboard reservations reject insufficient unreserved stock without writing", async () => {
+  const db = new MemoryFirestore({ [inventoryPath]: { portions: 10, reservedPortions: 7, unit: "unidad" } });
+  await assert.rejects(
+    reserveCupboardOrder({ db, config, orderId: "reserve-insufficient", lines: [line] }),
+    (error) => error instanceof CupboardWorkerError && error.code === "CUPBOARD_STOCK_INSUFFICIENT",
+  );
+  assert.equal((await db.read(inventoryPath)).data.reservedPortions, 7);
+  assert.equal((await db.read("households/household-a/workspaces/sandwichies/reservations/sandwichies-reserve-insufficient")).exists, false);
+});
+
+test("consuming a reservation changes physical stock and clears its hold once", async () => {
+  const db = new MemoryFirestore({ [inventoryPath]: { portions: 10, unit: "unidad" } });
+  await reserveCupboardOrder({ db, config, orderId: "reserve-consume", lines: [line] });
+  const first = await applyCupboardOrderMovement({
+    db, config, orderId: "reserve-consume", orderNumber: 3, lines: [line], operation: "consume",
+  });
+  assert.equal(first.applied, true);
+  assert.equal((await db.read(inventoryPath)).data.portions, 6);
+  assert.equal((await db.read(inventoryPath)).data.reservedPortions, 0);
+  assert.equal((await db.read("households/household-a/workspaces/sandwichies/reservations/sandwichies-reserve-consume")).data.status, "consumed");
+
+  const retry = await applyCupboardOrderMovement({
+    db, config, orderId: "reserve-consume", orderNumber: 3, lines: [line], operation: "consume",
+  });
+  assert.equal(retry.applied, false);
+  assert.equal((await db.read(inventoryPath)).data.portions, 6);
+});
+
 test("insufficient stock fails atomically without creating a movement", async () => {
   const db = new MemoryFirestore({ [inventoryPath]: { portions: 2, unit: "unidad" } });
   await assert.rejects(
@@ -111,6 +155,26 @@ test("insufficient stock fails atomically without creating a movement", async ()
   );
   assert.equal((await db.read(inventoryPath)).data.portions, 2);
   assert.equal((await db.read(`households/household-a/workspaces/sandwichies/movements/${baseMovement}-consume`)).exists, false);
+});
+
+test("unreserved orders and manual adjustments cannot consume another order's held stock", async () => {
+  const db = new MemoryFirestore({ [inventoryPath]: { portions: 10, reservedPortions: 5, unit: "unidad" } });
+  const oversizedConsumption = { ...line, quantityDelta: -6 };
+  await assert.rejects(
+    applyCupboardOrderMovement({ db, config, orderId: "unreserved-order", orderNumber: 4, lines: [oversizedConsumption], operation: "consume" }),
+    (error) => error instanceof CupboardWorkerError && error.code === "CUPBOARD_STOCK_RESERVED",
+  );
+  await assert.rejects(
+    applyCupboardManualMovement({
+      db,
+      config,
+      operationId: "manual-held-adjustment",
+      line: { ingredientId: "pepperoni", ingredientName: "Pepperoni", unit: "unidad", type: "adjustment", quantityDelta: -6, reason: "Correction" },
+    }),
+    (error) => error instanceof CupboardWorkerError && error.code === "CUPBOARD_STOCK_RESERVED",
+  );
+  assert.equal((await db.read(inventoryPath)).data.portions, 10);
+  assert.equal((await db.read(inventoryPath)).data.reservedPortions, 5);
 });
 
 test("cancellation reverses a posted consumption exactly once", async () => {
@@ -204,5 +268,22 @@ test("Cupboard configuration rejects shared Firebase project credentials", () =>
   assert.throws(
     () => readCupboardConfig({ ...validEnv, CUPBOARD_HOUSEHOLD_ID: "invalid/household" }),
     (error) => error instanceof CupboardWorkerError && error.code === "CUPBOARD_HOUSEHOLD_INVALID",
+  );
+  assert.throws(
+    () => readCupboardConfig({ ...validEnv, CUPBOARD_SERVICE_ACCOUNT_JSON: "not-json" }),
+    (error) => error instanceof CupboardWorkerError && error.code === "CUPBOARD_CREDENTIALS_INVALID",
+  );
+  assert.throws(
+    () => readCupboardConfig({ ...validEnv, CUPBOARD_SERVICE_ACCOUNT_JSON: "null" }),
+    (error) => error instanceof CupboardWorkerError && error.code === "CUPBOARD_CREDENTIALS_INVALID",
+  );
+  assert.throws(
+    () => readCupboardConfig({
+      ...validEnv,
+      CUPBOARD_SERVICE_ACCOUNT_JSON: JSON.stringify({
+        type: "service_account", project_id: "other-project", client_email: "worker@example.com", private_key: "key",
+      }),
+    }),
+    (error) => error instanceof CupboardWorkerError && error.code === "CUPBOARD_CREDENTIALS_PROJECT_MISMATCH",
   );
 });

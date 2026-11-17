@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { CATALOG } from "../shared/catalog.js";
 
 const command =
-  'firebase emulators:exec --only firestore,functions --project demo-sandwichies "node --test test/inventory.integration.test.js test/cupboard-inventory.integration.test.js test/virtual-tables.integration.test.js"';
+  'firebase emulators:exec --only firestore,functions --project demo-sandwichies "node --test test/inventory.integration.test.js test/cupboard-inventory.integration.test.js test/virtual-tables.integration.test.js test/cupboard-reservations.integration.test.js test/checkout-reservations.integration.test.js"';
 
 const result = spawnSync(command, {
   shell: true,

@@ -10,13 +10,29 @@ const base64Url = (value) => {
 };
 
 const pemBytes = (pem) => {
-  const encoded = String(pem || "")
-    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
-    .replace(/-----END PRIVATE KEY-----/g, "")
+  const value = String(pem || "").trim();
+  if (!value) {
+    const error = new Error("SERVICE_ACCOUNT_PRIVATE_KEY_MISSING");
+    error.code = "SERVICE_ACCOUNT_PRIVATE_KEY_MISSING";
+    throw error;
+  }
+  if (!/^-----BEGIN PRIVATE KEY-----[\s\S]+-----END PRIVATE KEY-----$/.test(value)) {
+    const error = new Error("SERVICE_ACCOUNT_PRIVATE_KEY_INVALID");
+    error.code = "SERVICE_ACCOUNT_PRIVATE_KEY_INVALID";
+    throw error;
+  }
+  const encoded = value
+    .replace("-----BEGIN PRIVATE KEY-----", "")
+    .replace("-----END PRIVATE KEY-----", "")
     .replace(/\s/g, "");
-  if (!encoded) throw new Error("SERVICE_ACCOUNT_PRIVATE_KEY_MISSING");
-  const binary = atob(encoded);
-  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  try {
+    const binary = atob(encoded);
+    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  } catch {
+    const error = new Error("SERVICE_ACCOUNT_PRIVATE_KEY_INVALID");
+    error.code = "SERVICE_ACCOUNT_PRIVATE_KEY_INVALID";
+    throw error;
+  }
 };
 
 async function signServiceAssertion(serviceAccount, nowSeconds) {
@@ -33,13 +49,20 @@ async function signServiceAssertion(serviceAccount, nowSeconds) {
     exp: nowSeconds + 3600,
   }));
   const signingInput = header + "." + claims;
-  const key = await crypto.subtle.importKey(
-    "pkcs8",
-    pemBytes(serviceAccount.private_key),
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
+  let key;
+  try {
+    key = await crypto.subtle.importKey(
+      "pkcs8",
+      pemBytes(serviceAccount.private_key),
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+  } catch {
+    const error = new Error("SERVICE_ACCOUNT_PRIVATE_KEY_INVALID");
+    error.code = "SERVICE_ACCOUNT_PRIVATE_KEY_INVALID";
+    throw error;
+  }
   const signature = await crypto.subtle.sign(
     "RSASSA-PKCS1-v1_5",
     key,
@@ -106,14 +129,18 @@ export async function getGoogleAccessToken(serviceAccountJson, {
   let body = {};
   try { body = JSON.parse(text || "{}"); } catch { /* handled as OAuth failure */ }
   if (!response.ok || typeof body.access_token !== "string") {
-  console.error("[FirestoreRest] Google OAuth rejected", {
-    status: response.status,
-    error: body.error || "unknown",
-    errorDescription: body.error_description || "No description",
-  });
-
-  throw new Error("GOOGLE_OAUTH_FAILED_" + response.status);
-}
+    const providerError = typeof body.error === "string" ? body.error : "unknown";
+    console.error("[FirestoreRest] Google OAuth rejected", {
+      status: response.status,
+      error: providerError,
+    });
+    const transient = response.status === 429 || response.status >= 500;
+    const error = new Error(transient ? "GOOGLE_OAUTH_UNAVAILABLE" : "GOOGLE_OAUTH_CREDENTIALS_REJECTED");
+    error.code = transient ? "GOOGLE_OAUTH_UNAVAILABLE" : "GOOGLE_OAUTH_CREDENTIALS_REJECTED";
+    error.status = transient ? 503 : 502;
+    error.upstreamStatus = response.status;
+    throw error;
+  }
   tokenCache.set(account.client_email, {
     accessToken: body.access_token,
     expiresAt: now + Number(body.expires_in || 3600) * 1000,
@@ -357,7 +384,7 @@ export class FirestoreRest {
     }
   }
 
-  async runTransaction(callback, { attempts = 3 } = {}) {
+  async runTransaction(callback, { attempts = 5 } = {}) {
     let lastError;
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       const transaction = await this.beginTransaction();
@@ -386,6 +413,7 @@ export class FirestoreRest {
         if (!(error instanceof FirestoreRestError) || error.status !== 409 || attempt === attempts - 1) {
           throw error;
         }
+        await new Promise((resolve) => setTimeout(resolve, Math.min(20 * (2 ** attempt), 200)));
       }
     }
     throw lastError || new Error("FIRESTORE_TRANSACTION_FAILED");

@@ -86,6 +86,37 @@ test("Firestore REST transaction authenticates with a signed service-account ass
   assert.equal(firestoreCall.init.headers.authorization, "Bearer test-access-token");
 });
 
+test("Firestore REST rejects malformed service-account private keys before OAuth", async () => {
+  const db = new FirestoreRest({
+    projectId: "sandwich-pro",
+    serviceAccountJson: JSON.stringify({
+      type: "service_account",
+      project_id: "sandwich-pro",
+      client_email: "worker@sandwich-pro.iam.gserviceaccount.com",
+      private_key: "not-a-pem-key",
+    }),
+    fetchImpl: async () => { throw new Error("OAuth must not be called for an invalid key"); },
+  });
+  await assert.rejects(db.read("customers/customer-1/cart/current"), (error) =>
+    error.code === "SERVICE_ACCOUNT_PRIVATE_KEY_INVALID");
+});
+
+test("Google OAuth rejection is classified without returning provider details", async () => {
+  clearGoogleTokenCacheForTests();
+  const db = new FirestoreRest({
+    projectId: "sandwich-pro",
+    serviceAccountJson: serviceAccount,
+    fetchImpl: async () => new Response(JSON.stringify({
+      error: "invalid_grant",
+      error_description: "synthetic test rejection",
+    }), { status: 400 }),
+  });
+  await assert.rejects(db.read("customers/customer-1/cart/current"), (error) =>
+    error.code === "GOOGLE_OAUTH_CREDENTIALS_REJECTED"
+      && error.status === 502
+      && !error.message.includes("synthetic test rejection"));
+});
+
 test("Firestore REST query encodes IN filters and decodes timestamp values", async () => {
   clearGoogleTokenCacheForTests();
   const fetchImpl = async (url, init = {}) => {

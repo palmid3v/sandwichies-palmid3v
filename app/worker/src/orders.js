@@ -16,7 +16,7 @@ import {
   VIRTUAL_TABLE_DEFAULTS,
 } from "../../shared/virtual-tables.js";
 import { FirestoreRest, FirestoreRestError } from "./firestore-rest.js";
-import { applyCupboardOrderMovement, applyCupboardManualMovement, CupboardWorkerError, readCupboardConfig } from "./cupboard.js";
+import { applyCupboardOrderMovement, applyCupboardManualMovement, reserveCupboardOrder, releaseCupboardOrderReservation, CupboardWorkerError, readCupboardConfig } from "./cupboard.js";
 
 const nowDate = () => new Date();
 const isoWindowId = (date = new Date()) => {
@@ -73,10 +73,13 @@ export function createSandwichiesDb(env) {
   } catch {
     throw new ApiError(503, "BACKEND_CREDENTIALS_INVALID", "La credencial del backend no contiene JSON válido.");
   }
-  if (serviceAccount.type !== "service_account"
-    || serviceAccount.project_id !== env.FIREBASE_PROJECT_ID
+  if (!serviceAccount || typeof serviceAccount !== "object" || Array.isArray(serviceAccount)
+    || serviceAccount.type !== "service_account"
     || !serviceAccount.client_email
     || !serviceAccount.private_key) {
+    throw new ApiError(503, "BACKEND_CREDENTIALS_INVALID", "La credencial del backend no tiene el formato esperado de cuenta de servicio.");
+  }
+  if (serviceAccount.project_id !== env.FIREBASE_PROJECT_ID) {
     throw new ApiError(503, "BACKEND_CREDENTIALS_PROJECT_MISMATCH", "La credencial del backend no pertenece al proyecto Sandwichies.");
   }
   return new FirestoreRest({
@@ -234,27 +237,39 @@ async function assignVirtualTable({ tx, orderId, uid, orderNumber, point, zone, 
 
 // policy is injectable only at the domain boundary so tests can exercise order
 // validation/idempotency while the production BUSINESS.acceptingOrders gate stays closed.
-export async function createOrder({ request, claims, env, db: injectedDb, policy = BUSINESS }) {
-  if (!claims?.sub) throw new ApiError(401, "unauthenticated", "Inicia sesión para realizar tu pedido.");
-  if (env.ORDERS_ENABLED !== "true") throw new ApiError(503, "ORDERS_DISABLED", "Los pedidos están deshabilitados mientras se completa la validación.");
-  if (policy.acceptingOrders !== true) throw new ApiError(503, "ORDERS_DISABLED", "El negocio no está aceptando pedidos.");
-  requireCupboard(env);
+export async function createOrder({ request, claims, env, db: injectedDb, cupboardDb: injectedCupboardDb, policy = BUSINESS }) {
+  if (!claims?.sub) throw new ApiError(401, "unauthenticated", "Sign in before placing an order.");
+  if (env.ORDERS_ENABLED !== "true") throw new ApiError(503, "ORDERS_DISABLED", "Order intake is disabled while validation is incomplete.");
+  if (policy.acceptingOrders !== true) throw new ApiError(503, "ORDERS_DISABLED", "The business is not accepting orders.");
+  const config = requireCupboard(env);
   const db = injectedDb || createSandwichiesDb(env);
   const requestId = typeof request.requestId === "string" ? request.requestId.trim() : "";
-  if (!validRequestId(requestId)) throw new ApiError(400, "invalid-argument", "Identificador de solicitud inválido.");
+  if (!validRequestId(requestId)) throw new ApiError(400, "invalid-argument", "Invalid request identifier.");
 
   const uid = claims.sub;
   const idempotencyPath = `orderRequests/${safeDocId(uid)}_${requestId}`;
-  let responseOrder;
+  let prepared;
+  let completedOrder;
   await db.runTransaction(async (tx) => {
     const previous = await tx.get(idempotencyPath);
     if (previous.exists) {
-      const orderId = previous.data.orderId;
-      const saved = await tx.get(`orders/${orderId}`);
-      if (!saved.exists || saved.data.customerUid !== uid) {
-        throw new ApiError(409, "IDEMPOTENCY_RECORD_INVALID", "No fue posible recuperar el pedido asociado a esta solicitud.");
+      if (previous.data.uid !== uid || !previous.data.orderId) {
+        throw new ApiError(409, "IDEMPOTENCY_RECORD_INVALID", "Could not recover the order request.");
       }
-      responseOrder = normalizeOrderForCustomer(saved.data, orderId);
+      const orderId = previous.data.orderId;
+      // Preserve idempotent retries for orders created before checkout reservations were introduced.
+      if (previous.data.status === "complete" || previous.data.status === undefined) {
+        const saved = await tx.get(`orders/${orderId}`);
+        if (!saved.exists || saved.data.customerUid !== uid) {
+          throw new ApiError(409, "IDEMPOTENCY_RECORD_INVALID", "Could not recover the order associated with this request.");
+        }
+        completedOrder = normalizeOrderForCustomer(saved.data, orderId);
+        return;
+      }
+      if (previous.data.status !== "reserving" || !previous.data.orderDraft) {
+        throw new ApiError(409, "IDEMPOTENCY_RECORD_INVALID", "The order request is in an unrecoverable state.");
+      }
+      prepared = { orderId, orderDraft: previous.data.orderDraft };
       return;
     }
 
@@ -269,67 +284,139 @@ export async function createOrder({ request, claims, env, db: injectedDb, policy
       throw error;
     }
 
-    const now = nowDate();
     const orderId = randomId();
-    const orderPath = `orders/${orderId}`;
-    let delivery = null;
-    if (trusted.fulfillment.type === "punto_encuentro") {
-      const point = trusted.fulfillment.meetingPoint;
-      const zones = await findZones(tx);
-      const zone = findOperatingZone(point, zones.map(({ path, data }) => ({
-        id: path.split("/").at(-1),
-        ...data,
-      })));
-      if (!zone) throw new ApiError(422, "NO_ACTIVE_DELIVERY_ZONES", "Todavía no hay zonas de entrega activas.");
-      const scheduleStatus = getZoneScheduleStatus(zone, now);
-      if (!scheduleStatus.open) {
-        const hours = scheduleStatus.intervals.length
-          ? scheduleStatus.intervals.map(({ start, end }) => `${start}–${end}`).join(", ")
-          : "Cerrado hoy";
-        throw new ApiError(422, "ZONE_OUTSIDE_SERVICE_HOURS", `${zone.name} atiende ${hours} (${scheduleStatus.timeZone}).`);
-      }
-      delivery = await assignVirtualTable({
-        tx,
-        orderId,
-        uid,
-        orderNumber,
-        point,
-        zone,
-        now,
-      });
-    }
-
-    const order = {
-      ...trusted,
-      customerUid: uid,
-      delivery: delivery ? {
-        mode: "virtual_table",
-        ...delivery,
-        zoneName: delivery.zoneName,
-      } : {
-        mode: trusted.fulfillment.type,
-        status: "waiting_preparation",
-      },
-      inventory: {
-        system: "cupboard",
-        consumptionStatus: "pending",
-        cupboardConsumptionStatus: "pending",
-      },
-      createdAt: now,
-      updatedAt: now,
-    };
-    tx.create(orderPath, order);
-    if (!delivery) tx.create(`customerOrderTracking/${uid}/orders/${orderId}`, {
-      orderId, orderNumber, orderStatus: "pendiente", paymentStatus: "pendiente",
-      deliveryStatus: "waiting_preparation", tableStatus: null, updatedAt: now,
-    });
+    const orderDraft = { ...trusted, orderNumber };
+    const now = nowDate();
     tx.set(counterPath, { value: orderNumber, updatedAt: now });
-    tx.create(idempotencyPath, { orderId, uid, createdAt: now });
-    responseOrder = normalizeOrderForCustomer(order, orderId);
+    tx.create(idempotencyPath, {
+      orderId,
+      uid,
+      status: "reserving",
+      orderDraft,
+      createdAt: now,
+    });
+    prepared = { orderId, orderDraft };
   });
-  return { order: responseOrder };
-}
+  if (completedOrder) return { order: completedOrder };
 
+  const cupboardDb = injectedCupboardDb || new FirestoreRest({
+    projectId: config.projectId,
+    serviceAccountJson: env.CUPBOARD_SERVICE_ACCOUNT_JSON,
+  });
+  const orderId = prepared.orderId;
+  let consumption;
+  try {
+    consumption = buildOrderConsumption({ ...prepared.orderDraft, id: orderId });
+  } catch (error) {
+    if (error instanceof InventoryValidationError) throw new ApiError(409, "RECIPE_USAGE_MISSING", error.message);
+    throw error;
+  }
+  if (!consumption.complete || consumption.lines.length === 0) {
+    throw new ApiError(409, "RECIPE_USAGE_MISSING", "The order recipe has no complete physical ingredient usage.");
+  }
+
+  try {
+    await reserveCupboardOrder({ db: cupboardDb, config, orderId, lines: consumption.lines });
+  } catch (error) {
+    if (error instanceof CupboardWorkerError && error.code === "CUPBOARD_STOCK_INSUFFICIENT") {
+      throw new ApiError(409, error.code, error.message);
+    }
+    throw error;
+  }
+
+  try {
+    let responseOrder;
+    await db.runTransaction(async (tx) => {
+      const [requestRecord, existingOrder] = await tx.getMany([idempotencyPath, `orders/${orderId}`]);
+      if (!requestRecord.exists || requestRecord.data.uid !== uid || requestRecord.data.orderId !== orderId) {
+        throw new ApiError(409, "IDEMPOTENCY_RECORD_INVALID", "The order request changed before finalization.");
+      }
+      if (requestRecord.data.status === "complete") {
+        if (!existingOrder.exists || existingOrder.data.customerUid !== uid) {
+          throw new ApiError(409, "IDEMPOTENCY_RECORD_INVALID", "Could not recover the order associated with this request.");
+        }
+        responseOrder = normalizeOrderForCustomer(existingOrder.data, orderId);
+        return;
+      }
+      if (requestRecord.data.status !== "reserving" || existingOrder.exists) {
+        throw new ApiError(409, "IDEMPOTENCY_RECORD_INVALID", "The order request cannot be finalized safely.");
+      }
+
+      const trusted = requestRecord.data.orderDraft;
+      const now = nowDate();
+      let delivery = null;
+      if (trusted.fulfillment.type === "punto_encuentro") {
+        const point = trusted.fulfillment.meetingPoint;
+        const zones = await findZones(tx);
+        const zone = findOperatingZone(point, zones.map(({ path, data }) => ({
+          id: path.split("/").at(-1),
+          ...data,
+        })));
+        if (!zone) throw new ApiError(422, "NO_ACTIVE_DELIVERY_ZONES", "No active delivery zone is available.");
+        const scheduleStatus = getZoneScheduleStatus(zone, now);
+        if (!scheduleStatus.open) {
+          const hours = scheduleStatus.intervals.length
+            ? scheduleStatus.intervals.map(({ start, end }) => `${start}-${end}`).join(", ")
+            : "Closed today";
+          throw new ApiError(422, "ZONE_OUTSIDE_SERVICE_HOURS", `${zone.name} serves ${hours} (${scheduleStatus.timeZone}).`);
+        }
+        delivery = await assignVirtualTable({
+          tx,
+          orderId,
+          uid,
+          orderNumber: trusted.orderNumber,
+          point,
+          zone,
+          now,
+        });
+      }
+
+      const order = {
+        ...trusted,
+        customerUid: uid,
+        delivery: delivery ? {
+          mode: "virtual_table",
+          ...delivery,
+          zoneName: delivery.zoneName,
+        } : {
+          mode: trusted.fulfillment.type,
+          status: "waiting_preparation",
+        },
+        inventory: {
+          system: "cupboard",
+          reservationStatus: "reserved",
+          reservationCreatedAt: now,
+          consumptionStatus: "pending",
+          cupboardConsumptionStatus: "pending",
+        },
+        createdAt: now,
+        updatedAt: now,
+      };
+      tx.create(`orders/${orderId}`, order);
+      if (!delivery) tx.create(`customerOrderTracking/${uid}/orders/${orderId}`, {
+        orderId, orderNumber: trusted.orderNumber, orderStatus: "pendiente", paymentStatus: "pendiente",
+        deliveryStatus: "waiting_preparation", tableStatus: null, updatedAt: now,
+      });
+      tx.update(idempotencyPath, { status: "complete", completedAt: now });
+      responseOrder = normalizeOrderForCustomer(order, orderId);
+    });
+    return { order: responseOrder };
+  } catch (error) {
+    // Definite business validation failures aborted the order transaction, so compensate the Cupboard hold.
+    // Keep holds after ambiguous database errors so a retry with the same request ID can safely finish.
+    if (error instanceof ApiError && error.status < 500) {
+      try {
+        await releaseCupboardOrderReservation({ db: cupboardDb, config, orderId, lines: consumption.lines });
+      } catch (releaseError) {
+        console.error("Cupboard checkout reservation compensation failed", {
+          orderId,
+          code: releaseError?.code || "RESERVATION_RELEASE_FAILED",
+        });
+      }
+    }
+    throw error;
+  }
+}
 function orderTimestamp(value) {
   if (value instanceof Date) return value.getTime();
   if (typeof value === "string") return Date.parse(value) || 0;
@@ -518,14 +605,28 @@ export async function transitionOrder({ orderId, status, claims, env, db: inject
         projectId: config.projectId,
         serviceAccountJson: env.CUPBOARD_SERVICE_ACCOUNT_JSON,
       });
-      const result = await applyCupboardOrderMovement({
-        db: cupboardDb,
-        config,
-        orderId,
-        orderNumber: order.orderNumber,
-        lines: consumption.lines,
-        operation: "consume",
-      });
+      await reserveCupboardOrder({ db: cupboardDb, config, orderId, lines: consumption.lines });
+      let result;
+      try {
+        result = await applyCupboardOrderMovement({
+          db: cupboardDb,
+          config,
+          orderId,
+          orderNumber: order.orderNumber,
+          lines: consumption.lines,
+          operation: "consume",
+        });
+      } catch (error) {
+        try {
+          await releaseCupboardOrderReservation({ db: cupboardDb, config, orderId, lines: consumption.lines });
+        } catch (releaseError) {
+          console.error("Cupboard reservation compensation failed", {
+            orderId,
+            code: releaseError?.code || "RESERVATION_RELEASE_FAILED",
+          });
+        }
+        throw error;
+      }
       await mirrorCupboardBalance({
         db,
         orderId,
@@ -536,6 +637,18 @@ export async function transitionOrder({ orderId, status, claims, env, db: inject
         actorUid: claims.sub,
       });
       consumptionStatus = "posted";
+    }
+
+    if (isCupboardOrder && status === "cancelado" && consumptionStatus === "pending") {
+      const config = requireCupboard(env);
+      const consumption = buildOrderConsumption({ ...order, id: orderId });
+      if (!consumption.complete) throw new ApiError(409, "RECIPE_USAGE_MISSING", "No se puede liberar la reserva: falta la receta original.");
+      const cupboardDb = injectedCupboardDb || new FirestoreRest({
+        projectId: config.projectId,
+        serviceAccountJson: env.CUPBOARD_SERVICE_ACCOUNT_JSON,
+      });
+      await releaseCupboardOrderReservation({ db: cupboardDb, config, orderId, lines: consumption.lines });
+      consumptionStatus = "not-consumed";
     }
 
     if (isCupboardOrder && status === "cancelado" && !["reversed", "not-consumed"].includes(consumptionStatus)) {

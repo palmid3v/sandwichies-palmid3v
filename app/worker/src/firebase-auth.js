@@ -42,12 +42,17 @@ async function loadSigningKey(projectId, kid, fetchImpl, now, timeoutMs) {
       console.warn("[FirebaseAuth] dependency_timeout", { stage: "FIREBASE_JWKS", timeoutMs });
       throw timeoutError;
     }
-    throw error;
+    const unavailableError = new Error("FIREBASE_JWKS_UNAVAILABLE");
+    unavailableError.code = "FIREBASE_JWKS_UNAVAILABLE";
+    throw unavailableError;
   } finally {
     clearTimeout(timeoutId);
   }
   if (!response.ok) {
-    throw new Error(`Firebase signing keys unavailable: HTTP ${response.status}`);
+    const unavailableError = new Error("FIREBASE_JWKS_UNAVAILABLE");
+    unavailableError.code = "FIREBASE_JWKS_UNAVAILABLE";
+    unavailableError.upstreamStatus = response.status;
+    throw unavailableError;
   }
   const keys = Array.isArray(body.keys) ? body.keys : [];
   if (!keys.some((key) => key.kid === kid)) {

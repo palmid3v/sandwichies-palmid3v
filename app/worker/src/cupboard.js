@@ -53,10 +53,13 @@ export function readCupboardConfig(env) {
   } catch {
     throw new CupboardWorkerError("CUPBOARD_CREDENTIALS_INVALID", "La credencial de Cupboard no contiene JSON válido.");
   }
-  if (serviceAccount.type !== "service_account"
-    || serviceAccount.project_id !== env.CUPBOARD_PROJECT_ID
+  if (!serviceAccount || typeof serviceAccount !== "object" || Array.isArray(serviceAccount)
+    || serviceAccount.type !== "service_account"
     || !serviceAccount.client_email
     || !serviceAccount.private_key) {
+    throw new CupboardWorkerError("CUPBOARD_CREDENTIALS_INVALID", "La credencial de Cupboard no tiene el formato esperado de cuenta de servicio.");
+  }
+  if (serviceAccount.project_id !== env.CUPBOARD_PROJECT_ID) {
     throw new CupboardWorkerError("CUPBOARD_CREDENTIALS_PROJECT_MISMATCH", "La credencial de servicio no pertenece al proyecto Cupboard configurado.");
   }
   if (missing.length) {
@@ -75,6 +78,147 @@ const movementPath = (householdId, movementId) =>
   `households/${householdId}/workspaces/sandwichies/movements/${movementId}`;
 const inventoryPath = (householdId, productId) =>
   `households/${householdId}/workspaces/sandwichies/inventory/${productId}`;
+const reservationPath = (householdId, orderId) =>
+  `households/${householdId}/workspaces/sandwichies/reservations/${safeId(`sandwichies-${orderId}`)}`;
+
+function prepareOrderLines(config, orderId, lines) {
+  if (typeof orderId !== "string" || !/^[A-Za-z0-9_-]{1,150}$/.test(orderId)) {
+    throw new CupboardWorkerError("INVALID_ORDER_ID", "Identificador de pedido invÃ¡lido.");
+  }
+  if (!Array.isArray(lines) || lines.length === 0) {
+    throw new CupboardWorkerError("INVALID_MOVEMENT", "El pedido no contiene ingredientes para mover.");
+  }
+  const prepared = lines.map((line) => {
+    const productId = config.mapping[line.ingredientId];
+    if (!productId) {
+      throw new CupboardWorkerError("CUPBOARD_MAPPING_MISSING", `Falta mapear el ingrediente ${line.ingredientId}.`);
+    }
+    if (!Number.isInteger(line.quantityDelta) || line.quantityDelta >= 0) {
+      throw new CupboardWorkerError("INVALID_MOVEMENT", "La receta contiene cantidades de consumo invÃ¡lidas.");
+    }
+    return {
+      line,
+      productId,
+      inventoryPath: inventoryPath(config.householdId, productId),
+      consumeMovementPath: movementPath(config.householdId, `sandwichies-${safeId(orderId)}-${safeId(line.ingredientId)}-consume`),
+      reverseMovementPath: movementPath(config.householdId, `sandwichies-${safeId(orderId)}-${safeId(line.ingredientId)}-reverse`),
+      quantity: Math.abs(line.quantityDelta),
+    };
+  }).sort((a, b) => a.productId.localeCompare(b.productId));
+  if (new Set(prepared.map(({ productId }) => productId)).size !== prepared.length) {
+    throw new CupboardWorkerError("INVALID_MOVEMENT", "El pedido contiene ingredientes Cupboard duplicados.");
+  }
+  return prepared;
+}
+
+function sameReservationLines(stored, prepared) {
+  if (!Array.isArray(stored) || stored.length !== prepared.length) return false;
+  const expected = prepared.map(({ line, productId, quantity }) => ({
+    ingredientId: line.ingredientId,
+    productId,
+    quantity: quantity ?? Math.abs(line.quantityDelta),
+    unit: line.unit,
+  })).sort((a, b) => a.productId.localeCompare(b.productId));
+  const actual = [...stored].sort((a, b) => String(a.productId).localeCompare(String(b.productId)));
+  return actual.every((item, index) => item.ingredientId === expected[index].ingredientId
+    && item.productId === expected[index].productId
+    && item.quantity === expected[index].quantity
+    && item.unit === expected[index].unit);
+}
+
+/** Reserves available Cupboard stock atomically, without changing physical portions or movements. */
+export async function reserveCupboardOrder({ db, config, orderId, lines }) {
+  const prepared = prepareOrderLines(config, orderId, lines);
+  const holdPath = reservationPath(config.householdId, orderId);
+  return db.runTransaction(async (tx) => {
+    const snapshots = await tx.getMany([holdPath, ...prepared.map(({ inventoryPath: path }) => path)]);
+    const hold = snapshots[0];
+    const inventory = snapshots.slice(1);
+    const expectedReservation = prepared.map(({ line, productId, quantity }) => ({
+      ingredientId: line.ingredientId,
+      productId,
+      quantity,
+      unit: line.unit,
+    }));
+    if (hold.exists) {
+      if (hold.data.orderId !== orderId || !sameReservationLines(hold.data.lines, prepared)) {
+        throw new CupboardWorkerError("CUPBOARD_IDEMPOTENCY_CONFLICT", "La reserva ya existe con datos diferentes.");
+      }
+      if (hold.data.status === "reserved") {
+        return { applied: false, status: "reserved" };
+      }
+      if (hold.data.status === "consumed") {
+        return { applied: false, status: "consumed" };
+      }
+      throw new CupboardWorkerError("CUPBOARD_RESERVATION_CLOSED", "La reserva de inventario ya fue liberada o revertida.");
+    }
+
+    const writes = [];
+    for (let index = 0; index < prepared.length; index += 1) {
+      const item = prepared[index];
+      const stock = Number(inventory[index].data?.portions);
+      const reserved = Number(inventory[index].data?.reservedPortions ?? 0);
+      if (!inventory[index].exists) {
+        throw new CupboardWorkerError("CUPBOARD_PRODUCT_MISSING", `No existe el producto ${item.productId} en el inventario comercial de Cupboard.`);
+      }
+      if (!Number.isFinite(stock) || stock < 0 || !Number.isFinite(reserved) || reserved < 0 || reserved > stock) {
+        throw new CupboardWorkerError("CUPBOARD_STOCK_INVALID", `El stock de ${item.line.ingredientName} no es vÃ¡lido.`);
+      }
+      if (stock - reserved < item.quantity) {
+        throw new CupboardWorkerError("CUPBOARD_STOCK_INSUFFICIENT", `Stock insuficiente de ${item.line.ingredientName}: disponible ${stock - reserved}, requerido ${item.quantity}.`);
+      }
+      writes.push({ ...item, stock, reserved });
+    }
+    for (const item of writes) {
+      tx.update(item.inventoryPath, {
+        reservedPortions: item.reserved + item.quantity,
+        sandwichiesReservationUpdatedAt: new Date(),
+      });
+    }
+    tx.create(holdPath, {
+      orderId,
+      status: "reserved",
+      lines: expectedReservation,
+      createdAt: new Date(),
+      sourceApp: "sandwichies",
+      systemRecord: true,
+    });
+    return { applied: true, status: "reserved" };
+  });
+}
+
+/** Releases one still-active order hold exactly once. */
+export async function releaseCupboardOrderReservation({ db, config, orderId, lines }) {
+  const prepared = prepareOrderLines(config, orderId, lines);
+  const holdPath = reservationPath(config.householdId, orderId);
+  return db.runTransaction(async (tx) => {
+    const snapshots = await tx.getMany([holdPath, ...prepared.map(({ inventoryPath: path }) => path)]);
+    const hold = snapshots[0];
+    if (!hold.exists) return { applied: false, status: "missing" };
+    if (!sameReservationLines(hold.data.lines, prepared)) {
+      throw new CupboardWorkerError("CUPBOARD_IDEMPOTENCY_CONFLICT", "La reserva ya existe con datos diferentes.");
+    }
+    if (hold.data.status === "released" || hold.data.status === "reversed") {
+      return { applied: false, status: hold.data.status };
+    }
+    if (hold.data.status !== "reserved") {
+      throw new CupboardWorkerError("CUPBOARD_RESERVATION_ALREADY_CONSUMED", "No se puede liberar una reserva cuyo inventario ya fue consumido.");
+    }
+    for (let index = 0; index < prepared.length; index += 1) {
+      const item = prepared[index];
+      const current = Number(snapshots[index + 1].data?.reservedPortions ?? 0);
+      if (!snapshots[index + 1].exists || !Number.isFinite(current) || current < item.quantity) {
+        throw new CupboardWorkerError("CUPBOARD_RESERVATION_INCONSISTENT", "El balance reservado no coincide con el registro de reserva.");
+      }
+      tx.update(item.inventoryPath, {
+        reservedPortions: current - item.quantity,
+        sandwichiesReservationUpdatedAt: new Date(),
+      });
+    }
+    tx.update(holdPath, { status: "released", releasedAt: new Date() });
+    return { applied: true, status: "released" };
+  });
+}
 
 export async function applyCupboardOrderMovement({
   db,
@@ -103,20 +247,29 @@ export async function applyCupboardOrderMovement({
     return {
       line,
       productId,
+        quantity: Math.abs(line.quantityDelta),
       inventoryPath: inventoryPath(config.householdId, productId),
+      reservationPath: reservationPath(config.householdId, orderId),
       movementPath: movementPath(config.householdId, `${base}-${operation}`),
       consumptionPath: movementPath(config.householdId, `${base}-consume`),
     };
   });
 
   return db.runTransaction(async (tx) => {
-    const readPaths = prepared.flatMap((item) => [
+    const readPaths = [prepared[0].reservationPath, ...prepared.flatMap((item) => [
       item.inventoryPath,
       item.movementPath,
       ...(operation === "reverse" ? [item.consumptionPath] : []),
-    ]);
+    ])];
     const snapshots = await tx.getMany(readPaths);
-    let cursor = 0;
+    let cursor = 1;
+    const reservation = snapshots[0];
+    if (reservation.exists && (reservation.data.orderId !== orderId || !sameReservationLines(reservation.data.lines, prepared))) {
+      throw new CupboardWorkerError("CUPBOARD_IDEMPOTENCY_CONFLICT", "La reserva ya existe con datos diferentes.");
+    }
+    if (operation === "consume" && reservation.exists && !["reserved", "consumed"].includes(reservation.data.status)) {
+      throw new CupboardWorkerError("CUPBOARD_RESERVATION_CLOSED", "La reserva de inventario ya fue liberada o revertida.");
+    }
     const current = prepared.map((item) => {
       const inventory = snapshots[cursor++];
       const movement = snapshots[cursor++];
@@ -171,12 +324,25 @@ export async function applyCupboardOrderMovement({
       if (operation === "reverse" && !item.consumption?.exists) {
         throw new CupboardWorkerError("CUPBOARD_CONSUMPTION_NOT_FOUND", "No se encontró el consumo original para revertir.");
       }
+      const reserved = Number(item.inventory.data.reservedPortions ?? 0);
+      if (!Number.isFinite(reserved) || reserved < 0 || reserved > stock) {
+        throw new CupboardWorkerError("CUPBOARD_STOCK_INVALID", "Cupboard reserved stock is invalid.");
+      }
+      if (operation === "consume" && reservation.exists && reserved < Math.abs(delta)) {
+        throw new CupboardWorkerError("CUPBOARD_RESERVATION_INCONSISTENT", "Reserved balance does not match the order reservation.");
+      }
       const nextQuantity = stock + delta;
       if (nextQuantity < 0) {
         throw new CupboardWorkerError("CUPBOARD_STOCK_INSUFFICIENT", `Stock insuficiente de ${item.line.ingredientName}: disponible ${stock}, requerido ${Math.abs(delta)}.`);
       }
+      const remainingReservations = operation === "consume" && reservation.exists
+        ? reserved - Math.abs(delta)
+        : reserved;
+      if (nextQuantity < remainingReservations) {
+        throw new CupboardWorkerError("CUPBOARD_STOCK_RESERVED", "El movimiento reduciría el saldo por debajo de las reservas activas.");
+      }
       const revision = (Number(item.inventory.data.sandwichiesInventoryRevision) || 0) + 1;
-      writes.push({ ...item, quantity: nextQuantity, revision, delta, shouldWrite: true });
+      writes.push({ ...item, quantity: nextQuantity, reserved, revision, delta, shouldWrite: true });
     }
 
     for (const item of writes) {
@@ -184,6 +350,9 @@ export async function applyCupboardOrderMovement({
       const now = new Date();
       tx.update(item.inventoryPath, {
         portions: item.quantity,
+        ...(operation === "consume" && reservation.exists
+          ? { reservedPortions: item.reserved - Math.abs(item.delta) }
+          : {}),
         unit: item.line.unit,
         sandwichiesInventoryRevision: item.revision,
         updatedAt: now,
@@ -206,6 +375,12 @@ export async function applyCupboardOrderMovement({
         createdAt: now,
         updatedAt: now,
       });
+    }
+    if (reservation.exists && operation === "consume" && reservation.data.status === "reserved") {
+      tx.update(prepared[0].reservationPath, { status: "consumed", consumedAt: new Date() });
+    }
+    if (reservation.exists && operation === "reverse" && reservation.data.status === "consumed") {
+      tx.update(prepared[0].reservationPath, { status: "reversed", reversedAt: new Date() });
     }
     return {
       applied: writes.some((item) => item.shouldWrite),
@@ -243,7 +418,10 @@ export async function applyCupboardManualMovement({ db, config, operationId, lin
     const [inventory, movement] = await tx.getMany([inventoryPath, movementPath]);
     if (!inventory.exists) throw new CupboardWorkerError("CUPBOARD_PRODUCT_MISSING", "El producto no existe en el inventario comercial de Cupboard.");
     const current = Number(inventory.data.portions);
-    if (!Number.isFinite(current) || current < 0) throw new CupboardWorkerError("CUPBOARD_STOCK_INVALID", "El saldo de inventario no es válido.");
+    const reserved = Number(inventory.data.reservedPortions ?? 0);
+    if (!Number.isFinite(current) || current < 0 || !Number.isFinite(reserved) || reserved < 0 || reserved > current) {
+      throw new CupboardWorkerError("CUPBOARD_STOCK_INVALID", "Cupboard stock or reservation balance is invalid.");
+    }
 
     const expected = {
       ingredientId: line.ingredientId,
@@ -273,6 +451,7 @@ export async function applyCupboardManualMovement({ db, config, operationId, lin
 
     const next = current + line.quantityDelta;
     if (next < 0) throw new CupboardWorkerError("CUPBOARD_STOCK_INSUFFICIENT", "El ajuste dejaría el inventario en negativo.");
+    if (next < reserved) throw new CupboardWorkerError("CUPBOARD_STOCK_RESERVED", "El movimiento reduciría el saldo por debajo de las reservas activas.");
     const revision = (Number(inventory.data.sandwichiesInventoryRevision) || 0) + 1;
     const now = new Date();
     tx.update(inventoryPath, {

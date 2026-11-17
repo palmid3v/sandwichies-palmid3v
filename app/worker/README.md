@@ -100,10 +100,11 @@ When `schedule.enabled` is false or absent, the zone remains open 24 hours for b
 2. The Worker verifies the token and validates the order with the shared Sandwichies catalog/pricing domain.
 3. The server calculates item prices, totals, costs and ingredient usage; client-supplied totals/status/costs are rejected.
 4. A Firestore transaction creates the order, increments the order counter and stores an idempotency record keyed by customer UID + request UUID.
-5. When an admin confirms the order, the Worker locks the order transition, rebuilds ingredient consumption from the trusted order snapshot and applies the movement in Cupboard.
-6. Cupboard stock and its deterministic movement record are committed in one Cupboard Firestore transaction. Repeated requests do not decrement stock twice.
-7. The Worker mirrors the Cupboard balance/revision and movement into Sandwichies for the existing admin realtime views, then commits the order status.
-8. Cancelling an unpaid order creates an idempotent reversal. If no consumption was posted, cancellation is recorded as `not-consumed`; partial/inconsistent history fails closed for reconciliation.
+5. When an admin confirms the order, the Worker locks the order transition and rebuilds ingredient consumption from the trusted order snapshot.
+6. A Cupboard transaction creates or reuses an idempotent reservation after checking `portions - reservedPortions` for every mapped product.
+7. A second Cupboard transaction consumes the held quantity, records deterministic movement IDs, decrements physical and reserved balances, and marks the reservation consumed.
+8. The Worker mirrors the Cupboard balance/revision and movement into Sandwichies for admin realtime views, then commits the order status. If consumption fails, it attempts an idempotent reservation release; failed compensation is logged for reconciliation.
+9. Cancelling an unpaid pending order releases its active reservation. Cancelling a consumed order creates an idempotent reversal. Partial/inconsistent history fails closed for reconciliation.
 
 The two Firebase projects cannot share one Firestore transaction. This is a retry-safe saga, not a distributed atomic transaction: a successful Cupboard movement can precede the final Sandwichies order update. The transition lock, deterministic movement IDs and retry behavior are designed to reconcile that intermediate state. Do not manually delete movement records or reuse an idempotency key with different data.
 
@@ -123,7 +124,27 @@ households/{CUPBOARD_HOUSEHOLD_ID}/workspaces/sandwichies/movements/{movementId}
 
 The ingredient mapping must cover every active ingredient in `shared/catalog.js`, map to distinct Cupboard product document IDs, and contain no path separators. Missing mappings, duplicate product mappings, invalid stock, insufficient stock and idempotency conflicts fail closed.
 
-**IAM limitation:** Firestore REST calls made with service-account OAuth bypass Firestore Security Rules. Firestore IAM permissions are project-scoped, not collection-scoped. The service identities therefore have powerful project-level data access even though this Worker only addresses the Sandwichies business-inventory paths. Keep the two identities separate, grant only the required Firestore data role in their respective projects, do not use project Owner/Editor, protect and rotate the keys, and review this project-wide IAM limitation before issuing secrets. This is not equivalent to collection-level IAM isolation.
+Cupboard's commercial inventory stores physical `portions` and backend-owned `reservedPortions`; available stock is `portions - reservedPortions`. Reservation records live under `households/{householdId}/workspaces/sandwichies/reservations/` and include the order ID, mapped lines, lifecycle status and `systemRecord: true`. Cupboard Rules prevent browser clients from writing reservation records or changing reservation counters. The Cupboard UI's stock adjustments and the Worker both preserve the reserved-stock floor.
+
+**Release limitation:** the current reservation is acquired when an administrator confirms a pending order, immediately before consumption. It does not yet reserve stock during customer checkout/order creation. Therefore the complete “do not accept an order without stock” gate is not met; leave `ORDERS_ENABLED=false` and `BUSINESS.acceptingOrders=false` until checkout itself performs and compensates a reservation.
+
+**IAM limitation:** Firestore REST calls made with service-account OAuth bypass Firestore Security Rules. Firestore IAM permissions are project-scoped, not collection-scoped. The service identities therefore have powerful project-level data access even though this Worker only addresses the Sandwichies business-inventory paths. The predefined data role is `roles/datastore.user`, which grants read/write access to Firestore data; assign it only in the matching project (`sandwich-pro` for the Sandwichies identity and the configured Cupboard project for the Cupboard identity). Do not grant project Owner/Editor. A custom role may reduce permissions further after validating the exact REST methods used, but IAM still does not isolate collections. Review this project-wide IAM limitation before issuing secrets. See [Firestore IAM roles](https://cloud.google.com/iam/docs/roles-permissions/firestore) and [Firestore REST authentication](https://cloud.google.com/firestore/native/docs/use-rest-api).
+
+### Credential and dependency errors
+
+Each Cloudflare secret must contain the serialized JSON object from the matching Google service-account key. The Worker parses the JSON, checks the `service_account` type and required `project_id`, `client_email` and `private_key` fields, and verifies the project boundary before using the key. A present secret name is not proof that its value is valid. Never add credential contents or private-key fragments to logs or support reports.
+
+The API keeps setup and upstream failures distinct:
+
+- `BACKEND_CREDENTIALS_INVALID` / `CUPBOARD_CREDENTIALS_INVALID` — malformed JSON or missing account fields; HTTP 503.
+- `BACKEND_CREDENTIALS_PROJECT_MISMATCH` / `CUPBOARD_CREDENTIALS_PROJECT_MISMATCH` — account belongs to a different Firebase project; HTTP 503.
+- `GOOGLE_OAUTH_CREDENTIALS_REJECTED` — Google rejected the service-account assertion; HTTP 502.
+- `FIRESTORE_AUTHORIZATION_FAILED` — Firestore rejected the backend identity's IAM access; HTTP 502. This does not mean the signed-in user's admin claim failed.
+- `FIRESTORE_RESOURCE_NOT_FOUND` / `FIRESTORE_REQUEST_REJECTED` — upstream database/resource/request problem; HTTP 502.
+- `GOOGLE_OAUTH_UNAVAILABLE` / `FIRESTORE_UNAVAILABLE` — upstream service failure or throttling; HTTP 503.
+- `GOOGLE_OAUTH_TIMEOUT`, `FIRESTORE_REQUEST_TIMEOUT` or `FIRESTORE_BATCH_GET_TIMEOUT` — upstream timeout; HTTP 504.
+
+Provider response bodies are not returned to callers. Logs retain the dependency stage and safe provider error code only. Firebase ID-token rejection remains a separate 401/403 authentication response. The Worker suite includes synthetic invalid JSON, invalid private-key, OAuth rejection, IAM-status mapping and timeout cases.
 
 ## Required Cloudflare configuration
 

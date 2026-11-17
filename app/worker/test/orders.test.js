@@ -59,6 +59,10 @@ class MemoryFirestore {
 const mapping = Object.fromEntries(
   CATALOG.ingredients.filter((item) => item.active !== false).map((item) => [item.id, item.cupboardProductId]),
 );
+const createCupboardDb = (portions = 1000) => new MemoryFirestore(Object.fromEntries(Object.values(mapping).map((productId) => [
+  `households/household-a/workspaces/sandwichies/inventory/${productId}`,
+  { portions, reservedPortions: 0, unit: "unidad" },
+])));
 const env = {
   FIREBASE_PROJECT_ID: "sandwich-pro",
   ORDERS_ENABLED: "true",
@@ -126,6 +130,28 @@ test("production Firestore requires a service account from the configured projec
     () => createSandwichiesDb({ ...env, SANDWICHIES_SERVICE_ACCOUNT_JSON: "" }),
     (error) => error.code === "BACKEND_NOT_CONFIGURED",
   );
+  assert.throws(
+    () => createSandwichiesDb({ ...env, SANDWICHIES_SERVICE_ACCOUNT_JSON: "not-json" }),
+    (error) => error.status === 503 && error.code === "BACKEND_CREDENTIALS_INVALID"
+      && error.message === "La credencial del backend no contiene JSON válido.",
+  );
+  assert.throws(
+    () => createSandwichiesDb({ ...env, SANDWICHIES_SERVICE_ACCOUNT_JSON: "null" }),
+    (error) => error.status === 503 && error.code === "BACKEND_CREDENTIALS_INVALID",
+  );
+  assert.throws(
+    () => createSandwichiesDb({ ...env, SANDWICHIES_SERVICE_ACCOUNT_JSON: JSON.stringify({ type: "service_account" }) }),
+    (error) => error.status === 503 && error.code === "BACKEND_CREDENTIALS_INVALID",
+  );
+  assert.throws(
+    () => createSandwichiesDb({
+      ...env,
+      SANDWICHIES_SERVICE_ACCOUNT_JSON: JSON.stringify({
+        type: "service_account", project_id: "other-project", client_email: "worker@example.com", private_key: "key",
+      }),
+    }),
+    (error) => error.status === 503 && error.code === "BACKEND_CREDENTIALS_PROJECT_MISMATCH",
+  );
 });
 const adminClaims = { sub: "admin-uid", admin: true, email_verified: true };
 const validOrderRequest = () => ({
@@ -139,13 +165,14 @@ const validOrderRequest = () => ({
 
 test("new orders are server-priced and idempotent by authenticated UID plus requestId", async () => {
   const db = new MemoryFirestore();
+  const cupboardDb = createCupboardDb();
   const payload = validOrderRequest();
-  const first = await createOrder({ request: { ...payload, total: 1 }, claims: customerClaims, env, db, policy: testOrderPolicy })
+  const first = await createOrder({ request: { ...payload, total: 1 }, claims: customerClaims, env, db, cupboardDb, policy: testOrderPolicy })
     .catch((error) => error);
   assert.equal(first.status, 400);
   assert.equal(first.code, "invalid-argument");
 
-  const created = await createOrder({ request: payload, claims: customerClaims, env, db, policy: testOrderPolicy });
+  const created = await createOrder({ request: payload, claims: customerClaims, env, db, cupboardDb, policy: testOrderPolicy });
   assert.ok(created.order.id);
   assert.equal(created.order.status, "pendiente");
   assert.equal(created.order.total > 1, true);
@@ -156,11 +183,37 @@ test("new orders are server-priced and idempotent by authenticated UID plus requ
   assert.equal(stored.data.total, created.order.total);
   // The persisted trusted order must retain the Cupboard integration state.
   assert.equal(stored.data.inventory.system, "cupboard");
+  assert.equal(stored.data.inventory.reservationStatus, "reserved");
   assert.equal(stored.data.inventory.consumptionStatus, "pending");
+  assert.ok((await cupboardDb.read(`households/household-a/workspaces/sandwichies/reservations/sandwichies-${created.order.id}`)).exists);
 
-  const repeated = await createOrder({ request: payload, claims: customerClaims, env, db, policy: testOrderPolicy });
+  const repeated = await createOrder({ request: payload, claims: customerClaims, env, db, cupboardDb, policy: testOrderPolicy });
   assert.equal(repeated.order.id, created.order.id);
   assert.equal((await db.read("counters/orders")).data.value, 1);
+});
+
+test("checkout rejects unreservable stock and retrying the same request reserves before creating the order", async () => {
+  const db = new MemoryFirestore();
+  const cupboardDb = createCupboardDb(0);
+  const request = validOrderRequest();
+  await assert.rejects(
+    createOrder({ request, claims: customerClaims, env, db, cupboardDb, policy: testOrderPolicy }),
+    (error) => error.status === 409 && error.code === "CUPBOARD_STOCK_INSUFFICIENT",
+  );
+  assert.equal((await db.query("orders")).length, 0);
+  const prepared = await db.read(`orderRequests/${customerClaims.sub}_${request.requestId}`);
+  assert.equal(prepared.data.status, "reserving");
+
+  await cupboardDb.runTransaction(async (tx) => {
+    for (const mappedProduct of Object.values(mapping)) {
+      tx.update(`households/household-a/workspaces/sandwichies/inventory/${mappedProduct}`, { portions: 20 });
+    }
+  });
+  const accepted = await createOrder({ request, claims: customerClaims, env, db, cupboardDb, policy: testOrderPolicy });
+  const stored = await db.read(`orders/${accepted.order.id}`);
+  assert.equal(stored.data.inventory.reservationStatus, "reserved");
+  assert.equal((await db.read(`orderRequests/${customerClaims.sub}_${request.requestId}`)).data.status, "complete");
+  assert.ok((await cupboardDb.read(`households/household-a/workspaces/sandwichies/reservations/sandwichies-${accepted.order.id}`)).exists);
 });
 
 test("orders remain disabled unless an explicit Worker environment flag enables them", async () => {
@@ -215,6 +268,8 @@ test("admin confirmation consumes Cupboard stock and mirrors the idempotent move
   assert.equal(result.cupboardConsumptionStatus, "posted");
   assert.equal((await cupboardDb.read(cupboardInventoryPath)).data.portions, 8);
   assert.equal((await cupboardDb.read(cupboardConsumptionPath)).exists, true);
+  assert.equal((await cupboardDb.read("households/household-a/workspaces/sandwichies/reservations/sandwichies-order-transition-1")).data.status, "consumed");
+  assert.equal((await cupboardDb.read(cupboardInventoryPath)).data.reservedPortions, 0);
   assert.equal((await sandwichiesDb.read(orderPath)).data.status, "confirmado");
   assert.equal((await sandwichiesDb.read("inventoryBalances/pepperoni")).data.quantity, 8);
   assert.equal((await sandwichiesDb.read("inventoryTransactions/order-transition-1-pepperoni")).exists, true);
@@ -253,6 +308,25 @@ test("insufficient Cupboard stock prevents confirmation and releases the transit
   assert.equal((await cupboardDb.read(cupboardInventoryPath)).data.portions, 1);
 });
 
+test("cancelling a pending order releases its Cupboard reservation exactly once", async () => {
+  const sandwichiesDb = new MemoryFirestore({ [orderPath]: orderDoc() });
+  const cupboardDb = new MemoryFirestore({
+    [cupboardInventoryPath]: { portions: 10, reservedPortions: 2, unit: "unidad", sandwichiesInventoryRevision: 1 },
+    "households/household-a/workspaces/sandwichies/reservations/sandwichies-order-transition-1": {
+      orderId,
+      status: "reserved",
+      lines: [{ ingredientId: "pepperoni", productId: "N-2000007", quantity: 2, unit: "unidad" }],
+      sourceApp: "sandwichies",
+    },
+  });
+  const result = await transitionOrder({
+    orderId, status: "cancelado", claims: adminClaims, env, db: sandwichiesDb, cupboardDb,
+  });
+  assert.equal(result.cupboardConsumptionStatus, "not-consumed");
+  assert.equal((await cupboardDb.read(cupboardInventoryPath)).data.reservedPortions, 0);
+  assert.equal((await cupboardDb.read("households/household-a/workspaces/sandwichies/reservations/sandwichies-order-transition-1")).data.status, "released");
+});
+
 
 test("meeting-point orders are grouped into a virtual table using the fixed anchor", async () => {
   const polygon = [
@@ -278,7 +352,8 @@ test("meeting-point orders are grouped into a virtual table using the fixed anch
       meetingPoint: { latitude: 4.65, longitude: -74.05, label: "Parque de prueba" },
     },
   };
-  const first = await createOrder({ request: firstRequest, claims: customerClaims, env, db, policy: testOrderPolicy });
+  const cupboardDb = createCupboardDb();
+  const first = await createOrder({ request: firstRequest, claims: customerClaims, env, db, cupboardDb, policy: testOrderPolicy });
   const firstTableId = first.order.delivery.tableId;
   assert.ok(firstTableId);
   assert.equal(first.order.delivery.status, "waiting_customer");
@@ -292,7 +367,7 @@ test("meeting-point orders are grouped into a virtual table using the fixed anch
       meetingPoint: { latitude: 4.6501, longitude: -74.05, label: "A pocos metros" },
     },
   };
-  const second = await createOrder({ request: secondRequest, claims: { sub: "customer-two", email_verified: true }, env, db, policy: testOrderPolicy });
+  const second = await createOrder({ request: secondRequest, claims: { sub: "customer-two", email_verified: true }, env, db, cupboardDb, policy: testOrderPolicy });
   assert.equal(second.order.delivery.tableId, firstTableId);
   assert.equal((await db.read(`virtualTables/${firstTableId}`)).data.activeOrderCount, 2);
   assert.equal((await db.read(`virtualTables/${firstTableId}/members/${first.order.id}`)).exists, true);
@@ -515,7 +590,7 @@ test("order creation assigns the nearest zone and persists assignment distance",
     ...validOrderRequest(),
     fulfillment: { type: "punto_encuentro", meetingPoint: { latitude: 4.59, longitude: -74.05 } },
   };
-  const result = await createOrder({ request, claims: customerClaims, env, db, policy: testOrderPolicy });
+  const result = await createOrder({ request, claims: customerClaims, env, db, cupboardDb: createCupboardDb(), policy: testOrderPolicy });
   assert.equal(result.order.delivery.zoneId, "zone-near");
   const stored = await db.read(`orders/${result.order.id}`);
   assert.equal(stored.data.delivery.zoneAssignment.method, "nearest_polygon");
@@ -539,7 +614,7 @@ test("order creation is rejected when the nearest zone is outside its service ho
     fulfillment: { type: "punto_encuentro", meetingPoint: { latitude: 4.65, longitude: -74.05 } },
   };
   await assert.rejects(
-    createOrder({ request, claims: customerClaims, env, db, policy: testOrderPolicy }),
+    createOrder({ request, claims: customerClaims, env, db, cupboardDb: createCupboardDb(), policy: testOrderPolicy }),
     (error) => error.status === 422 && error.code === "ZONE_OUTSIDE_SERVICE_HOURS",
   );
 });
