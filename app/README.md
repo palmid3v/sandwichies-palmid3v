@@ -234,7 +234,7 @@ Los porcentajes son estimaciones de avance documental/funcional por área, no m�
 | UX cliente web | 75% | Browser verified storefront discovery, cart, profile and route authorization; checkout remains closed |
 | UX administración | 85% | Herramientas principales; validación operativa pendiente |
 | Integración con Cupboard | 65% | Falta configuración real y pruebas cruzadas |
-| Recepción de pedidos | Desactivada | `BUSINESS.acceptingOrders=false` y `ORDERS_ENABLED=false`; no se aceptan nuevas órdenes |
+| Recepción de pedidos | Habilitada para pruebas controladas | `BUSINESS.acceptingOrders=true` y `ORDERS_ENABLED=true` en el código; runtime remoto pendiente de verificación |
 | Mesas virtuales | Implementación base | Cliente, funciones, consola admin y reglas; validación/release pendientes |
 | iOS y Android nativos | 0% código | Plan de crecimiento, sin app nativa |
 
@@ -295,7 +295,7 @@ No migrar el frontend actual ni duplicar reglas de negocio antes de una decisió
 
 ## 9. Firebase, seguridad y release
 
-- El estado actual de `main` mantiene `BUSINESS.acceptingOrders = false` en `app/shared/business.js` y `ORDERS_ENABLED = "false"` en `app/worker/wrangler.toml`. El Worker también exige ambos gates para crear una orden; no habilitar ninguno durante desarrollo.
+- `main` mantiene `BUSINESS.acceptingOrders = true` en `app/shared/business.js` y `ORDERS_ENABLED = "true"` en `app/worker/wrangler.toml` para pruebas controladas autorizadas. El Worker exige ambos gates para crear una orden. La configuración remota solo se considera habilitada cuando `/health` confirma `ordersEnabled: true`; no procesar pedidos reales ni confundir pruebas con release.
 - La cuenta Cloudflare muestra un registro de despliegue del Worker, pero `GET /health` en el hostname probado devolvió HTTP 404. La configuración de la versión consultada reportó `bindings: []` y `compatibility_date = 2026-10-23`, distinta de la fecha local. Por tanto, el backend remoto no está validado como API funcional; no afirmar que está operativo ni intentar pedidos reales. El desarrollo local debe usar Wrangler + Firestore Emulator.
 - La autenticación administrativa usa Firebase Auth y custom claim `admin: true`.
 - El cliente usa una instancia Firebase separada para sesiones anónimas.
