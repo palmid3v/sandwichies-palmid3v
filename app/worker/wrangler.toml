@@ -11,7 +11,7 @@ CUPBOARD_PROJECT_ID = "cupboard-app-ce528"
 CUPBOARD_HOUSEHOLD_ID = "e68b4d69-ef73-4a21-913a-ee1ad3b8a14b"
 # Production frontend origin only. Local origins are configured in worker/.dev.vars.
 ALLOWED_ORIGINS = "https://sanpalmid3v.vercel.app"
-ORDERS_ENABLED = "false"
+ORDERS_ENABLED = "true"
 
 [triggers]
 crons = ["*/5 * * * *"]
