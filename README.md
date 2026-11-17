@@ -8,7 +8,7 @@ Gestionar el catálogo, configuración, precios y operación de un negocio de s�
 
 ## 🔭 Visión
 
-Convertirse en una plataforma operativa lista para apoyar el negocio y su integración con Cupboard; la recepción de pedidos seguirá desactivada hasta completar validación y autorización de lanzamiento.
+Convertirse en una plataforma operativa lista para apoyar el negocio y su integración con Cupboard. La recepción de pedidos está habilitada en el código para pruebas controladas autorizadas por el propietario; esto no equivale a un lanzamiento comercial.
 
 
 ## 🌐 Despliegue en Vercel
@@ -23,7 +23,7 @@ Convertirse en una plataforma operativa lista para apoyar el negocio y su integr
 README revisado el **14 de noviembre de 2026**. El estado y las capacidades descritas se limitan a lo documentado en este repositorio; una función planificada no se considera implementada sin evidencia y validación.
 
 
-> **Estado documental:** la recepción de pedidos está desactivada. `BUSINESS.acceptingOrders=false` en el dominio compartido y `ORDERS_ENABLED=false` en Wrangler. El storefront debe mostrar **Pedidos cerrados** y el Worker debe rechazar nuevas órdenes. La configuración local debe revisarse en `app/worker/.dev.vars`; nunca versionar secretos.
+> **Estado documental:** los dos gates de código están habilitados para pruebas controladas: `BUSINESS.acceptingOrders=true` y `ORDERS_ENABLED=true` en Wrangler. Esto no confirma que el Worker remoto esté actualizado: verificar `/health` (`ordersEnabled: true`) después del despliegue de pruebas. No procesar pedidos de clientes reales ni asumir que producción está validada. La configuración local debe revisarse en `app/worker/.dev.vars`; nunca versionar secretos.
 
 ## 🎯 Producto
 Sandwichies administra el ciclo comercial de sándwiches: catálogo, recetas, precios, carrito, pedidos, pagos, entrega y operación administrativa. La experiencia cliente es mobile-first; la administración funciona en móvil y escritorio.
@@ -60,7 +60,7 @@ Local verification on 2026-11-12 passed `npm run check`: lint, 87 Worker tests, 
 |---|---|
 | Catálogo, recetas y precios confiables | Implementado en dominio compartido |
 | Storefront y carrito | Authenticated cart persisted through local Worker/Firestore emulator and survived browser reload; discovery and category search verified |
-| Pedidos y Worker | Recepción desactivada; `BUSINESS.acceptingOrders=false` y `ORDERS_ENABLED=false` |
+| Pedidos y Worker | Gates habilitados en el código para pruebas controladas; runtime remoto pendiente de verificación |
 | Zonas y mesas virtuales | Implementación y prueba local confirmadas; ampliar reglas |
 | Cupboard | Puente idempotente en código; configuración/QA cruzado pendiente |
 | Registro, perfil y direcciones persistentes | Synthetic verified Auth Emulator account and customer profile read/write verified locally; production unverified |
@@ -84,7 +84,7 @@ Local verification on 2026-11-12 passed `npm run check`: lint, 87 Worker tests, 
 - Las credenciales de servicio Sandwichies y Cupboard deben ser distintas. El acceso Firestore REST con service account omite Firestore Rules y las reglas IAM son de alcance de proyecto; revisar el riesgo antes de producción.
 - El consumo Cupboard y la actualización del pedido son una saga entre proyectos, no una transacción distribuida. Reintentos, locks y movimientos deterministas deben recuperarse de forma comprobada.
 - Mantener pruebas en emuladores. No ejecutar pedidos de prueba contra inventario real.
-- La recepción de pedidos permanece desactivada. No habilitar pedidos ni desplegar cambios de backend sin aprobación explícita y release checklist aprobado.
+- La recepción de pedidos está habilitada en el código para pruebas controladas por autorización explícita del propietario. No procesar pedidos reales ni considerar aprobado el release; el despliegue y la validación integral siguen siendo gates separados.
 
 ## 🧪 Desarrollo local
 Desde `app/`:
